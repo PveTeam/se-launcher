@@ -1,0 +1,26 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <TargetFramework>net8.0-windows</TargetFramework>
+        <RuntimeIdentifier>win-x64</RuntimeIdentifier>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Nullable>enable</Nullable>
+        <RestorePackagesWithLockFile>true</RestorePackagesWithLockFile>
+        <EnableWindowsTargeting>true</EnableWindowsTargeting>
+        <PackageType>CringePlugin</PackageType>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <PackageReference Include="NLog" Version="5.3.4" ExcludeAssets="runtime"/>
+        <PackageReference Include="SpaceEngineersDedicated.ReferenceAssemblies" Version="1.*" ExcludeAssets="runtime"/>
+        <PackageReference Include="ImGui.NET.DirectX" Version="1.91.0.1" ExcludeAssets="runtime; native"/>
+    </ItemGroup>
+
+    <ItemGroup>
+        <Reference Include="CringePlugins">
+            <HintPath>..\CringePlugins\bin\Debug\net8.0-windows\win-x64\CringePlugins.dll</HintPath>
+            <Private>false</Private>
+        </Reference>
+    </ItemGroup>
+
+</Project>

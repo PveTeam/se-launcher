@@ -1,0 +1,110 @@
+name: Build
+
+on:
+  push:
+    branches: [master]
+
+jobs:
+  compute-version:
+    name: Compute Version
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+    steps:
+      - uses: actions/checkout@master
+        with:
+          ref: ${{ github.head_ref }}
+          fetch-depth: 0
+        
+      - id: version
+        uses: paulhatch/semantic-version@v5.3.0
+        with:
+          tag_prefix: ''
+          major_pattern: 'breaking:'
+          minor_pattern: 'feature:'
+          bump_each_commit: true
+          
+  build-nuget:
+    name: Build Nuget package
+    runs-on: ubuntu-latest
+    needs: [compute-version]
+    strategy: 
+      matrix:
+        project: [CringeBootstrap.Abstractions, NuGet, SharedCringe, CringePlugins]
+    steps:
+      - uses: actions/checkout@master
+        
+      - uses: actions/setup-dotnet@v4
+        
+      - run: dotnet restore ${{ matrix.project }}/${{ matrix.project }}.csproj --locked-mode
+        name: Restore Project
+        
+      - run: dotnet pack -c Release -o ./pub ${{ matrix.project }}/${{ matrix.project }}.csproj --no-restore -p:Version="${{ needs.compute-version.outputs.version }}"
+        name: Pack Project
+        
+      - name: Install Sleet
+        run: dotnet tool install -g sleet
+        
+      - name: Push Nuget Package
+        env:
+          SLEET_FEED_TYPE: s3
+          SLEET_FEED_PATH: https://dl.zznty.ru/
+          SLEET_FEED_BUCKETNAME: ${{ secrets.S3_BUCKET }}
+          SLEET_FEED_SERVICEURL: ${{ secrets.S3_ENDPOINT }}
+          SLEET_FEED_ACCESSKEYID: ${{ secrets.S3_KEY_ID }}
+          SLEET_FEED_SECRETACCESSKEY: ${{ secrets.S3_SECRET }}
+        run: ~/.dotnet/tools/sleet push ./pub
+  
+  build:
+    name: Build Launcher
+    runs-on: ubuntu-latest
+    needs: [compute-version]
+    env:
+      VPK_CHANNEL: win
+      VPK_OUTPUT_DIR: Releases
+    steps:
+      - uses: actions/checkout@master
+
+      - uses: actions/setup-dotnet@v4
+
+      - run: dotnet restore CringeBootstrap/CringeBootstrap.csproj --locked-mode -r win-x64
+        name: Restore Project
+
+      - run: dotnet publish -c Release -o ./pub CringeBootstrap/CringeBootstrap.csproj --no-restore -p:Version="${{ needs.compute-version.outputs.version }}" -r win-x64 --no-self-contained
+        id: publish
+        name: Build Project
+
+      - run: dotnet tool install -g vpk
+        
+      - run: ~/.dotnet/tools/vpk download s3 --bucket $VPK_BUCKET --endpoint $VPK_ENDPOINT
+        name: Download previous release
+        env:
+          VPK_KEY_ID: ${{ secrets.S3_KEY_ID }}
+          VPK_SECRET: ${{ secrets.S3_SECRET }}
+          VPK_ENDPOINT: ${{ secrets.S3_ENDPOINT }}
+          VPK_BUCKET: ${{ secrets.S3_BUCKET }}
+          VPK_PREFIX: CringeLauncher
+      
+      - run: ~/.dotnet/tools/vpk [win] pack -u $VPK_PACK_ID -v $VPK_PACK_VERSION -p $VPK_PACK_DIR
+        name: Pack Project
+        env:
+          VPK_RUNTIME: win-x64
+          VPK_PACK_ID: CringeLauncher
+          VPK_PACK_VERSION: ${{ needs.compute-version.outputs.version }}
+          VPK_PACK_AUTHORS: zznty
+          VPK_PACK_TITLE: SE Cringe Launcher
+          VPK_PACK_DIR: ./pub
+          VPK_MAIN_EXE: CringeBootstrap.exe
+          VPK_NO_PORTABLE: true
+          VPK_FRAMEWORK: net8.0-x64-desktop,vcredist120-x64,vcredist143-x64
+          VPK_SHORTCUTS: ''
+          
+      - run: ~/.dotnet/tools/vpk upload s3 -o $VPK_OUTPUT_DIR --bucket $VPK_BUCKET --endpoint $VPK_ENDPOINT
+        name: Upload new release
+        env:
+          VPK_KEY_ID: ${{ secrets.S3_KEY_ID }}
+          VPK_SECRET: ${{ secrets.S3_SECRET }}
+          VPK_ENDPOINT: ${{ secrets.S3_ENDPOINT }}
+          VPK_BUCKET: ${{ secrets.S3_BUCKET }}
+          VPK_PREFIX: CringeLauncher
+          VPK_KEEP_MAX_RELEASES: 3

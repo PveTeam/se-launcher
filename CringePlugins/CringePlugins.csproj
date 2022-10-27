@@ -1,0 +1,40 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <TargetFramework>net8.0-windows</TargetFramework>
+        <RuntimeIdentifier>win-x64</RuntimeIdentifier>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Nullable>enable</Nullable>
+        <UseWindowsForms>true</UseWindowsForms>
+        <RestorePackagesWithLockFile>true</RestorePackagesWithLockFile>
+        <EnableWindowsTargeting>true</EnableWindowsTargeting>
+    </PropertyGroup>
+
+    <ItemGroup>
+      <ProjectReference Include="..\NuGet\NuGet.csproj" />
+      <ProjectReference Include="..\SharedCringe\SharedCringe.csproj" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <Publicize Include="VRage:VRage.Plugins.MyPlugins.m_plugins" />
+        <Publicize Include="VRage:VRage.Plugins.MyPlugins.m_handleInputPlugins" />
+    </ItemGroup>
+    
+    <ItemGroup>
+        <PackageReference Include="Basic.Reference.Assemblies.Net80" Version="1.7.9" />
+        <PackageReference Include="Basic.Reference.Assemblies.Net80Windows" Version="1.7.9" />
+        <PackageReference Include="NLog" Version="5.3.4" />
+        <PackageReference Include="ImGui.NET.DirectX" Version="1.91.0.1" />
+        <PackageReference Include="SpaceEngineersDedicated.ReferenceAssemblies" Version="1.*" ExcludeAssets="runtime" />
+        <PackageReference Include="dnlib" Version="4.4.0" />
+        <PackageReference Include="Krafs.Publicizer" Version="2.2.1">
+            <PrivateAssets>all</PrivateAssets>
+            <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+        </PackageReference>
+    </ItemGroup>
+    
+    <ItemGroup>
+      <EmbeddedResource Include="splash.gif" />
+    </ItemGroup>
+
+</Project>

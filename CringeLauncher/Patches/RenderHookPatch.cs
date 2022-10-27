@@ -1,0 +1,22 @@
+﻿using Windows.Win32.Foundation;
+using HarmonyLib;
+using SharpDX.DXGI;
+using VRage.Platform.Windows.Forms;
+
+namespace CringeLauncher.Patches;
+
+[HarmonyPatch]
+public class RenderHookPatch
+{
+    [HarmonyPrefix, HarmonyPatch(typeof(SwapChain), nameof(SwapChain.Present))]
+    private static void PresentPrefix()
+    {
+        ImGuiHandler.Instance?.DoRender();
+    }
+
+    [HarmonyPostfix, HarmonyPatch(typeof(MyGameForm), "OnLoad")]
+    private static void LoadPostfix(MyGameForm __instance)
+    {
+        ImGuiHandler.Instance?.HookWindow((HWND)__instance.Handle);
+    }
+}

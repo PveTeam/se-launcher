@@ -1,0 +1,16 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <TargetFramework>net8.0</TargetFramework>
+        <RuntimeIdentifier>win-x64</RuntimeIdentifier>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Nullable>enable</Nullable>
+        <RestorePackagesWithLockFile>true</RestorePackagesWithLockFile>
+    </PropertyGroup>
+
+    <ItemGroup>
+      <PackageReference Include="NuGet.Frameworks" Version="6.11.1" />
+      <PackageReference Include="NuGet.Versioning" Version="6.11.1" />
+    </ItemGroup>
+
+</Project>

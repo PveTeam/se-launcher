@@ -1,0 +1,37 @@
+{
+  "version": 1,
+  "dependencies": {
+    "net8.0": {
+      "NLog": {
+        "type": "Direct",
+        "requested": "[5.3.4, )",
+        "resolved": "5.3.4",
+        "contentHash": "gLy7+O1hEYJXIlcTr1/VWjGXrZTQFZzYNO18IWasD64pNwz0BreV+nHLxWKXWZzERRzoKnsk2XYtwLkTVk7J1A=="
+      },
+      "SpaceEngineersDedicated.ReferenceAssemblies": {
+        "type": "Direct",
+        "requested": "[1.*, )",
+        "resolved": "1.205.24",
+        "contentHash": "cgzWJWflVITp+fY5OPgffcoJ08KL5YHMQrMwaDAkUxfRwPgTzU8qOADsrMqq25vXsEbznU1DzNWwTPviYYi7UA==",
+        "dependencies": {
+          "SharpDX": "4.2.0-keen-cringe",
+          "protobuf-net": "1.0.0"
+        }
+      },
+      "protobuf-net": {
+        "type": "Transitive",
+        "resolved": "1.0.0",
+        "contentHash": "kTGOK0E87473sOImOjgZOnz3kTC2aMLffoRWQLYNuBLJnwNNmjanF9IkevZ9Q7yYLeABQfcF3BpeepuMntMVNw=="
+      },
+      "SharpDX": {
+        "type": "Transitive",
+        "resolved": "4.2.0-keen-cringe",
+        "contentHash": "LaJN3h1Gi1FWVdef2I5WtOH9gwzKCBniH0CragarbkN2QheYY6Lqm+91PcOfp1w/4wdVb+k8Kjv3sO393Tphtw=="
+      },
+      "cringebootstrap.abstractions": {
+        "type": "Project"
+      }
+    },
+    "net8.0/win-x64": {}
+  }
+}

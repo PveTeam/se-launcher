@@ -1,0 +1,115 @@
+{
+  "version": 1,
+  "dependencies": {
+    "net8.0-windows7.0": {
+      "ImGui.NET.DirectX": {
+        "type": "Direct",
+        "requested": "[1.91.0.1, )",
+        "resolved": "1.91.0.1",
+        "contentHash": "PpW1gQ9g97h6Hm/h/tkSBOmsBYgGwN8wKNmlJomcQFD/zRY1HPkJZz18XRSfRLHPmH2eeh4hhhZv1KHug7dF9g==",
+        "dependencies": {
+          "System.Buffers": "4.5.1",
+          "System.Numerics.Vectors": "4.5.0",
+          "System.Runtime.CompilerServices.Unsafe": "6.0.0"
+        }
+      },
+      "NLog": {
+        "type": "Direct",
+        "requested": "[5.3.4, )",
+        "resolved": "5.3.4",
+        "contentHash": "gLy7+O1hEYJXIlcTr1/VWjGXrZTQFZzYNO18IWasD64pNwz0BreV+nHLxWKXWZzERRzoKnsk2XYtwLkTVk7J1A=="
+      },
+      "SpaceEngineersDedicated.ReferenceAssemblies": {
+        "type": "Direct",
+        "requested": "[1.*, )",
+        "resolved": "1.205.24",
+        "contentHash": "cgzWJWflVITp+fY5OPgffcoJ08KL5YHMQrMwaDAkUxfRwPgTzU8qOADsrMqq25vXsEbznU1DzNWwTPviYYi7UA==",
+        "dependencies": {
+          "SharpDX": "4.2.0-keen-cringe",
+          "protobuf-net": "1.0.0"
+        }
+      },
+      "dnlib": {
+        "type": "Transitive",
+        "resolved": "4.4.0",
+        "contentHash": "cKHI720q+zfEEvzklWVGt6B0TH3AibAyJbpUJl4U6KvTP13tycfnqJpkGHRZ/oQ45BTIoIxIwltHIJVDN+iCqQ=="
+      },
+      "NuGet.Frameworks": {
+        "type": "Transitive",
+        "resolved": "6.11.1",
+        "contentHash": "plTZ3ariSWQVsFn2mk83SsdmSg1VpgIMTSZpP/eSE/NNQF02p+M9ItxAYeUZBMX+cQ2nFkSwxQRJ0/fkaV9Hbg=="
+      },
+      "NuGet.Versioning": {
+        "type": "Transitive",
+        "resolved": "6.11.1",
+        "contentHash": "YNn3BB71F+guJW42TbAhGcMh3gpyqFMZcPVD9pm5vcvGivTALtRely/VCPWQQ6JQ5PfwIrjPaJMO7VnqyeK3rg=="
+      },
+      "protobuf-net": {
+        "type": "Transitive",
+        "resolved": "1.0.0",
+        "contentHash": "kTGOK0E87473sOImOjgZOnz3kTC2aMLffoRWQLYNuBLJnwNNmjanF9IkevZ9Q7yYLeABQfcF3BpeepuMntMVNw=="
+      },
+      "SharpDX": {
+        "type": "Transitive",
+        "resolved": "4.2.0-keen-cringe",
+        "contentHash": "LaJN3h1Gi1FWVdef2I5WtOH9gwzKCBniH0CragarbkN2QheYY6Lqm+91PcOfp1w/4wdVb+k8Kjv3sO393Tphtw=="
+      },
+      "System.Buffers": {
+        "type": "Transitive",
+        "resolved": "4.5.1",
+        "contentHash": "Rw7ijyl1qqRS0YQD/WycNst8hUUMgrMH4FCn1nNm27M4VxchZ1js3fVjQaANHO5f3sN4isvP4a+Met9Y4YomAg=="
+      },
+      "System.Numerics.Vectors": {
+        "type": "Transitive",
+        "resolved": "4.5.0",
+        "contentHash": "QQTlPTl06J/iiDbJCiepZ4H//BVraReU4O4EoRw1U02H5TLUIT7xn3GnDp9AXPSlJUDyFs4uWjWafNX6WrAojQ=="
+      },
+      "System.Runtime.CompilerServices.Unsafe": {
+        "type": "Transitive",
+        "resolved": "6.0.0",
+        "contentHash": "/iUeP3tq1S0XdNNoMz5C9twLSrM/TH+qElHkXWaPvuNOt+99G75NrV0OS2EqHx5wMN7popYjpc8oTjC1y16DLg=="
+      },
+      "cringebootstrap.abstractions": {
+        "type": "Project"
+      },
+      "cringeplugins": {
+        "type": "Project",
+        "dependencies": {
+          "NLog": "[5.3.4, )",
+          "NuGet": "[1.0.0, )",
+          "SharedCringe": "[1.0.0, )",
+          "SpaceEngineersDedicated.ReferenceAssemblies": "[1.*, )",
+          "dnlib": "[4.4.0, )"
+        }
+      },
+      "nuget": {
+        "type": "Project",
+        "dependencies": {
+          "NuGet.Frameworks": "[6.11.1, )",
+          "NuGet.Versioning": "[6.11.1, )"
+        }
+      },
+      "sharedcringe": {
+        "type": "Project",
+        "dependencies": {
+          "CringeBootstrap.Abstractions": "[1.0.0, )",
+          "NLog": "[5.3.4, )",
+          "SpaceEngineersDedicated.ReferenceAssemblies": "[1.*, )"
+        }
+      }
+    },
+    "net8.0-windows7.0/win-x64": {
+      "ImGui.NET.DirectX": {
+        "type": "Direct",
+        "requested": "[1.91.0.1, )",
+        "resolved": "1.91.0.1",
+        "contentHash": "PpW1gQ9g97h6Hm/h/tkSBOmsBYgGwN8wKNmlJomcQFD/zRY1HPkJZz18XRSfRLHPmH2eeh4hhhZv1KHug7dF9g==",
+        "dependencies": {
+          "System.Buffers": "4.5.1",
+          "System.Numerics.Vectors": "4.5.0",
+          "System.Runtime.CompilerServices.Unsafe": "6.0.0"
+        }
+      }
+    }
+  }
+}
