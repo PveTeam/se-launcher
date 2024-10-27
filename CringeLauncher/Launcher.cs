@@ -59,7 +59,7 @@ public class Launcher : ICorePlugin
         _harmony.PatchAll(typeof(Launcher).Assembly);
         
         #if !DEBUG
-            CheckUpdates().GetAwaiter().GetResult();
+            CheckUpdates(args).GetAwaiter().GetResult();
         #endif
 
         var splash = new Splash();
@@ -137,7 +137,7 @@ public class Launcher : ICorePlugin
         return MyVRage.Platform.Windows.Window;
     }
 
-    private async Task CheckUpdates()
+    private async Task CheckUpdates(string[] args)
     {
         var mgr = new UpdateManager("https://dl.zznty.ru/CringeLauncher/");
         
@@ -150,7 +150,7 @@ public class Launcher : ICorePlugin
         await mgr.DownloadUpdatesAsync(newVersion);
 
         // install new version and restart app
-        mgr.ApplyUpdatesAndRestart(newVersion);
+        mgr.ApplyUpdatesAndRestart(newVersion, args);
     }
 
     #region Keen shit
