@@ -42,18 +42,8 @@ jobs:
       - run: dotnet pack -c Release -o ./pub ${{ matrix.project }}/${{ matrix.project }}.csproj --no-restore -p:Version="${{ needs.compute-version.outputs.version }}"
         name: Pack Project
         
-      - name: Install Sleet
-        run: dotnet tool install -g sleet
-        
-      - name: Push Nuget Package
-        env:
-          SLEET_FEED_TYPE: s3
-          SLEET_FEED_PATH: https://dl.zznty.ru/
-          SLEET_FEED_BUCKETNAME: ${{ secrets.S3_BUCKET }}
-          SLEET_FEED_SERVICEURL: ${{ secrets.S3_ENDPOINT }}
-          SLEET_FEED_ACCESSKEYID: ${{ secrets.S3_KEY_ID }}
-          SLEET_FEED_SECRETACCESSKEY: ${{ secrets.S3_SECRET }}
-        run: ~/.dotnet/tools/sleet push ./pub
+      - name: Push Project
+        run: dotnet nuget push -s https://ng.zznty.ru/v3/index.json -k ${{ secrets.NUGET_API_KEY  }} ./pub/${{ matrix.project }}.${{ needs.compute-version.outputs.version }}.nupkg
   
   build:
     name: Build Launcher
