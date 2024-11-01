@@ -14,16 +14,6 @@
         "resolved": "2.2.1",
         "contentHash": "QGI4nMGQbKsuFUUboixVHu4mv3lHB5RejIa7toIlzTmwLkuCYYEpUBJjmy3OpXYyj5dVSZAXVbr4oeMSloE67Q=="
       },
-      "Lib.Harmony.Thin": {
-        "type": "Direct",
-        "requested": "[2.3.3, )",
-        "resolved": "2.3.3",
-        "contentHash": "jsaFv7XnWJnyfyvFbkgIkZtV6tWMteNUcDK3idq+3LwPqpTFNxsOv2eKmj4qqP8QR8UynG1Y9AUaC/+dVruMHg==",
-        "dependencies": {
-          "MonoMod.Core": "1.1.0",
-          "System.Text.Json": "8.0.1"
-        }
-      },
       "Microsoft.CodeAnalysis.CSharp": {
         "type": "Direct",
         "requested": "[4.11.0, )",
@@ -147,10 +137,19 @@
           "System.Runtime.CompilerServices.Unsafe": "6.0.0"
         }
       },
+      "Lib.Harmony.Thin": {
+        "type": "Transitive",
+        "resolved": "2.3.3",
+        "contentHash": "jsaFv7XnWJnyfyvFbkgIkZtV6tWMteNUcDK3idq+3LwPqpTFNxsOv2eKmj4qqP8QR8UynG1Y9AUaC/+dVruMHg==",
+        "dependencies": {
+          "MonoMod.Core": "1.1.0",
+          "System.Text.Json": "8.0.1"
+        }
+      },
       "Microsoft.Bcl.AsyncInterfaces": {
         "type": "Transitive",
-        "resolved": "5.0.0",
-        "contentHash": "W8DPQjkMScOMTtJbPwmPyj9c3zYSFGawDW3jwlBOOsnY+EzZFLgNQ/UMkK35JmkNOVPdCyPr2Tw7Vv9N+KA3ZQ=="
+        "resolved": "6.0.0",
+        "contentHash": "UcSjPsst+DfAdJGVDsu346FX0ci0ah+lw3WRtn18NUwEqRt70HaOQ7lI72vy3+1LxtqI3T5GWwV39rQSrCzAeg=="
       },
       "Microsoft.CodeAnalysis.Analyzers": {
         "type": "Transitive",
@@ -304,6 +303,14 @@
         "resolved": "6.0.0",
         "contentHash": "T6fD00dQ3NTbPDy31m4eQUwKW84s03z0N2C8HpOklyeaDgaJPa/TexP4/SkORMSOwc7WhKifnA6Ya33AkzmafA=="
       },
+      "System.Linq.Async": {
+        "type": "Transitive",
+        "resolved": "6.0.1",
+        "contentHash": "0YhHcaroWpQ9UCot3Pizah7ryAzQhNvobLMSxeDIGmnXfkQn8u5owvpOH0K6EVB+z9L7u6Cc4W17Br/+jyttEQ==",
+        "dependencies": {
+          "Microsoft.Bcl.AsyncInterfaces": "6.0.0"
+        }
+      },
       "System.Numerics.Vectors": {
         "type": "Transitive",
         "resolved": "4.5.0",
@@ -381,6 +388,7 @@
           "Basic.Reference.Assemblies.Net80": "[1.7.9, )",
           "Basic.Reference.Assemblies.Net80Windows": "[1.7.9, )",
           "ImGui.NET.DirectX": "[1.91.0.1, )",
+          "Lib.Harmony.Thin": "[2.3.3, )",
           "NLog": "[5.3.4, )",
           "NuGet": "[1.0.0, )",
           "SharedCringe": "[1.0.0, )",
@@ -392,7 +400,8 @@
         "type": "Project",
         "dependencies": {
           "NuGet.Frameworks": "[6.11.1, )",
-          "NuGet.Versioning": "[6.11.1, )"
+          "NuGet.Versioning": "[6.11.1, )",
+          "System.Linq.Async": "[6.0.1, )"
         }
       },
       "sharedcringe": {

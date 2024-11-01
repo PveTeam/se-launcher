@@ -71,8 +71,8 @@
       },
       "Microsoft.Bcl.AsyncInterfaces": {
         "type": "Transitive",
-        "resolved": "5.0.0",
-        "contentHash": "W8DPQjkMScOMTtJbPwmPyj9c3zYSFGawDW3jwlBOOsnY+EzZFLgNQ/UMkK35JmkNOVPdCyPr2Tw7Vv9N+KA3ZQ=="
+        "resolved": "6.0.0",
+        "contentHash": "UcSjPsst+DfAdJGVDsu346FX0ci0ah+lw3WRtn18NUwEqRt70HaOQ7lI72vy3+1LxtqI3T5GWwV39rQSrCzAeg=="
       },
       "Microsoft.CodeAnalysis.Analyzers": {
         "type": "Transitive",
@@ -375,8 +375,8 @@
       },
       "SpaceEngineersDedicated.ReferenceAssemblies": {
         "type": "Transitive",
-        "resolved": "1.205.25",
-        "contentHash": "+70s6nJnBxEFYZY1qwKfM7FgYBYY6YDSPvbltEXrn7CVAeiWIxbtdcUZ4nDBGVTYqUWEI/r3zbLP1zlcNE27Dg==",
+        "resolved": "1.205.26",
+        "contentHash": "kQSFCLgi0nFUhLvXlp9D2w4cTnXtEIctWtNlK+Vw4FAofws60rwR6Kil9YBNlaDyoo19dcyNt3bs4G9VculcIA==",
         "dependencies": {
           "SharpDX": "4.2.0-keen-cringe",
           "protobuf-net": "1.0.0"
@@ -702,6 +702,14 @@
           "System.Resources.ResourceManager": "4.3.0",
           "System.Runtime": "4.3.0",
           "System.Runtime.Extensions": "4.3.0"
+        }
+      },
+      "System.Linq.Async": {
+        "type": "Transitive",
+        "resolved": "6.0.1",
+        "contentHash": "0YhHcaroWpQ9UCot3Pizah7ryAzQhNvobLMSxeDIGmnXfkQn8u5owvpOH0K6EVB+z9L7u6Cc4W17Br/+jyttEQ==",
+        "dependencies": {
+          "Microsoft.Bcl.AsyncInterfaces": "6.0.0"
         }
       },
       "System.Linq.Expressions": {
@@ -1310,7 +1318,6 @@
         "dependencies": {
           "CringeBootstrap.Abstractions": "[1.0.0, )",
           "CringePlugins": "[1.0.0, )",
-          "Lib.Harmony.Thin": "[2.3.3, )",
           "Microsoft.CodeAnalysis.CSharp": "[4.11.0, )",
           "NLog": "[5.3.4, )",
           "SpaceEngineersDedicated.ReferenceAssemblies": "[1.*, )",
@@ -1329,6 +1336,7 @@
           "Basic.Reference.Assemblies.Net80": "[1.7.9, )",
           "Basic.Reference.Assemblies.Net80Windows": "[1.7.9, )",
           "ImGui.NET.DirectX": "[1.91.0.1, )",
+          "Lib.Harmony.Thin": "[2.3.3, )",
           "NLog": "[5.3.4, )",
           "NuGet": "[1.0.0, )",
           "SharedCringe": "[1.0.0, )",
@@ -1340,7 +1348,8 @@
         "type": "Project",
         "dependencies": {
           "NuGet.Frameworks": "[6.11.1, )",
-          "NuGet.Versioning": "[6.11.1, )"
+          "NuGet.Versioning": "[6.11.1, )",
+          "System.Linq.Async": "[6.0.1, )"
         }
       },
       "sharedcringe": {

@@ -20,6 +20,7 @@ public static class BuiltInPackages
 {
     private const string SeReferenceAssemblies = "SpaceEngineersDedicated.ReferenceAssemblies";
     private const string ImGui = "ImGui.NET.DirectX";
+    private const string Harmony = "Lib.Harmony.Thin";
 
     public static ImmutableArray<ResolvedPackage> GetPackages(NuGetFramework runtimeFramework)
     {
@@ -30,6 +31,7 @@ public static class BuiltInPackages
             nlog.AsDependency()
         ], SeReferenceAssemblies, new(seVersion));
         var imGui = FromAssembly<ImGuiKey>(runtimeFramework, id: ImGui);
+        var harmony = FromAssembly<HarmonyLib.Harmony>(runtimeFramework, id: Harmony);
 
         BuiltInSdkPackage MapSdkPackage(
             (string FileName, byte[] ImageBytes, PortableExecutableReference Reference, Guid Mvid) r)
@@ -50,7 +52,8 @@ public static class BuiltInPackages
             nlog,
             se,
             imGui,
-            FromAssembly<PluginsLifetime>(runtimeFramework, [se.AsDependency(), imGui.AsDependency()]),
+            harmony,
+            FromAssembly<PluginsLifetime>(runtimeFramework, [se.AsDependency(), imGui.AsDependency(), harmony.AsDependency()]),
         ];
     }
     

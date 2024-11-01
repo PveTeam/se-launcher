@@ -24,6 +24,7 @@
         <PackageReference Include="Basic.Reference.Assemblies.Net80" Version="1.7.9" />
         <PackageReference Include="Basic.Reference.Assemblies.Net80Windows" Version="1.7.9" />
         <PackageReference Include="NLog" Version="5.3.4" />
+        <PackageReference Include="Lib.Harmony.Thin" Version="2.3.3" />
         <PackageReference Include="ImGui.NET.DirectX" Version="1.91.0.1" />
         <PackageReference Include="SpaceEngineersDedicated.ReferenceAssemblies" Version="1.*" ExcludeAssets="runtime" />
         <PackageReference Include="dnlib" Version="4.4.0" />
