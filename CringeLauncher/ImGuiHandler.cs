@@ -1,5 +1,6 @@
 ﻿using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using System.Runtime.InteropServices.Marshalling;
 using System.Runtime.Versioning;
 using Windows.Win32;
 using Windows.Win32.Foundation;
@@ -22,14 +23,18 @@ internal class ImGuiHandler : IDisposable
     public static RenderTargetView? Rtv;
     private readonly IRootRenderComponent _renderHandler = new RenderHandler();
 
-    public void Init(nint windowHandle, Device1 device, DeviceContext deviceContext)
+    public unsafe void Init(nint windowHandle, Device1 device, DeviceContext deviceContext)
     {
         _deviceContext = deviceContext;
 
         CreateContext();
         
         var io = GetIO();
+        
+        var path = Path.Join(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "CringeLauncher", "imgui.ini");
 
+        io.NativePtr->IniFilename = AnsiStringMarshaller.ConvertToUnmanaged(path);
+        
         io.ConfigWindowsMoveFromTitleBarOnly = true;
         io.ConfigFlags |= ImGuiConfigFlags.DockingEnable | ImGuiConfigFlags.ViewportsEnable;
         
