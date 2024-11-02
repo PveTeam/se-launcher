@@ -21,7 +21,7 @@ public class PackageResolver(NuGetFramework runtimeFramework, ImmutableArray<Pac
             var registrationRoot = await client.GetPackageRegistrationRootAsync(reference.Id);
 
             var items = registrationRoot.Items.SelectMany(page =>
-                page.Items.Where(b => b.CatalogEntry.PackageTypes is ["CringePlugin"]))
+                page.Items!.Where(b => b.CatalogEntry.PackageTypes is ["CringePlugin"]))
                     .ToImmutableDictionary(b => b.CatalogEntry.Version);
 
             var version = reference.Range.FindBestMatch(items.Values.Select(b => b.CatalogEntry.Version));
@@ -56,8 +56,11 @@ public class PackageResolver(NuGetFramework runtimeFramework, ImmutableArray<Pac
         foreach (var (package, catalogEntry) in packages)
         {
             var client = await packageSources.GetClientAsync(package.Id);
+            
+            if (!catalogEntry.DependencyGroups.HasValue)
+                continue;
 
-            var nearestGroup = NuGetFrameworkUtility.GetNearest(catalogEntry.DependencyGroups, runtimeFramework,
+            var nearestGroup = NuGetFrameworkUtility.GetNearest(catalogEntry.DependencyGroups.Value, runtimeFramework,
                 g => g.TargetFramework);
             
             if (nearestGroup is null)

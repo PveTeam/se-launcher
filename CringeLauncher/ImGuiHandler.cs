@@ -14,20 +14,18 @@ namespace CringeLauncher;
 
 internal class ImGuiHandler : IDisposable
 {
-    private readonly DeviceContext _deviceContext;
+    private DeviceContext? _deviceContext;
     private static nint _wndproc;
 
     public static ImGuiHandler? Instance;
     
     public static RenderTargetView? Rtv;
-    private readonly IRootRenderComponent _renderHandler;
+    private readonly IRootRenderComponent _renderHandler = new RenderHandler();
 
-    public ImGuiHandler(nint windowHandle, Device1 device, DeviceContext deviceContext)
+    public void Init(nint windowHandle, Device1 device, DeviceContext deviceContext)
     {
         _deviceContext = deviceContext;
 
-        _renderHandler = new RenderHandler();
-        
         CreateContext();
         
         var io = GetIO();
@@ -64,7 +62,7 @@ internal class ImGuiHandler : IDisposable
         
         Render();
         
-        _deviceContext.ClearState();
+        _deviceContext!.ClearState();
         _deviceContext.OutputMerger.SetRenderTargets(Rtv);
         
         ImGui_ImplDX11_RenderDrawData(GetDrawData());
@@ -87,7 +85,7 @@ internal class ImGuiHandler : IDisposable
 
     public void Dispose()
     {
-        _deviceContext.Dispose();
+        _deviceContext?.Dispose();
         _renderHandler.Dispose();
     }
 }

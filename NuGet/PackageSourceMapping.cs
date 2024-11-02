@@ -1,4 +1,7 @@
 ﻿using System.Collections.Immutable;
+using System.Diagnostics.CodeAnalysis;
+using System.Runtime.CompilerServices;
+using System.Text.RegularExpressions;
 
 namespace NuGet;
 
@@ -11,7 +14,15 @@ public class PackageSourceMapping(ImmutableArray<PackageSource> sources)
     ];
 
     public Task<NuGetClient> GetClientAsync(string packageId) =>
-        _clients.FirstOrDefault(b => packageId.StartsWith(b.pattern)).client;
+        _clients.FirstOrDefault(b => Regex.IsMatch(packageId, b.pattern)).client;
+
+    public ConfiguredCancelableAsyncEnumerable<NuGetClient>.Enumerator GetAsyncEnumerator(CancellationToken cancellationToken = default)
+    {
+        return _clients.ToAsyncEnumerable()
+            .SelectAwait(b => new ValueTask<NuGetClient>(b.client))
+            .WithCancellation(cancellationToken)
+            .GetAsyncEnumerator();
+    }
 }
 
-public record PackageSource(string Pattern, string Url);
+public record PackageSource([StringSyntax("Regex")] string Pattern, [StringSyntax("Uri")] string Url);

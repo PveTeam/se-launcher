@@ -101,8 +101,8 @@ public class Launcher : ICorePlugin
         _renderComponent = new();
         _renderComponent.Start(new(), InitEarlyWindow, MyVideoSettingsManager.Initialize(), MyPerGameSettings.MaxFrameRate);
         _renderComponent.RenderThread.BeforeDraw += MyFpsManager.Update;
-        _renderComponent.RenderThread.SizeChanged += RenderThreadOnSizeChanged;
         
+        // this technically should wait for render thread init, but who cares
         splash.ExecuteLoadingStages();
         
         InitUgc();
@@ -118,21 +118,20 @@ public class Launcher : ICorePlugin
         _renderComponent.RenderThread.UpdateSize();
     }
 
-    private void RenderThreadOnSizeChanged(int width, int height, MyViewport viewport)
-    {
-        if (_renderComponent is not null)
-            _renderComponent.RenderThread.SizeChanged -= RenderThreadOnSizeChanged;
-        
-        MyVRage.Platform.Windows.Window.ShowAndFocus();
-    }
-
     public void Run() => _game?.Run();
 
-    private static IVRageWindow InitEarlyWindow()
+    private IVRageWindow InitEarlyWindow()
     {
+        ImGuiHandler.Instance = new();
+        
         MyVRage.Platform.Windows.CreateWindow("Cringe Launcher", MyPerGameSettings.GameIcon, null);
 
         MyVRage.Platform.Windows.Window.OnExit += MySandboxGame.ExitThreadSafe;
+        
+        _renderComponent!.RenderThread.UpdateSize();
+        MyRenderProxy.RenderThread = _renderComponent.RenderThread;
+        
+        MyVRage.Platform.Windows.Window.ShowAndFocus();
 
         return MyVRage.Platform.Windows.Window;
     }
@@ -157,7 +156,8 @@ public class Launcher : ICorePlugin
 
     private static void InitThreadPool()
     {
-        ParallelTasks.Parallel.Scheduler = new ThreadPoolScheduler();
+        // ParallelTasks.Parallel.Scheduler = new ThreadPoolScheduler();
+        MySandboxGame.InitMultithreading();
     }
 
     private static void ConfigureSettings()

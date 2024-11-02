@@ -8,6 +8,7 @@ using CringeTask = ParallelTasks.Task;
 
 namespace CringeLauncher.Utils;
 
+/*
 public class ThreadPoolScheduler : IWorkScheduler
 {
     public void Schedule(CringeTask item)
@@ -82,4 +83,4 @@ internal class ThreadPoolWorkItemTask(CringeTask task) : IThreadPoolWorkItem
         HkBaseSystem.QuitThread();
         Debug.WriteLine($"Hk Shutdown for {Thread.CurrentThread.Name}");
     }
-}
+}*/

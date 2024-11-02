@@ -2,8 +2,10 @@
 using System.Runtime.InteropServices;
 using System.Text.Json;
 using CringePlugins.Config;
+using CringePlugins.Render;
 using CringePlugins.Resolver;
 using CringePlugins.Splash;
+using CringePlugins.Ui;
 using NLog;
 using NuGet;
 using NuGet.Deps;
@@ -63,6 +65,8 @@ public class PluginsLifetime : ILoadingStage
         progress.Report("Registering plugins");
         
         RegisterLifetime();
+        
+        RenderHandler.Current.RegisterComponent(new PluginListComponent(packagesConfig, sourceMapping, configPath));
     }
 
     private void RegisterLifetime()

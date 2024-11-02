@@ -53,7 +53,12 @@ public static class BuiltInPackages
             se,
             imGui,
             harmony,
-            FromAssembly<PluginsLifetime>(runtimeFramework, [se.AsDependency(), imGui.AsDependency(), harmony.AsDependency()]),
+            FromAssembly<PluginsLifetime>(runtimeFramework,
+                [se.AsDependency(), imGui.AsDependency(), harmony.AsDependency()]
+#if DEBUG
+                , version: new(0, 1, 4)
+#endif
+            ),
         ];
     }
     

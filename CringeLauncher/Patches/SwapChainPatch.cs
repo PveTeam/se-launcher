@@ -60,7 +60,7 @@ public static class SwapChainPatch
     [HarmonyPostfix, HarmonyPatch(typeof(MyRender11), nameof(MyRender11.CreateDeviceInternal))]
     private static void CreateDevicePostfix()
     {
-        ImGuiHandler.Instance ??= new ImGuiHandler(WindowHandle, MyRender11.DeviceInstance, MyRender11.RC.DeviceContext);
+        ImGuiHandler.Instance?.Init(WindowHandle, MyRender11.DeviceInstance, MyRender11.RC.DeviceContext);
     }
     
     [HarmonyPrefix, HarmonyPatch(typeof(MyBackbuffer), MethodType.Constructor, typeof(SharpDX.Direct3D11.Resource))]

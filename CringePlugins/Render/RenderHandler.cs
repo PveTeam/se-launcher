@@ -1,5 +1,6 @@
 ﻿using System.Collections.Concurrent;
 using CringePlugins.Abstractions;
+using ImGuiNET;
 using NLog;
 
 namespace CringePlugins.Render;
@@ -25,6 +26,10 @@ public sealed class RenderHandler : IRootRenderComponent
 
     void IRenderComponent.OnFrame()
     {
+#if DEBUG
+        ImGui.ShowDemoWindow();
+#endif
+        
         foreach (var (instanceType, renderComponent) in _components)
         {
             try

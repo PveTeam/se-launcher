@@ -88,10 +88,10 @@ public class DependencyManifestBuilder(DirectoryInfo cacheDirectory, PackageSour
     private async Task MapCatalogEntryAsync(CatalogEntry catalogEntry, NuGetFramework targetFramework,
         ImmutableDictionary<ManifestPackageKey, DependencyTarget>.Builder targets)
     {
-        if (targets.ContainsKey(new(catalogEntry.Id, catalogEntry.Version)))
+        if (targets.ContainsKey(new(catalogEntry.Id, catalogEntry.Version)) || !catalogEntry.DependencyGroups.HasValue)
             return;
         
-        var nearest = NuGetFrameworkUtility.GetNearest(catalogEntry.DependencyGroups, targetFramework,
+        var nearest = NuGetFrameworkUtility.GetNearest(catalogEntry.DependencyGroups.Value, targetFramework,
             group => group.TargetFramework);
 
         if (nearest is null)
@@ -103,9 +103,18 @@ public class DependencyManifestBuilder(DirectoryInfo cacheDirectory, PackageSour
         foreach (var dependency in nearest.Dependencies ?? [])
         {
             var client = await packageSources.GetClientAsync(dependency.Id);
-            var (url, entry) = await client.GetPackageRegistrationAsync(dependency.Id, versionResolver(dependency)!);
+            var registrationRoot = await client.GetPackageRegistrationRootAsync(dependency.Id);
 
-            entry ??= await client.GetPackageCatalogEntryAsync(url);
+            var version = versionResolver(dependency)!;
+            var entry = registrationRoot.Items.SelectMany(b => b.Items ?? []).FirstOrDefault(b => b.CatalogEntry.Version == version)?.CatalogEntry;
+
+            if (entry is null)
+            {
+                var (url, sleetEntry) = await client.GetPackageRegistrationAsync(dependency.Id, versionResolver(dependency)!);
+
+                entry = sleetEntry;
+                entry ??= await client.GetPackageCatalogEntryAsync(url);
+            }
 
             await MapCatalogEntryAsync(entry, targetFramework, targets);
         }
