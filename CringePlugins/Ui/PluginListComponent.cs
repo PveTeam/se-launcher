@@ -8,6 +8,7 @@ using NLog;
 using NuGet;
 using NuGet.Models;
 using NuGet.Versioning;
+using Sandbox.Game.Gui;
 using Sandbox.Graphics.GUI;
 using SpaceEngineers.Game.GUI;
 using static ImGuiNET.ImGui;
@@ -42,7 +43,7 @@ public class PluginListComponent : IRenderComponent
 
     private void GuiControlCreated(object obj)
     {
-        if (obj is MyGuiScreenMainMenu)
+        if (obj is MyGuiScreenMainMenu && MyGuiScreenGamePlay.Static is null)
             _open = true;
     }
 
