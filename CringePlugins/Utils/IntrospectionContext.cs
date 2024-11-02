@@ -15,7 +15,7 @@ public class IntrospectionContext
 
         return moduleDef.GetTypes()
             .Where(b => b.CustomAttributes.IsDefined(typeof(TAttribute).FullName) && (allowAbstract || !b.IsAbstract))
-            .Select(b => module.GetType(b.FullName, true, false)!);
+            .Select(b => module.GetType(b.FullName.Replace('/', '+'), true, false)!);
     }
 
     public IEnumerable<Type> CollectDerivedTypes<T>(Module module, bool allowAbstract = false)
@@ -28,7 +28,7 @@ public class IntrospectionContext
             .Where(b => (typeof(T).IsInterface
                 ? b.Interfaces.Any(i => i.Interface.FullName == token.FullName)
                 : MatchBaseType(b, token)) && (allowAbstract || !b.IsAbstract))
-            .Select(b => module.GetType(b.FullName, true, false)!);
+            .Select(b => module.GetType(b.FullName.Replace('/', '+'), true, false)!);
     }
 
     private static bool MatchBaseType(ITypeDefOrRef? defOrRef, TypeSig token)

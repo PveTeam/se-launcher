@@ -3,9 +3,13 @@ using System.Reflection;
 using System.Runtime.Loader;
 using System.Xml.Serialization;
 using CringeBootstrap.Abstractions;
+using CringeLauncher.Loader;
 using CringePlugins.Utils;
 using HarmonyLib;
+using Sandbox.Game.GameSystems.TextSurfaceScripts;
+using Sandbox.Game;
 using Sandbox.Game.World;
+using SharedCringe.Loader;
 using VRage;
 using VRage.FileSystem;
 using VRage.Game;
@@ -13,6 +17,7 @@ using VRage.Game.Common;
 using VRage.Game.Components;
 using VRage.Game.Definitions;
 using VRage.Game.Entity.UseObject;
+using VRage.ModAPI;
 using VRage.ObjectBuilders;
 using VRage.ObjectBuilders.Private;
 using VRage.Plugins;
@@ -27,7 +32,28 @@ public static class IntrospectionPatches
     {
         if (AssemblyLoadContext.GetLoadContext(__instance) is ICoreLoadContext || __instance.FullName?.StartsWith("System.") == true)
             return true;
-        
+
+        if (AssemblyLoadContext.GetLoadContext(__instance) is ModAssemblyLoadContext or DerivedAssemblyLoadContext)
+        {
+            //mods need to look for specific derived types
+            Debug.WriteLine($"Getting special types for {__instance.FullName}");
+            var module = __instance.GetMainModule();
+            __result = IntrospectionContext.Global.CollectDerivedTypes<MyGameLogicComponent>(module)
+                .Concat(IntrospectionContext.Global.CollectDerivedTypes<MyObjectBuilder_Base>(module))
+                .Concat(IntrospectionContext.Global.CollectDerivedTypes<MyStatLogic>(module))
+                .Concat(IntrospectionContext.Global.CollectAttributedTypes<MyObjectBuilderDefinitionAttribute>(module))
+                .Concat(IntrospectionContext.Global.CollectDerivedTypes<MyComponentBase>(module))
+                .Concat(IntrospectionContext.Global.CollectAttributedTypes<MyComponentBuilderAttribute>(module))
+                .Concat(IntrospectionContext.Global.CollectDerivedTypes<IMyTextSurfaceScript>(module))
+                .Concat(IntrospectionContext.Global.CollectDerivedTypes<IMyUseObject>(module))
+                .Concat(IntrospectionContext.Global.CollectDerivedTypes<IMyHudStat>(module))
+                .Concat(IntrospectionContext.Global.CollectAttributedTypes<MySessionComponentDescriptor>(module))
+                .ToArray();
+
+
+            return false;
+        }
+
         Debug.WriteLine($"Blocking GetTypes for {__instance.FullName}");
         
         __result = [];
