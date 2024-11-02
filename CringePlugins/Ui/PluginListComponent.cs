@@ -2,6 +2,7 @@
 using System.Text.Json;
 using CringePlugins.Abstractions;
 using CringePlugins.Config;
+using CringePlugins.Loader;
 using CringePlugins.Resolver;
 using ImGuiNET;
 using NLog;
@@ -15,7 +16,7 @@ using static ImGuiNET.ImGui;
 
 namespace CringePlugins.Ui;
 
-public class PluginListComponent : IRenderComponent
+internal class PluginListComponent : IRenderComponent
 {
     private static readonly Logger Log = LogManager.GetCurrentClassLogger();
 
@@ -29,13 +30,16 @@ public class PluginListComponent : IRenderComponent
     private readonly PackagesConfig _packagesConfig;
     private readonly PackageSourceMapping _sources;
     private readonly string _configPath;
+    private readonly ImmutableArray<PluginInstance> _plugins;
     private (SearchResultEntry entry, NuGetClient client)? _selected;
 
-    public PluginListComponent(PackagesConfig packagesConfig, PackageSourceMapping sources, string configPath)
+    public PluginListComponent(PackagesConfig packagesConfig, PackageSourceMapping sources, string configPath,
+        ImmutableArray<PluginInstance> plugins)
     {
         _packagesConfig = packagesConfig;
         _sources = sources;
         _configPath = configPath;
+        _plugins = plugins;
         _packages = packagesConfig.Packages.ToImmutableDictionary(b => b.Id, b => b.Range, StringComparer.OrdinalIgnoreCase);
 
         MyGuiSandbox.GuiControlCreated += GuiControlCreated;
@@ -73,14 +77,14 @@ public class PluginListComponent : IRenderComponent
                     TableSetupColumn("Version");
                     TableHeadersRow();
                         
-                    foreach (var (id, versionRange) in _packages)
+                    foreach (var plugin in _plugins)
                     {
                         TableNextRow();
                             
                         TableNextColumn();
-                        Text(id);
+                        Text(plugin.Metadata.Name);
                         TableNextColumn();
-                        Text(versionRange.MinVersion?.ToString() ?? versionRange.ToString());
+                        Text(plugin.Metadata.Version.ToString());
                     }
 
                     EndTable();

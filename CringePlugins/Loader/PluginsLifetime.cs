@@ -66,7 +66,7 @@ public class PluginsLifetime : ILoadingStage
         
         RegisterLifetime();
         
-        RenderHandler.Current.RegisterComponent(new PluginListComponent(packagesConfig, sourceMapping, configPath));
+        RenderHandler.Current.RegisterComponent(new PluginListComponent(packagesConfig, sourceMapping, configPath, _plugins));
     }
 
     private void RegisterLifetime()
