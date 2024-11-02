@@ -1,10 +1,12 @@
-﻿using System.Reflection;
+﻿using System.Diagnostics;
+using System.Reflection;
 using System.Reflection.Emit;
 using System.Runtime.Loader;
 using CringeBootstrap.Abstractions;
 using CringeLauncher.Loader;
 using HarmonyLib;
 using Sandbox.Game.World;
+using VRage.Collections;
 using VRage.Scripting;
 
 namespace CringeLauncher.Patches;
@@ -13,7 +15,8 @@ namespace CringeLauncher.Patches;
 public static class ModAssemblyLoadContextPatches
 {
     private static ModAssemblyLoadContext? _currentSessionContext;
-    
+    private static readonly MyConcurrentHashSet<string> AssemblyNames = [];
+
     [HarmonyPatch(typeof(MyScriptCompiler), nameof(MyScriptCompiler.Compile), MethodType.Async)]
     [HarmonyTranspiler]
     private static IEnumerable<CodeInstruction> CompilerTranspiler(IEnumerable<CodeInstruction> instructions, MethodBase original)
@@ -44,11 +47,23 @@ public static class ModAssemblyLoadContextPatches
         return matcher.Instructions();
     }
 
+    [HarmonyPatch(typeof(MyScriptManager), "Compile")]
+    [HarmonyPrefix]
+    private static bool CompilePrefix(string assemblyName)
+    {
+        if (!AssemblyNames.Add(assemblyName))
+        {
+            Debug.WriteLine($"Duplicate assembly: {assemblyName}");
+            return false;
+        }
+        return true;
+    }
 
     [HarmonyPatch(typeof(MySession), nameof(MySession.Unload))]
     [HarmonyPostfix]
     private static void UnloadPostfix()
     {
+        AssemblyNames.Clear();
         if (_currentSessionContext is null) return;
         
         _currentSessionContext.Unload();
