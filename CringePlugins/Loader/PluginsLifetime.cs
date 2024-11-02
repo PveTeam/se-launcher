@@ -108,7 +108,7 @@ public class PluginsLifetime : ILoadingStage
             await using (var stream = File.Create(Path.Join(dir, $"{package.Package.Id}.deps.json")))
                 await manifestBuilder.WriteDependencyManifestAsync(stream, package.Entry, _runtimeFramework);
             
-            LoadComponent(plugins, Path.Join(dir, $"{package.Package.Id}.dll"));
+            LoadComponent(plugins, Path.Join(dir, $"{package.Package.Id}.dll"), new(package.Package.Id, package.Package.Version));
         }
         
         _plugins = plugins.ToImmutable();
@@ -132,11 +132,11 @@ public class PluginsLifetime : ILoadingStage
         _plugins = plugins.ToImmutable();
     }
 
-    private static void LoadComponent(ImmutableArray<PluginInstance>.Builder plugins, string path)
+    private static void LoadComponent(ImmutableArray<PluginInstance>.Builder plugins, string path, PluginMetadata? metadata = null)
     {
         try
         {
-            plugins.Add(new PluginInstance(path));
+            plugins.Add(metadata is null ? new PluginInstance(path) : new(metadata, path));
         }
         catch (Exception e)
         { 
