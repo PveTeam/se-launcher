@@ -82,4 +82,13 @@ public static class SwapChainPatch
             
         return false;
     }
+
+    [HarmonyPrefix, HarmonyPatch(typeof(MyBackbuffer), nameof(MyBackbuffer.Release))]
+    private static void SwapChainBBReleasePrefix(MyBackbuffer __instance)
+    {
+        if (ImGuiHandler.Rtv is null) return;
+        
+        ImGuiHandler.Rtv.Dispose();
+        ImGuiHandler.Rtv = null;
+    }
 }

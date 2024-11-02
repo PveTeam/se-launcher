@@ -52,7 +52,7 @@ internal class ImGuiHandler : IDisposable
     public void DoRender()
     {
         if (Rtv is null)
-            throw new InvalidOperationException("Rtv is null");
+            return;
         
         ImGui_ImplDX11_NewFrame();
         ImGui_ImplWin32_NewFrame();
