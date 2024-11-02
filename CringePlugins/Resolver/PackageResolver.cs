@@ -24,7 +24,7 @@ public class PackageResolver(NuGetFramework runtimeFramework, ImmutableArray<Pac
                 page.Items!.Where(b => b.CatalogEntry.PackageTypes is ["CringePlugin"]))
                     .ToImmutableDictionary(b => b.CatalogEntry.Version);
 
-            var version = reference.Range.FindBestMatch(items.Values.Select(b => b.CatalogEntry.Version));
+            var version = items.Values.Select(b => b.CatalogEntry.Version).OrderDescending().First(b => reference.Range.Satisfies(b));
             
             if (version is null)
                 throw new Exception($"Unable to find version for package {reference.Id}");
