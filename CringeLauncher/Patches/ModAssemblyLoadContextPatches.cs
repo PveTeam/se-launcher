@@ -44,19 +44,6 @@ public static class ModAssemblyLoadContextPatches
         return matcher.Instructions();
     }
 
-    [HarmonyPatch(typeof(MySession), nameof(MySession.Load))]
-    [HarmonyPatch(typeof(MySession), "LoadMultiplayer")]
-    [HarmonyPrefix]
-    private static void LoadPrefix()
-    {
-        if (_currentSessionContext is not null)
-            throw new InvalidOperationException("Previous session context was not disposed");
-        
-        if (AssemblyLoadContext.GetLoadContext(typeof(MySession).Assembly) is not ICoreLoadContext coreContext)
-            throw new NotSupportedException("Mod loading is not supported in this context");
-        
-        _currentSessionContext = new ModAssemblyLoadContext(coreContext);
-    }
 
     [HarmonyPatch(typeof(MySession), nameof(MySession.Unload))]
     [HarmonyPostfix]
@@ -66,5 +53,28 @@ public static class ModAssemblyLoadContextPatches
         
         _currentSessionContext.Unload();
         _currentSessionContext = null;
+    }
+
+    [HarmonyPatch]
+    private static class LoadPrefixes
+    {
+        [HarmonyTargetMethods]
+        private static IEnumerable<MethodInfo> TargetMethods()
+        {
+            yield return AccessTools.Method(typeof(MySession), nameof(MySession.Load));
+            yield return AccessTools.Method(typeof(MySession), "LoadMultiplayer");
+        }
+
+        [HarmonyPrefix]
+        private static void Prefix()
+        {
+            if (_currentSessionContext is not null)
+                throw new InvalidOperationException("Previous session context was not disposed");
+
+            if (AssemblyLoadContext.GetLoadContext(typeof(MySession).Assembly) is not ICoreLoadContext coreContext)
+                throw new NotSupportedException("Mod loading is not supported in this context");
+
+            _currentSessionContext = new ModAssemblyLoadContext(coreContext);
+        }
     }
 }
