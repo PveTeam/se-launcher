@@ -1,5 +1,6 @@
 ﻿using System.Reflection;
 using dnlib.DotNet;
+using VRage.FileSystem;
 
 namespace CringePlugins.Utils;
 
@@ -7,14 +8,28 @@ public class IntrospectionContext
 {
     public static IntrospectionContext Global { get; } = new();
 
-    internal readonly ModuleContext Context = ModuleDef.CreateModuleContext();
+    internal readonly ModuleContext Context;
+
+    public IntrospectionContext()
+    {
+        var assemblyResolver = new AssemblyResolver();
+        
+        assemblyResolver.PreSearchPaths.Add(AppContext.BaseDirectory);
+        assemblyResolver.PreSearchPaths.Add(MyFileSystem.ExePath);
+        
+        Context = new(assemblyResolver);
+    }
 
     public IEnumerable<Type> CollectAttributedTypes<TAttribute>(Module module, bool allowAbstract = false) where TAttribute : Attribute
     {
         var moduleDef = ModuleDefMD.Load(module, Context);
+        
+        var token =  moduleDef.ImportAsTypeSig(typeof(TAttribute));
 
         return moduleDef.GetTypes()
-            .Where(b => b.CustomAttributes.IsDefined(typeof(TAttribute).FullName) && (allowAbstract || !b.IsAbstract))
+            .Where(b => b.CustomAttributes.Any(a =>
+                            a.AttributeType.FullName == token.FullName || MatchBaseType(a.AttributeType, token)) &&
+                        (allowAbstract || !b.IsAbstract))
             .Select(b => module.GetType(b.FullName.Replace('/', '+'), true, false)!);
     }
 

@@ -65,8 +65,9 @@ public static class IntrospectionPatches
     {
         if (AssemblyLoadContext.GetLoadContext(assembly) is ICoreLoadContext)
             return true;
-
-        __result = IntrospectionContext.Global.CollectAttributedTypes<HarmonyAttribute>(assembly.GetMainModule())
+        
+        // static classes are abstract
+        __result = IntrospectionContext.Global.CollectAttributedTypes<HarmonyAttribute>(assembly.GetMainModule(), true)
             .ToArray();
         return false;
     }
