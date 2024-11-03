@@ -11,11 +11,14 @@ using NuGet;
 using NuGet.Deps;
 using NuGet.Frameworks;
 using NuGet.Versioning;
+using SharedCringe.Loader;
 
 namespace CringePlugins.Loader;
 
 public class PluginsLifetime : ILoadingStage
 {
+    public static ImmutableArray<DerivedAssemblyLoadContext> Contexts { get; private set; } = [];
+
     private static readonly Logger Log = LogManager.GetCurrentClassLogger();
     
     public string Name => "Loading Plugins";
@@ -71,11 +74,12 @@ public class PluginsLifetime : ILoadingStage
 
     private void RegisterLifetime()
     {
+        var contextBuilder = Contexts.ToBuilder();
         foreach (var instance in _plugins)
         {
             try
             {
-                instance.Instantiate();
+                instance.Instantiate(contextBuilder);
                 instance.RegisterLifetime();
             }
             catch (Exception e)
@@ -83,6 +87,7 @@ public class PluginsLifetime : ILoadingStage
                 Log.Error(e, "Failed to instantiate plugin {Plugin}", instance.Metadata);
             }
         }
+        Contexts = contextBuilder.ToImmutable();
     }
 
     private async Task LoadPlugins(IReadOnlySet<CachedPackage> packages, PackageSourceMapping sourceMapping,

@@ -21,6 +21,7 @@ using VRage.ModAPI;
 using VRage.ObjectBuilders;
 using VRage.ObjectBuilders.Private;
 using VRage.Plugins;
+using CringePlugins.Loader;
 
 namespace CringeLauncher.Patches;
 
@@ -80,7 +81,8 @@ public static class IntrospectionPatches
     [HarmonyPrefix, HarmonyPatch(typeof(AccessTools), nameof(AccessTools.AllAssemblies))]
     private static bool AllAssembliesHarmonyPrefix(ref IEnumerable<Assembly> __result)
     {
-        __result = AssemblyLoadContext.GetLoadContext(typeof(IntrospectionPatches).Assembly)?.Assemblies ?? [];
+        __result = AssemblyLoadContext.GetLoadContext(typeof(IntrospectionPatches).Assembly)?.Assemblies
+            .Concat(PluginsLifetime.Contexts.SelectMany(x => x.Assemblies)) ?? [];
         return false;
     }
     

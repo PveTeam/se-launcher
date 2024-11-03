@@ -1,6 +1,8 @@
-﻿using System.Runtime.Loader;
+﻿using System.Collections.Immutable;
+using System.Runtime.Loader;
 using CringeBootstrap.Abstractions;
 using CringePlugins.Utils;
+using SharedCringe.Loader;
 using VRage.Plugins;
 
 namespace CringePlugins.Loader;
@@ -26,12 +28,13 @@ internal sealed class PluginInstance
     {
     }
 
-    public void Instantiate()
+    public void Instantiate(ImmutableArray<DerivedAssemblyLoadContext>.Builder contextBuilder)
     {
         if (AssemblyLoadContext.GetLoadContext(typeof(PluginInstance).Assembly) is not ICoreLoadContext parentContext)
             throw new NotSupportedException("Plugin instantiation is not supported in this context");
         
         _context = new PluginAssemblyLoadContext(parentContext, _entrypointPath);
+        contextBuilder.Add(_context);
         
         var entrypoint = _context.LoadEntrypoint();
 
