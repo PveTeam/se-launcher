@@ -29,22 +29,6 @@
           "NuGet.Versioning": "6.10.1"
         }
       },
-      "Basic.Reference.Assemblies.Net80": {
-        "type": "Transitive",
-        "resolved": "1.7.9",
-        "contentHash": "1wbS9ZJLFVrKD2jqv27gekIrpjpLffR9sitLQh5drWoG9KbyR/CgrAhw5I0c8Eq3zFMOToCmrpZi3VpRoInCgg==",
-        "dependencies": {
-          "Microsoft.CodeAnalysis.Common": "4.11.0"
-        }
-      },
-      "Basic.Reference.Assemblies.Net80Windows": {
-        "type": "Transitive",
-        "resolved": "1.7.9",
-        "contentHash": "98GFm8MC+pv37rTHaxBm5KFucqdJj0jK0XRHSGt2sXK9HNqtGImIFCFahxjUzskQjiUkPAzVhTou2OYZOuhhEg==",
-        "dependencies": {
-          "Microsoft.CodeAnalysis.Common": "4.11.0"
-        }
-      },
       "dnlib": {
         "type": "Transitive",
         "resolved": "4.4.0",
@@ -1333,8 +1317,6 @@
       "cringeplugins": {
         "type": "Project",
         "dependencies": {
-          "Basic.Reference.Assemblies.Net80": "[1.7.9, )",
-          "Basic.Reference.Assemblies.Net80Windows": "[1.7.9, )",
           "ImGui.NET.DirectX": "[1.91.0.1, )",
           "Lib.Harmony.Thin": "[2.3.3, )",
           "NLog": "[5.3.4, )",
