@@ -64,10 +64,23 @@ public static class IntrospectionPatches
     {
         if (AssemblyLoadContext.GetLoadContext(assembly) is ICoreLoadContext)
             return true;
+
+        if (assembly.IsDynamic)
+        {
+            __result = [];
+            return false;
+        }
         
         // static classes are abstract
         __result = IntrospectionContext.Global.CollectAttributedTypes<HarmonyAttribute>(assembly.GetMainModule(), true)
             .ToArray();
+        return false;
+    }
+
+    [HarmonyPrefix, HarmonyPatch(typeof(AccessTools), nameof(AccessTools.AllAssemblies))]
+    private static bool AllAssembliesHarmonyPrefix(ref IEnumerable<Assembly> __result)
+    {
+        __result = AssemblyLoadContext.GetLoadContext(typeof(IntrospectionPatches).Assembly)?.Assemblies ?? [];
         return false;
     }
     
