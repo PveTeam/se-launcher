@@ -31,7 +31,7 @@ public class ThreadPoolScheduler : IWorkScheduler
     {
     }
 
-    public int ThreadCount { get; } = ThreadPool.ThreadCount;
+    public int ThreadCount { get; } = 1024;
 }
 
 [HarmonyPatch]
