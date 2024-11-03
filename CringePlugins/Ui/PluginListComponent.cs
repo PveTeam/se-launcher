@@ -28,42 +28,44 @@ internal class PluginListComponent : IRenderComponent
 
     private bool _changed;
     private bool _open = true;
-    private readonly PackagesConfig _packagesConfig;
-    private readonly PackageSourceMapping _sources;
+    private PackagesConfig _packagesConfig;
+    private readonly PackageSourceMapping _sourceMapping;
+    private ImmutableHashSet<PackageSource>? _selectedSources;
     private readonly string _configPath;
     private readonly ImmutableArray<PluginInstance> _plugins;
     private (SearchResultEntry entry, NuGetClient client)? _selected;
+    private (PackageSource source, int index)? _selectedSource;
 
-    public PluginListComponent(PackagesConfig packagesConfig, PackageSourceMapping sources, string configPath,
+    public PluginListComponent(PackagesConfig packagesConfig, PackageSourceMapping sourceMapping, string configPath,
         ImmutableArray<PluginInstance> plugins)
     {
         _packagesConfig = packagesConfig;
-        _sources = sources;
+        _sourceMapping = sourceMapping;
         _configPath = configPath;
         _plugins = plugins;
-        _packages = packagesConfig.Packages.ToImmutableDictionary(b => b.Id, b => b.Range, StringComparer.OrdinalIgnoreCase);
+        _packages = packagesConfig.Packages.ToImmutableDictionary(b => b.Id, b => b.Range,
+            StringComparer.OrdinalIgnoreCase);
 
         MyGuiSandbox.GuiControlCreated += GuiControlCreated;
     }
 
     private void GuiControlCreated(object obj)
     {
-        if (obj is MyGuiScreenMainMenu && MyGuiScreenGamePlay.Static is null)
-            _open = true;
+        _open = obj is MyGuiScreenMainMenu && MyGuiScreenGamePlay.Static is null;
     }
 
     public void OnFrame()
     {
         if (!_open) return;
-        
+
         SetNextWindowSize(new(700, 500), ImGuiCond.FirstUseEver);
-        
-        if (!Begin("Plugin List", ref _open))
+
+        if (!Begin("Plugin List"))
         {
             End();
             return;
         }
-        
+
         if (_changed)
         {
             TextDisabled("Changes would be applied on the next restart");
@@ -86,11 +88,11 @@ internal class PluginListComponent : IRenderComponent
                     TableSetupColumn("Id");
                     TableSetupColumn("Version");
                     TableHeadersRow();
-                        
+
                     foreach (var plugin in _plugins)
                     {
                         TableNextRow();
-                            
+
                         TableNextColumn();
                         Text(plugin.Metadata.Name);
                         TableNextColumn();
@@ -101,7 +103,7 @@ internal class PluginListComponent : IRenderComponent
 
                     EndTable();
                 }
-                
+
                 EndTabItem();
             }
 
@@ -112,10 +114,123 @@ internal class PluginListComponent : IRenderComponent
                 EndTabItem();
             }
 
-            if (BeginTabItem("Configure Sources"))
+            if (BeginTabItem("Sources Configuration"))
             {
-                //todo
-                Text("Todo");
+                BeginChild("Sources List", new(400, 0), ImGuiChildFlags.Border | ImGuiChildFlags.ResizeX);
+                {
+                    if (BeginTable("Sources Table", 2,
+                            ImGuiTableFlags.ScrollY | ImGuiTableFlags.Resizable | ImGuiTableFlags.SizingStretchProp))
+                    {
+                        TableSetupColumn("Name", ImGuiTableColumnFlags.None, .2f);
+                        TableSetupColumn("Url", ImGuiTableColumnFlags.None, .8f);
+                        TableHeadersRow();
+
+                        for (var index = 0; index < _packagesConfig.Sources.Length; index++)
+                        {
+                            var source = _packagesConfig.Sources[index];
+                            TableNextRow();
+                            
+                            TableNextColumn();
+
+                            if (Selectable(source.Name, index == _selectedSource?.index, ImGuiSelectableFlags.SpanAllColumns))
+                            {
+                                _selectedSource = (source, index);
+                            }
+
+                            TableNextColumn();
+
+                            Text(source.Url);
+                        }
+
+                        EndTable();
+                    }
+                    
+                    EndChild();
+                }
+                
+                SameLine();
+                
+                BeginGroup();
+
+                BeginChild("Source View", new(0, -GetFrameHeightWithSpacing())); // Leave room for 1 line below us
+                {
+                    if (_selectedSource is not null)
+                    {
+                        var (selectedSource, index) = _selectedSource.Value;
+                        
+                        var name = selectedSource.Name;
+                        if (InputText("Name", ref name, 256))
+                            selectedSource = selectedSource with
+                            {
+                                Name = name
+                            };
+
+                        var url = selectedSource.Url;
+                        if (InputText("Url", ref url, 1024))
+                            selectedSource = selectedSource with
+                            {
+                                Url = url
+                            };
+                        
+                        var pattern = selectedSource.Pattern;
+                        if (InputText("Pattern", ref pattern, 1024))
+                            selectedSource = selectedSource with
+                            {
+                                Pattern = pattern
+                            };
+
+                        _selectedSource = (selectedSource, index);
+
+                        if (Button("Save"))
+                        {
+                            var array = _packagesConfig.Sources.RemoveAt(index).Insert(index, selectedSource);
+
+                            _packagesConfig = _packagesConfig with
+                            {
+                                Sources = array
+                            };
+
+                            _selectedSource = null;
+                            
+                            Save();
+                        }
+                        
+                        SameLine();
+
+                        if (Button("Delete"))
+                        {
+                            var array = _packagesConfig.Sources.RemoveAt(index);
+
+                            _packagesConfig = _packagesConfig with
+                            {
+                                Sources = array
+                            };
+
+                            _selectedSource = null;
+                            
+                            Save();
+                        }
+                    }
+                    
+                    EndChild();
+                }
+
+                if (Button("Add New"))
+                {
+                    var source = new PackageSource("source name", "", "https://url.to/index.json");
+                    
+                    var array = _packagesConfig.Sources.Add(source);
+
+                    _packagesConfig = _packagesConfig with
+                    {
+                        Sources = array
+                    };
+
+                    _selectedSource = (source, array.Length - 1);
+                }
+                
+                EndGroup();
+                
                 EndTabItem();
             }
 
@@ -128,7 +243,7 @@ internal class PluginListComponent : IRenderComponent
 
             EndTabBar();
         }
-        
+
         End();
     }
 
@@ -141,6 +256,42 @@ internal class PluginListComponent : IRenderComponent
             _searchTask = RefreshAsync();
         }
 
+        InputText("##searchbox", ref _searchQuery, 256);
+
+        SameLine();
+
+        if (Button("Search"))
+        {
+            _searchTask = RefreshAsync();
+            return;
+        }
+
+        SameLine();
+
+        if (BeginCombo("##sources",
+                _selectedSources is null ? "All Sources" :
+                _selectedSources.Count > 2 ? $"{_selectedSources.First().Name} +{_selectedSources.Count - 1}" :
+                string.Join(",", _selectedSources.Select(b => b.Name)), ImGuiComboFlags.WidthFitPreview))
+        {
+            foreach (var source in _packagesConfig.Sources)
+            {
+                var selected = _selectedSources?.Contains(source) ?? true;
+                if (Selectable(source.Name, ref selected))
+                {
+                    _selectedSources = selected
+                        ? (_selectedSources?.Count ?? 0) + 1 == _packagesConfig.Sources.Length ? null : _selectedSources?.Add(source)
+                        : (_selectedSources ?? _packagesConfig.Sources.ToImmutableHashSet()).Remove(source);
+                    
+                    _searchTask = RefreshAsync();
+                    return;
+                }
+            }
+
+            EndCombo();
+        }
+        
+        Spacing();
+        
         switch (_searchTask)
         {
             case { IsCompleted: false }:
@@ -150,7 +301,7 @@ internal class PluginListComponent : IRenderComponent
             {
                 TextDisabled("Failed to load plugins list");
                 if (_searchTask.Exception is null) return;
-                
+
                 foreach (var exception in _searchTask.Exception.InnerExceptions)
                 {
                     TextWrapped($"{exception.GetType()}: {exception.Message}");
@@ -161,16 +312,6 @@ internal class PluginListComponent : IRenderComponent
         }
 
         var searchResults = _searchResults ?? ImmutableDictionary<NuGetClient, SearchResult>.Empty;
-                
-        InputText("##searchbox", ref _searchQuery, 256);
-        
-        SameLine();
-
-        if (Button("Search"))
-        {
-            _searchTask = RefreshAsync();
-            return;
-        }
 
         if (searchResults.IsEmpty || searchResults.Values.All(b => b.Entries.IsEmpty))
         {
@@ -180,11 +321,12 @@ internal class PluginListComponent : IRenderComponent
 
         BeginChild("List", new(400, 0), ImGuiChildFlags.Border | ImGuiChildFlags.ResizeX);
         {
-            if (BeginTable("AvailableTable", 3, ImGuiTableFlags.ScrollY | ImGuiTableFlags.Resizable | ImGuiTableFlags.SizingStretchProp))
+            if (BeginTable("AvailableTable", 3,
+                    ImGuiTableFlags.ScrollY | ImGuiTableFlags.Resizable | ImGuiTableFlags.SizingStretchProp))
             {
                 TableSetupColumn("Id", ImGuiTableColumnFlags.None, .5f);
-                TableSetupColumn("Version", ImGuiTableColumnFlags.None, .3f);
-                TableSetupColumn("Installed", ImGuiTableColumnFlags.None, .2f);
+                TableSetupColumn("Version", ImGuiTableColumnFlags.None, .25f);
+                TableSetupColumn("Installed", ImGuiTableColumnFlags.None, .25f);
                 TableHeadersRow();
 
                 foreach (var (client, result) in searchResults)
@@ -192,10 +334,11 @@ internal class PluginListComponent : IRenderComponent
                     foreach (var package in result.Entries.Take(100))
                     {
                         TableNextRow();
-                            
+
                         TableNextColumn();
 
-                        var selected = _selected?.entry.Id.Equals(package.Id, StringComparison.OrdinalIgnoreCase) == true;
+                        var selected = _selected?.entry.Id.Equals(package.Id, StringComparison.OrdinalIgnoreCase) ==
+                                       true;
 
                         if (Selectable(package.Title ?? package.Id, ref selected, ImGuiSelectableFlags.SpanAllColumns))
                         {
@@ -206,34 +349,34 @@ internal class PluginListComponent : IRenderComponent
                         {
                             SetTooltip(package.Summary);
                         }
-                            
+
                         TableNextColumn();
                         Text(package.Version.ToString());
-                            
+
                         TableNextColumn();
-                        
+
                         var installed = _packages.ContainsKey(package.Id);
                         TextColored(installed ? new(0f, 1f, 0f, 1f) : new(1f, 0f, 0f, 1f),
                             installed ? "Installed" : "Not Installed");
                     }
                 }
-                    
+
                 EndTable();
             }
-            
+
             EndChild();
         }
-        
+
         SameLine();
-        
+
         BeginGroup();
-        
+
         BeginChild("Package View", new(0, -GetFrameHeightWithSpacing())); // Leave room for 1 line below us
-        
+
         if (_selected is not null)
         {
             var selected = _selected.Value.entry;
-            
+
             Text(selected.Title ?? selected.Id);
             SameLine();
             TextColored(*GetStyleColorVec4(ImGuiCol.TextLink), selected.Version.ToString());
@@ -251,7 +394,7 @@ internal class PluginListComponent : IRenderComponent
                     Text("Pulled from");
                     SameLine();
                     var url = _selected.Value.client.ToString();
-                    TextLinkOpenURL(url, url);
+                    TextLinkOpenURL(_packagesConfig.Sources.FirstOrDefault(b => b.Url == url)?.Name ?? url, url);
 
                     if (selected.Authors is not null)
                     {
@@ -259,55 +402,59 @@ internal class PluginListComponent : IRenderComponent
                         SameLine();
                         TextWrapped(selected.Authors.Author);
                     }
-                    
+
                     if (selected.TotalDownloads.HasValue)
                     {
                         Text("Total downloads:");
                         SameLine();
                         TextColored(*GetStyleColorVec4(ImGuiCol.TextLink), selected.TotalDownloads.ToString());
                     }
+
                     if (!string.IsNullOrEmpty(selected.ProjectUrl))
                         TextLinkOpenURL("Project URL", selected.ProjectUrl);
-                    
+
                     EndTabItem();
                 }
-                
+
                 EndTabBar();
             }
         }
-        
+
         EndChild();
-        
+
         if (_selected is not null)
         {
             var selected = _selected.Value.entry;
-            
+
             var installed = _packages.ContainsKey(selected.Id);
             if (Button(installed ? "Uninstall" : "Install"))
             {
                 _packages = installed
                     ? _packages.Remove(selected.Id)
                     : _packages.Add(selected.Id, new(selected.Version));
-                
+
                 Save();
             }
         }
-        
+
         EndGroup();
     }
 
     private async Task RefreshAsync()
     {
         _searchResults = null;
-        
+
         var builder = ImmutableDictionary.CreateBuilder<NuGetClient, SearchResult>();
-        
-        await foreach (var source in _sources)
+
+        await foreach (var source in _sourceMapping)
         {
+            if (_selectedSources is not null && _selectedSources.All(b => b.Url != source.ToString()))
+                continue;
+            
             try
             {
                 var result = await source.SearchPackagesAsync(_searchQuery, take: 1000, packageType: "CringePlugin");
-                
+
                 builder.Add(source, result);
             }
             catch (Exception e)
@@ -315,14 +462,14 @@ internal class PluginListComponent : IRenderComponent
                 Log.Error(e, "Failed to get packages from source {Source}", source);
             }
         }
-        
+
         _searchResults = builder.ToImmutable();
     }
 
     private void Save()
     {
         _changed = true;
-        
+
         using var stream = File.Create(_configPath);
 
         JsonSerializer.Serialize(stream, _packagesConfig with

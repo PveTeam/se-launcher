@@ -25,4 +25,4 @@ public class PackageSourceMapping(ImmutableArray<PackageSource> sources)
     }
 }
 
-public record PackageSource([StringSyntax("Regex")] string Pattern, [StringSyntax("Uri")] string Url);
+public record PackageSource(string Name, [StringSyntax("Regex")] string Pattern, [StringSyntax("Uri")] string Url);

@@ -1,10 +1,12 @@
 ﻿using System.Reflection;
+using System.Runtime.CompilerServices;
 using CringeBootstrap.Abstractions;
 using CringeLauncher.Utils;
 using CringePlugins.Loader;
 using CringePlugins.Splash;
 using HarmonyLib;
 using NLog;
+using ParallelTasks;
 using Sandbox;
 using Sandbox.Engine.Networking;
 using Sandbox.Engine.Platform.VideoMode;
@@ -26,6 +28,7 @@ using VRage.Steam;
 using VRage.UserInterface;
 using VRageRender;
 using VRageRender.ExternalApp;
+using Task = System.Threading.Tasks.Task;
 
 namespace CringeLauncher;
 
@@ -40,7 +43,11 @@ public class Launcher : ICorePlugin
 
     public void Initialize(string[] args)
     {
+        if (Type.GetType("GameAnalyticsSDK.Net.Logging.GALogger, GameAnalytics.Mono") is { } gaLoggerType)
+            RuntimeHelpers.RunClassConstructor(gaLoggerType.TypeHandle);
+        
         LogManager.Setup()
+            .LoadConfigurationFromFile()
             .SetupExtensions(s =>
             {
                 s.RegisterLayoutRenderer("cringe-exception", e =>
@@ -52,6 +59,8 @@ public class Launcher : ICorePlugin
             });
 
         LogManager.ReconfigExistingLoggers();
+        
+        LogManager.GetLogger("CringeBootstrap").Info("Bootstrapping");
         
         //environment variable for viktor's plugins
         Environment.SetEnvironmentVariable("SE_PLUGIN_DISABLE_METHOD_VERIFICATION", "True");
@@ -156,8 +165,8 @@ public class Launcher : ICorePlugin
 
     private static void InitThreadPool()
     {
-        // ParallelTasks.Parallel.Scheduler = new ThreadPoolScheduler();
-        MySandboxGame.InitMultithreading();
+        ParallelTasks.Parallel.Scheduler = new ThreadPoolScheduler();
+        // MySandboxGame.InitMultithreading();
     }
 
     private static void ConfigureSettings()
