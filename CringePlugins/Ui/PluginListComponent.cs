@@ -1,4 +1,5 @@
 ﻿using System.Collections.Immutable;
+using System.Diagnostics;
 using System.Text.Json;
 using CringePlugins.Abstractions;
 using CringePlugins.Config;
@@ -64,7 +65,15 @@ internal class PluginListComponent : IRenderComponent
         }
         
         if (_changed)
+        {
             TextDisabled("Changes would be applied on the next restart");
+            SameLine();
+            if (Button("Restart Now"))
+            {
+                Process.Start("explorer.exe", "steam://rungameid/244850");
+                Process.GetCurrentProcess().Kill();
+            }
+        }
 
         if (BeginTabBar("Main"))
         {
@@ -73,6 +82,7 @@ internal class PluginListComponent : IRenderComponent
             {
                 if (BeginTable("InstalledTable", 2, ImGuiTableFlags.ScrollY))
                 {
+                    //todo: include plugin source (local, zznty nuget, etc) in menu?
                     TableSetupColumn("Id");
                     TableSetupColumn("Version");
                     TableHeadersRow();
@@ -85,6 +95,8 @@ internal class PluginListComponent : IRenderComponent
                         Text(plugin.Metadata.Name);
                         TableNextColumn();
                         Text(plugin.Metadata.Version.ToString());
+
+                        //todo: use plugin.HasConfig and plugin.OpenConfig()
                     }
 
                     EndTable();
@@ -93,13 +105,27 @@ internal class PluginListComponent : IRenderComponent
                 EndTabItem();
             }
 
-            if (BeginTabItem("Available Plugins"))
+            if (BeginTabItem("Browse Plugins"))
             {
                 AvailablePluginsTab();
 
                 EndTabItem();
             }
-            
+
+            if (BeginTabItem("Configure Sources"))
+            {
+                //todo
+                Text("Todo");
+                EndTabItem();
+            }
+
+            if (BeginTabItem("Settings"))
+            {
+                //todo
+                Text("Todo");
+                EndTabItem();
+            }
+
             EndTabBar();
         }
         
@@ -136,7 +162,7 @@ internal class PluginListComponent : IRenderComponent
 
         var searchResults = _searchResults ?? ImmutableDictionary<NuGetClient, SearchResult>.Empty;
                 
-        InputText("", ref _searchQuery, 256);
+        InputText("##searchbox", ref _searchQuery, 256);
         
         SameLine();
 
@@ -187,16 +213,8 @@ internal class PluginListComponent : IRenderComponent
                         TableNextColumn();
                         
                         var installed = _packages.ContainsKey(package.Id);
-                        BeginDisabled();
-                        if (Checkbox("", ref installed))
-                        {
-                            _packages = installed
-                                ? _packages.Add(package.Id, new(package.Version))
-                                : _packages.Remove(package.Id);
-
-                            Save();
-                        }
-                        EndDisabled();
+                        TextColored(installed ? new(0f, 1f, 0f, 1f) : new(1f, 0f, 0f, 1f),
+                            installed ? "Installed" : "Not Installed");
                     }
                 }
                     
