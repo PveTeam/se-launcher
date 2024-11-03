@@ -4,7 +4,7 @@ using NuGet.Versioning;
 
 namespace CringePlugins.Loader;
 
-public record PluginMetadata(string Name, NuGetVersion Version)
+public record PluginMetadata(string Name, NuGetVersion Version, string Source)
 {
     public static PluginMetadata ReadFromEntrypoint(string entrypointPath)
     {
@@ -20,6 +20,6 @@ public record PluginMetadata(string Name, NuGetVersion Version)
                 out var version))
             version = new(0, 0, 0, 0);
         
-        return new(name, version);
+        return new(name, version, "Local");
     }
 }

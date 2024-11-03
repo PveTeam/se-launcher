@@ -60,7 +60,7 @@ public class PluginsLifetime : ILoadingStage
         
         progress.Report("Loading plugins");
 
-        await LoadPlugins(cachedPackages, sourceMapping);
+        await LoadPlugins(cachedPackages, sourceMapping, packagesConfig);
         
         progress.Report("Registering plugins");
         
@@ -85,7 +85,8 @@ public class PluginsLifetime : ILoadingStage
         }
     }
 
-    private async Task LoadPlugins(IReadOnlySet<CachedPackage> packages, PackageSourceMapping sourceMapping)
+    private async Task LoadPlugins(IReadOnlySet<CachedPackage> packages, PackageSourceMapping sourceMapping,
+        PackagesConfig packagesConfig)
     {
         var plugins = _plugins.ToBuilder();
 
@@ -107,8 +108,11 @@ public class PluginsLifetime : ILoadingStage
 
             await using (var stream = File.Create(Path.Join(dir, $"{package.Package.Id}.deps.json")))
                 await manifestBuilder.WriteDependencyManifestAsync(stream, package.Entry, _runtimeFramework);
-            
-            LoadComponent(plugins, Path.Join(dir, $"{package.Package.Id}.dll"), new(package.Package.Id, package.Package.Version));
+
+            var client = await sourceMapping.GetClientAsync(package.Package.Id);
+            var sourceName = packagesConfig.Sources.First(b => b.Url == client.ToString()).Name;
+            LoadComponent(plugins, Path.Join(dir, $"{package.Package.Id}.dll"),
+                new(package.Package.Id, package.Package.Version, sourceName));
         }
         
         _plugins = plugins.ToImmutable();

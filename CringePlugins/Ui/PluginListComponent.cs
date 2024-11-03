@@ -83,11 +83,11 @@ internal class PluginListComponent : IRenderComponent
             // TODO support for opening plugin loader plugin config (reflection call to a specific method)
             if (BeginTabItem("Installed Plugins"))
             {
-                if (BeginTable("InstalledTable", 2, ImGuiTableFlags.ScrollY))
+                if (BeginTable("InstalledTable", 3, ImGuiTableFlags.ScrollY | ImGuiTableFlags.Resizable))
                 {
-                    //todo: include plugin source (local, zznty nuget, etc) in menu?
-                    TableSetupColumn("Id");
-                    TableSetupColumn("Version");
+                    TableSetupColumn("Id", ImGuiTableColumnFlags.None, .5f);
+                    TableSetupColumn("Version", ImGuiTableColumnFlags.None, .25f);
+                    TableSetupColumn("Source", ImGuiTableColumnFlags.None, .25f);
                     TableHeadersRow();
 
                     foreach (var plugin in _plugins)
@@ -101,6 +101,8 @@ internal class PluginListComponent : IRenderComponent
                         EndDisabled();
                         TableNextColumn();
                         Text(plugin.Metadata.Version.ToString());
+                        TableNextColumn();
+                        Text(plugin.Metadata.Source);
                     }
 
                     EndTable();
