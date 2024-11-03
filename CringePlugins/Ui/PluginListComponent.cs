@@ -94,11 +94,12 @@ internal class PluginListComponent : IRenderComponent
                         TableNextRow();
 
                         TableNextColumn();
-                        Text(plugin.Metadata.Name);
+                        BeginDisabled(!plugin.HasConfig);
+                        if (Selectable(plugin.Metadata.Name, false, ImGuiSelectableFlags.SpanAllColumns))
+                            plugin.OpenConfig();
+                        EndDisabled();
                         TableNextColumn();
                         Text(plugin.Metadata.Version.ToString());
-
-                        //todo: use plugin.HasConfig and plugin.OpenConfig()
                     }
 
                     EndTable();
