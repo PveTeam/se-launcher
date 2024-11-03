@@ -56,7 +56,7 @@ public static class BuiltInPackages
             FromAssembly<PluginsLifetime>(runtimeFramework,
                 [se.AsDependency(), imGui.AsDependency(), harmony.AsDependency()]
 #if DEBUG
-                , version: new(0, 1, 4)
+                , version: new(0, 1, 21)
 #endif
             ),
         ];

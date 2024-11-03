@@ -2,6 +2,24 @@
   "version": 1,
   "dependencies": {
     "net8.0-windows10.0.19041": {
+      "Basic.Reference.Assemblies.Net80": {
+        "type": "Direct",
+        "requested": "[1.7.9, )",
+        "resolved": "1.7.9",
+        "contentHash": "1wbS9ZJLFVrKD2jqv27gekIrpjpLffR9sitLQh5drWoG9KbyR/CgrAhw5I0c8Eq3zFMOToCmrpZi3VpRoInCgg==",
+        "dependencies": {
+          "Microsoft.CodeAnalysis.Common": "4.11.0"
+        }
+      },
+      "Basic.Reference.Assemblies.Net80Windows": {
+        "type": "Direct",
+        "requested": "[1.7.9, )",
+        "resolved": "1.7.9",
+        "contentHash": "98GFm8MC+pv37rTHaxBm5KFucqdJj0jK0XRHSGt2sXK9HNqtGImIFCFahxjUzskQjiUkPAzVhTou2OYZOuhhEg==",
+        "dependencies": {
+          "Microsoft.CodeAnalysis.Common": "4.11.0"
+        }
+      },
       "dnlib": {
         "type": "Direct",
         "requested": "[4.4.0, )",

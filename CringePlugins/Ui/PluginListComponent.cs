@@ -46,12 +46,13 @@ internal class PluginListComponent : IRenderComponent
         _packages = packagesConfig.Packages.ToImmutableDictionary(b => b.Id, b => b.Range,
             StringComparer.OrdinalIgnoreCase);
 
-        MyGuiSandbox.GuiControlCreated += GuiControlCreated;
+        MyScreenManager.ScreenAdded += ScreenChanged;
+        MyScreenManager.ScreenRemoved += ScreenChanged;
     }
 
-    private void GuiControlCreated(object obj)
+    private void ScreenChanged(MyGuiScreenBase screen)
     {
-        _open = obj is MyGuiScreenMainMenu && MyGuiScreenGamePlay.Static is null;
+        _open = MyScreenManager.GetScreenWithFocus() is MyGuiScreenMainMenu && MyGuiScreenGamePlay.Static is null;
     }
 
     public void OnFrame()
