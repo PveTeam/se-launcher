@@ -7,9 +7,12 @@ namespace CringePlugins.Loader;
 
 internal sealed class PluginInstance
 {
+    public bool HasConfig => _openConfigAction != null;
+
     private readonly string _entrypointPath;
     private PluginAssemblyLoadContext? _context;
     private IPlugin? _instance;
+    private Action? _openConfigAction;
     private IHandleInputPlugin? _handleInputInstance;
     public PluginMetadata Metadata { get; }
 
@@ -40,6 +43,18 @@ internal sealed class PluginInstance
             throw new InvalidOperationException("Entrypoint contains multiple plugins");
 
         _instance = (IPlugin) Activator.CreateInstance(plugins[0])!;
+
+        var openConfigMethod = plugins[0].GetMethod("OpenConfigDialog");
+
+        if (openConfigMethod is not null)
+        {
+            //todo: log this and continue without action instead of throwing exception
+            if (openConfigMethod.ReturnType != typeof(void) || openConfigMethod.IsStatic || openConfigMethod.GetParameters().Length > 0)
+                throw new InvalidOperationException("OpenConfigDialog method has an incorrect signature");
+
+            _openConfigAction = openConfigMethod.CreateDelegate<Action>(_instance);
+        }
+
         _handleInputInstance = _instance as IHandleInputPlugin;
     }
 
@@ -51,5 +66,13 @@ internal sealed class PluginInstance
         MyPlugins.m_plugins.Add(_instance);
         if (_handleInputInstance is not null)
             MyPlugins.m_handleInputPlugins.Add(_handleInputInstance);
+    }
+
+    public void OpenConfig()
+    {
+        if (_openConfigAction is null)
+            throw new InvalidOperationException("Plugin does not have OpenConfigDialog method");
+
+        _openConfigAction();
     }
 }
