@@ -38,8 +38,7 @@ public static class IntrospectionPatches
             //mods need to look for specific derived types
             Debug.WriteLine($"Getting special types for {__instance.FullName}");
             var module = __instance.GetMainModule();
-            __result = IntrospectionContext.Global.CollectDerivedTypes<MyGameLogicComponent>(module)
-                .Concat(IntrospectionContext.Global.CollectDerivedTypes<MyObjectBuilder_Base>(module))
+            __result = IntrospectionContext.Global.CollectDerivedTypes<MyObjectBuilder_Base>(module)
                 .Concat(IntrospectionContext.Global.CollectDerivedTypes<MyStatLogic>(module))
                 .Concat(IntrospectionContext.Global.CollectAttributedTypes<MyObjectBuilderDefinitionAttribute>(module))
                 .Concat(IntrospectionContext.Global.CollectDerivedTypes<MyComponentBase>(module))
