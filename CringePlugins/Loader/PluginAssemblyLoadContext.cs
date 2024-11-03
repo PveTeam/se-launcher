@@ -1,23 +1,51 @@
-﻿using System.Reflection;
+﻿using System.Collections.Concurrent;
+using System.Reflection;
 using System.Runtime.Loader;
 using CringeBootstrap.Abstractions;
+using CringePlugins.Utils;
 using SharedCringe.Loader;
 
 namespace CringePlugins.Loader;
 
 internal class PluginAssemblyLoadContext : DerivedAssemblyLoadContext
 {
+    //todo: refactor?
+    public static readonly ConcurrentDictionary<string, Assembly> TypeToAssembly = [];
+
     private readonly string _entrypointPath;
     private readonly AssemblyDependencyResolver _dependencyResolver;
+    private readonly HashSet<string> _loadedTypes = [];
     private Assembly? _assembly;
 
     internal PluginAssemblyLoadContext(ICoreLoadContext parentContext, string entrypointPath) : base(parentContext, $"Plugin Context {Path.GetFileNameWithoutExtension(entrypointPath)}")
     {
         _entrypointPath = entrypointPath;
         _dependencyResolver = new(entrypointPath);
+
+        Unloading += OnUnload;
     }
 
-    public Assembly LoadEntrypoint() => _assembly ??= LoadFromAssemblyPath(_entrypointPath);
+    public Assembly LoadEntrypoint()
+    {
+        if (_assembly is not null)
+            return _assembly;
+
+        _assembly = LoadFromAssemblyPath(_entrypointPath);
+
+        var module = _assembly.GetMainModule();
+
+        foreach (var type in module.GetTypes())
+        {
+            var name = type.FullName?.Replace('/', '+');
+
+            if (string.IsNullOrEmpty(name) || !_loadedTypes.Add(name))
+                continue;
+
+            TypeToAssembly[name] = _assembly;
+        }
+
+        return _assembly;
+    }
 
     protected override Assembly? Load(AssemblyName assemblyName)
     {
@@ -33,5 +61,17 @@ internal class PluginAssemblyLoadContext : DerivedAssemblyLoadContext
             return LoadUnmanagedDllFromPath(path);
         
         return base.LoadUnmanagedDll(unmanagedDllName);
+    }
+
+    private static void OnUnload(AssemblyLoadContext context)
+    {
+        if (context is not PluginAssemblyLoadContext pluginContext)
+            return;
+
+        foreach (var typeStr in pluginContext._loadedTypes)
+        {
+            TypeToAssembly.Remove(typeStr);
+        }
+        pluginContext._loadedTypes.Clear();
     }
 }

@@ -78,6 +78,19 @@ public static class IntrospectionPatches
         return false;
     }
 
+    [HarmonyPrefix, HarmonyPatch(typeof(AccessTools), nameof(AccessTools.TypeByName))]
+    private static bool TypeByNameHarmonyPrefix(ref Type __result, string name)
+    {
+        if (!PluginAssemblyLoadContext.TypeToAssembly.TryGetValue(name, out var assembly))
+            return true;
+
+        var module = assembly.GetMainModule();
+
+        __result = module.GetType(name, true, false)!;
+
+        return false;
+    }
+
     [HarmonyPrefix, HarmonyPatch(typeof(AccessTools), nameof(AccessTools.AllAssemblies))]
     private static bool AllAssembliesHarmonyPrefix(ref IEnumerable<Assembly> __result)
     {
