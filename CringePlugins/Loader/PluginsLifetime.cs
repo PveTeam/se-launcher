@@ -106,8 +106,13 @@ public class PluginsLifetime : ILoadingStage
         {
             var dir = Path.Join(package.Directory.FullName, "lib", package.ResolvedFramework.GetShortFolderName());
 
-            await using (var stream = File.Create(Path.Join(dir, $"{package.Package.Id}.deps.json")))
-                await manifestBuilder.WriteDependencyManifestAsync(stream, package.Entry, _runtimeFramework);
+            var path = Path.Join(dir, $"{package.Package.Id}.deps.json");
+            if (!File.Exists(path))
+            {
+                await using (var stream = File.Create(path))
+                    await manifestBuilder.WriteDependencyManifestAsync(stream, package.Entry, _runtimeFramework);
+            }
+            
 
             var client = await sourceMapping.GetClientAsync(package.Package.Id);
             var sourceName = packagesConfig.Sources.First(b => b.Url == client.ToString()).Name;
