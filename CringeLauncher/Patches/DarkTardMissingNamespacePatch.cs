@@ -15,5 +15,6 @@ public static class DarkTardMissingNamespacePatch
         ___m_compatibilityChanges["using System.Numerics;"] = "";
         ___m_compatibilityChanges["using System.Runtime.Remoting.Lifetime;"] = "";
         ___m_compatibilityChanges["using System.Net.Configuration;"] = "";
+        ___m_compatibilityChanges["using System.Reflection.Metadata.Ecma335;"] = "";
     }
 }
