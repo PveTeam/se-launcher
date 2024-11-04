@@ -65,14 +65,10 @@ public class PluginsLifetime : ILoadingStage
 
         await LoadPlugins(cachedPackages, sourceMapping, packagesConfig);
         
-        progress.Report("Registering plugins");
-        
-        RegisterLifetime();
-        
         RenderHandler.Current.RegisterComponent(new PluginListComponent(packagesConfig, sourceMapping, configPath, _plugins));
     }
 
-    private void RegisterLifetime()
+    public void RegisterLifetime()
     {
         var contextBuilder = Contexts.ToBuilder();
         foreach (var instance in _plugins)

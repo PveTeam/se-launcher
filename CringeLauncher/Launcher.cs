@@ -116,6 +116,9 @@ public class Launcher : ICorePlugin
         
         InitUgc();
         MyFileSystem.InitUserSpecific(MyGameService.UserId.ToString());
+        
+        _lifetime.RegisterLifetime();
+        
         _game = new(args)
         {
             GameRenderComponent = _renderComponent,
