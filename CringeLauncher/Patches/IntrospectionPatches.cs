@@ -34,6 +34,12 @@ public static class IntrospectionPatches
         if (AssemblyLoadContext.GetLoadContext(__instance) is ICoreLoadContext || __instance.FullName?.StartsWith("System.") == true)
             return true;
 
+        if (__instance.IsDynamic)
+        {
+            __result = [];
+            return false;
+        }
+
         if (AssemblyLoadContext.GetLoadContext(__instance) is ModAssemblyLoadContext or DerivedAssemblyLoadContext)
         {
             //mods need to look for specific derived types

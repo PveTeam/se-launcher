@@ -2,6 +2,8 @@
 using System.Runtime.Loader;
 using CringeBootstrap.Abstractions;
 using CringePlugins.Utils;
+using dnlib.DotNet;
+using NLog;
 using SharedCringe.Loader;
 using VRage.Plugins;
 
@@ -16,6 +18,8 @@ internal sealed class PluginInstance
     private IPlugin? _instance;
     private Action? _openConfigAction;
     private IHandleInputPlugin? _handleInputInstance;
+
+    private static readonly NLog.ILogger Log = LogManager.GetCurrentClassLogger();
     public PluginMetadata Metadata { get; }
 
     public PluginInstance(PluginMetadata metadata, string entrypointPath)
@@ -51,11 +55,15 @@ internal sealed class PluginInstance
 
         if (openConfigMethod is not null)
         {
-            //todo: log this and continue without action instead of throwing exception
             if (openConfigMethod.ReturnType != typeof(void) || openConfigMethod.IsStatic || openConfigMethod.GetParameters().Length > 0)
-                throw new InvalidOperationException("OpenConfigDialog method has an incorrect signature");
-
-            _openConfigAction = openConfigMethod.CreateDelegate<Action>(_instance);
+            {
+                Log.Error("Plugin has OpenConfigDialog method with incorrect signature: {Name}, v{Version} - {Source}",
+                    Metadata.Name, Metadata.Version, Metadata.Source);
+            }
+            else
+            {
+                _openConfigAction = openConfigMethod.CreateDelegate<Action>(_instance);
+            }
         }
 
         _handleInputInstance = _instance as IHandleInputPlugin;
@@ -76,6 +84,13 @@ internal sealed class PluginInstance
         if (_openConfigAction is null)
             throw new InvalidOperationException("Plugin does not have OpenConfigDialog method");
 
-        _openConfigAction();
+        try
+        {
+            _openConfigAction();
+        }
+        catch (Exception ex)
+        {
+            Log.Error(ex, "Error opening config: {Exception}");
+        }
     }
 }
