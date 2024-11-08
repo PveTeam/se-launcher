@@ -21,6 +21,8 @@ internal class ImGuiHandler : IDisposable
     public static ImGuiHandler? Instance;
     
     public static RenderTargetView? Rtv;
+    
+    public ImGuiIOPtr Io { get; private set; }
     private readonly IRootRenderComponent _renderHandler = new RenderHandler();
 
     public unsafe void Init(nint windowHandle, Device1 device, DeviceContext deviceContext)
@@ -29,14 +31,14 @@ internal class ImGuiHandler : IDisposable
 
         CreateContext();
         
-        var io = GetIO();
+        Io = GetIO();
         
         var path = Path.Join(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "CringeLauncher", "imgui.ini");
 
-        io.NativePtr->IniFilename = AnsiStringMarshaller.ConvertToUnmanaged(path);
-        
-        io.ConfigWindowsMoveFromTitleBarOnly = true;
-        io.ConfigFlags |= ImGuiConfigFlags.DockingEnable | ImGuiConfigFlags.ViewportsEnable;
+        Io.NativePtr->IniFilename = AnsiStringMarshaller.ConvertToUnmanaged(path);
+
+        Io.ConfigWindowsMoveFromTitleBarOnly = true;
+        Io.ConfigFlags |= ImGuiConfigFlags.DockingEnable | ImGuiConfigFlags.ViewportsEnable;
         
         ImGui_ImplWin32_Init(windowHandle);
         ImGui_ImplDX11_Init(device.NativePointer, deviceContext.NativePointer);
