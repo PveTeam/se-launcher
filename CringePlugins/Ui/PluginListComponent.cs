@@ -1,7 +1,9 @@
 ﻿using System.Collections.Immutable;
 using System.Diagnostics;
 using System.Text.Json;
+using System.Xml.Serialization;
 using CringePlugins.Abstractions;
+using CringePlugins.Compatability;
 using CringePlugins.Config;
 using CringePlugins.Loader;
 using CringePlugins.Resolver;
@@ -33,16 +35,18 @@ internal class PluginListComponent : IRenderComponent
     private readonly PackageSourceMapping _sourceMapping;
     private ImmutableHashSet<PackageSource>? _selectedSources;
     private readonly string _configPath;
+    private readonly string _gameFolder;
     private readonly ImmutableArray<PluginInstance> _plugins;
     private (SearchResultEntry entry, NuGetClient client)? _selected;
     private (PackageSource source, int index)? _selectedSource;
 
-    public PluginListComponent(PackagesConfig packagesConfig, PackageSourceMapping sourceMapping, string configPath,
+    public PluginListComponent(PackagesConfig packagesConfig, PackageSourceMapping sourceMapping, string configPath, string gameFolder,
         ImmutableArray<PluginInstance> plugins)
     {
         _packagesConfig = packagesConfig;
         _sourceMapping = sourceMapping;
         _configPath = configPath;
+        _gameFolder = gameFolder;
         _plugins = plugins;
         _packages = packagesConfig.Packages.ToImmutableDictionary(b => b.Id, b => b.Range,
             StringComparer.OrdinalIgnoreCase);
@@ -251,8 +255,20 @@ internal class PluginListComponent : IRenderComponent
 
             if (BeginTabItem("Settings"))
             {
-                //todo
-                Text("Todo");
+                var oldConfigPath = Path.Join(_gameFolder, "Plugins", "config.xml");
+                if (File.Exists(oldConfigPath) && Button("Migrate PluginLoader Config"))
+                {
+                    var configSerializer = new XmlSerializer(typeof(PluginLoaderConfig));
+                    using var fs = File.OpenRead(oldConfigPath);
+
+                    if (configSerializer.Deserialize(fs) is PluginLoaderConfig oldConfig)
+                    {
+                        _packagesConfig = oldConfig.Migrate(_packagesConfig);
+
+
+                        Save(false);
+                    }
+                }
                 EndTabItem();
             }
 
@@ -481,15 +497,15 @@ internal class PluginListComponent : IRenderComponent
         _searchResults = builder.ToImmutable();
     }
 
-    private void Save()
+    private void Save(bool keepPackages = true)
     {
         _changed = true;
 
         using var stream = File.Create(_configPath);
 
-        JsonSerializer.Serialize(stream, _packagesConfig with
+        JsonSerializer.Serialize(stream, keepPackages ? _packagesConfig with
         {
             Packages = [.._packages.Select(b => new PackageReference(b.Key, b.Value))]
-        }, NuGetClient.SerializerOptions);
+        } : _packagesConfig, NuGetClient.SerializerOptions);
     }
 }

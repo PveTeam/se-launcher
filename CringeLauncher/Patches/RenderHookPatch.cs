@@ -19,6 +19,6 @@ public class RenderHookPatch
     [HarmonyPostfix, HarmonyPatch(typeof(MyGameForm), "OnLoad")]
     private static void LoadPostfix(MyGameForm __instance)
     {
-        ImGuiHandler.Instance?.HookWindow((HWND)__instance.Handle);
+        ImGuiHandler.HookWindow((HWND)__instance.Handle);
     }
 }

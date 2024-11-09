@@ -15,7 +15,7 @@ using SharedCringe.Loader;
 
 namespace CringePlugins.Loader;
 
-public class PluginsLifetime : ILoadingStage
+public class PluginsLifetime(string gameFolder) : ILoadingStage
 {
     public static ImmutableArray<DerivedAssemblyLoadContext> Contexts { get; private set; } = [];
 
@@ -65,7 +65,7 @@ public class PluginsLifetime : ILoadingStage
 
         await LoadPlugins(cachedPackages, sourceMapping, packagesConfig);
         
-        RenderHandler.Current.RegisterComponent(new PluginListComponent(packagesConfig, sourceMapping, configPath, _plugins));
+        RenderHandler.Current.RegisterComponent(new PluginListComponent(packagesConfig, sourceMapping, configPath, gameFolder, _plugins));
     }
 
     public void RegisterLifetime()

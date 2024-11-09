@@ -45,7 +45,7 @@ internal class ImGuiHandler : IDisposable
         _init = true;
     }
 
-    public void HookWindow(HWND windowHandle)
+    public static void HookWindow(HWND windowHandle)
     {
         _wndproc = PInvoke.GetWindowLongPtr(windowHandle, WINDOW_LONG_PTR_INDEX.GWL_WNDPROC);
 
@@ -96,8 +96,8 @@ internal class ImGuiHandler : IDisposable
         var blockMessage = (msg is >= 256 and <= 265 && io.WantTextInput)
             || (msg is >= 512 and <= 526 && io.WantCaptureMouse);
 
-        if (!blockMessage)
-            Console.WriteLine($"{msg} - M:{io.WantCaptureMouse}, K:{io.WantTextInput}");
+        /*if (!blockMessage)
+            Console.WriteLine($"{msg} - M:{io.WantCaptureMouse}, K:{io.WantTextInput}");*/
 
         return blockMessage ? hookResult : CallWindowProc(_wndproc, hWnd, msg, wParam, lParam);
     }

@@ -1,5 +1,6 @@
 ﻿using System.Collections.Immutable;
 using System.IO.Compression;
+using NLog;
 using NuGet;
 using NuGet.Frameworks;
 using NuGet.Models;
@@ -9,6 +10,7 @@ namespace CringePlugins.Resolver;
 
 public class PackageResolver(NuGetFramework runtimeFramework, ImmutableArray<PackageReference> references, PackageSourceMapping packageSources)
 {
+    private static readonly ILogger Log = LogManager.GetCurrentClassLogger();
     public async Task<ImmutableHashSet<ResolvedPackage>> ResolveAsync()
     {
         var order = 0;
@@ -18,7 +20,17 @@ public class PackageResolver(NuGetFramework runtimeFramework, ImmutableArray<Pac
         {
             var client = await packageSources.GetClientAsync(reference.Id);
 
-            var registrationRoot = await client.GetPackageRegistrationRootAsync(reference.Id);
+            RegistrationRoot? registrationRoot;
+
+            try
+            {
+                registrationRoot = await client.GetPackageRegistrationRootAsync(reference.Id);
+            }
+            catch (HttpRequestException ex)
+            {
+                Log.Warn("Failed to resolve package {Package}: {Message}", reference.Id, ex.Message);
+                continue;
+            }
 
             var items = registrationRoot.Items.SelectMany(page =>
                 page.Items!.Where(b => b.CatalogEntry.PackageTypes is ["CringePlugin"]))

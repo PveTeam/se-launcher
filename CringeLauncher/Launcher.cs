@@ -73,7 +73,7 @@ public class Launcher : ICorePlugin
 
         var splash = new Splash();
         
-        splash.DefineStage(_lifetime = new PluginsLifetime());
+        splash.DefineStage(_lifetime = new PluginsLifetime(Path.GetDirectoryName(args[0])!));
         
         InitTexts();
         SpaceEngineersGame.SetupBasicGameInfo();
