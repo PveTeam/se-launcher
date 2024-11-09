@@ -22,8 +22,8 @@ internal class ImGuiHandler : IDisposable
     
     public static RenderTargetView? Rtv;
     
-    public ImGuiIOPtr Io { get; private set; }
     private readonly IRootRenderComponent _renderHandler = new RenderHandler();
+    private static bool _init;
 
     public unsafe void Init(nint windowHandle, Device1 device, DeviceContext deviceContext)
     {
@@ -31,17 +31,18 @@ internal class ImGuiHandler : IDisposable
 
         CreateContext();
         
-        Io = GetIO();
+        var io = GetIO();
         
         var path = Path.Join(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "CringeLauncher", "imgui.ini");
 
-        Io.NativePtr->IniFilename = AnsiStringMarshaller.ConvertToUnmanaged(path);
+        io.NativePtr->IniFilename = AnsiStringMarshaller.ConvertToUnmanaged(path);
 
-        Io.ConfigWindowsMoveFromTitleBarOnly = true;
-        Io.ConfigFlags |= ImGuiConfigFlags.DockingEnable | ImGuiConfigFlags.ViewportsEnable;
+        io.ConfigWindowsMoveFromTitleBarOnly = true;
+        io.ConfigFlags |= ImGuiConfigFlags.DockingEnable | ImGuiConfigFlags.ViewportsEnable;
         
         ImGui_ImplWin32_Init(windowHandle);
         ImGui_ImplDX11_Init(device.NativePointer, deviceContext.NativePointer);
+        _init = true;
     }
 
     public void HookWindow(HWND windowHandle)
@@ -79,10 +80,26 @@ internal class ImGuiHandler : IDisposable
     }
     
     [UnmanagedCallersOnly(CallConvs = [typeof(CallConvStdcall)])]
-    private static int WndProcHook(HWND hWnd, int msg, nint wParam, nint lParam)
+    private static unsafe int WndProcHook(HWND hWnd, int msg, nint wParam, nint lParam)
     {
         var hookResult = ImGui_ImplWin32_WndProcHandler(hWnd, msg, wParam, lParam);
-        return hookResult == 0 ? CallWindowProc(_wndproc, hWnd, msg, wParam, lParam) : hookResult;
+
+        if (hookResult != 0)
+            return hookResult;
+
+        var io = GetIO();
+
+        if (!_init)
+            return CallWindowProc(_wndproc, hWnd, msg, wParam, lParam);
+
+        //todo: block GetKeyStatesAsync or something related, find mouse input code in sharpDx
+        var blockMessage = (msg is >= 256 and <= 265 && io.WantTextInput)
+            || (msg is >= 512 and <= 526 && io.WantCaptureMouse);
+
+        if (!blockMessage)
+            Console.WriteLine($"{msg} - M:{io.WantCaptureMouse}, K:{io.WantTextInput}");
+
+        return blockMessage ? hookResult : CallWindowProc(_wndproc, hWnd, msg, wParam, lParam);
     }
         
     [DllImport("USER32.dll", ExactSpelling = true, EntryPoint = "CallWindowProcW")]
