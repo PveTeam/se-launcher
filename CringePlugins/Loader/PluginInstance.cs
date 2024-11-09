@@ -8,27 +8,19 @@ using VRage.Plugins;
 
 namespace CringePlugins.Loader;
 
-internal sealed class PluginInstance
+internal sealed class PluginInstance(PluginMetadata metadata, string entrypointPath)
 {
     public bool HasConfig => _openConfigAction != null;
 
-    private readonly string _entrypointPath;
     private PluginAssemblyLoadContext? _context;
     private IPlugin? _instance;
 
     private Action? _openConfigAction;
-    private IHandleInputPlugin? _handleInputInstance;
-    private PluginWrapper? _wrappedInstance;
+    public PluginWrapper? WrappedInstance { get; private set; }
 
     private static readonly ILogger Log = LogManager.GetCurrentClassLogger();
-    public PluginMetadata Metadata { get; }
+    public PluginMetadata Metadata { get; } = metadata;
 
-    public PluginInstance(PluginMetadata metadata, string entrypointPath)
-    {
-        _entrypointPath = entrypointPath;
-        Metadata = metadata;
-    }
-    
     public PluginInstance(string entrypointPath) : this(PluginMetadata.ReadFromEntrypoint(entrypointPath), entrypointPath)
     {
     }
@@ -38,7 +30,7 @@ internal sealed class PluginInstance
         if (AssemblyLoadContext.GetLoadContext(typeof(PluginInstance).Assembly) is not ICoreLoadContext parentContext)
             throw new NotSupportedException("Plugin instantiation is not supported in this context");
         
-        _context = new PluginAssemblyLoadContext(parentContext, _entrypointPath);
+        _context = new PluginAssemblyLoadContext(parentContext, entrypointPath);
         contextBuilder.Add(_context);
         
         var entrypoint = _context.LoadEntrypoint();
@@ -67,8 +59,7 @@ internal sealed class PluginInstance
             }
         }
 
-        _handleInputInstance = _instance as IHandleInputPlugin;
-        _wrappedInstance = new PluginWrapper(Metadata.Name, _instance);
+        WrappedInstance = new PluginWrapper(Metadata, _instance);
     }
 
     public void RegisterLifetime()
@@ -76,9 +67,9 @@ internal sealed class PluginInstance
         if (_instance is null)
             throw new InvalidOperationException("Must call Instantiate first");
         
-        MyPlugins.m_plugins.Add(_wrappedInstance);
-        if (_handleInputInstance is not null)
-            MyPlugins.m_handleInputPlugins.Add(_wrappedInstance);
+        MyPlugins.m_plugins.Add(WrappedInstance);
+        if (_instance is IHandleInputPlugin)
+            MyPlugins.m_handleInputPlugins.Add(WrappedInstance);
     }
 
     public void OpenConfig()
@@ -92,7 +83,7 @@ internal sealed class PluginInstance
         }
         catch (Exception ex)
         {
-            Log.Error(ex, "Error opening config: {Exception}");
+            Log.Error(ex, "Error opening config");
         }
     }
 }

@@ -3,14 +3,15 @@ using VRage.Plugins;
 
 namespace CringePlugins.Loader;
 
-//todo: we should patch Mysanboxgame.Run to log init of actual plugin names instead of pluginwrapper
-//also, maybe we could unload the plugin if there's an error?
-internal sealed class PluginWrapper(string name, IPlugin plugin) : IHandleInputPlugin
+//todo maybe we could unload the plugin if there's an error?
+internal sealed class PluginWrapper(PluginMetadata metadata, IPlugin plugin) : IHandleInputPlugin
 {
     public bool HasError => LastException != null;
     public Exception? LastException { get; private set; } //todo: show exception when hovered in plugin menu?
 
     private static readonly ILogger Log = LogManager.GetCurrentClassLogger();
+    
+    private readonly IHandleInputPlugin? _handleInputPlugin = plugin as IHandleInputPlugin;
 
     public void Dispose()
     {
@@ -20,23 +21,23 @@ internal sealed class PluginWrapper(string name, IPlugin plugin) : IHandleInputP
         }
         catch (Exception e)
         {
-            Log.Error(e, "Error Disposing {Name}", name);
+            Log.Error(e, "Exception while Disposing {Metadata}", metadata);
             LastException = e;
         }
     }
 
     public void HandleInput()
     {
-        if (HasError || plugin is not IHandleInputPlugin input)
+        if (_handleInputPlugin is null || HasError)
             return;
 
         try
         {
-            input.HandleInput();
+            _handleInputPlugin.HandleInput();
         }
         catch (Exception e)
         {
-            Log.Error(e, "Error Updating {Name}", name);
+            Log.Error(e, "Exception while Updating {Metadata}", metadata);
             LastException = e;
         }
     }
@@ -49,7 +50,7 @@ internal sealed class PluginWrapper(string name, IPlugin plugin) : IHandleInputP
         }
         catch (Exception e)
         {
-            Log.Error(e, "Error Initializing {Name}", name);
+            Log.Error(e, "Exception while Initializing {Metadata}", metadata);
             LastException = e;
         }
     }
@@ -65,8 +66,10 @@ internal sealed class PluginWrapper(string name, IPlugin plugin) : IHandleInputP
         }
         catch (Exception e)
         {
-            Log.Error(e, "Error Updating {Name}", name);
+            Log.Error(e, "Exception while Updating {Metadata}", metadata);
             LastException = e;
         }
     }
+
+    public override string ToString() => metadata.ToString();
 }
