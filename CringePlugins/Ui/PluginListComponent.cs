@@ -5,6 +5,7 @@ using CringePlugins.Abstractions;
 using CringePlugins.Config;
 using CringePlugins.Loader;
 using CringePlugins.Resolver;
+using CringePlugins.Utils;
 using ImGuiNET;
 using NLog;
 using NuGet;
@@ -96,8 +97,18 @@ internal class PluginListComponent : IRenderComponent
 
                         TableNextColumn();
                         BeginDisabled(!plugin.HasConfig);
+                        if (plugin.WrappedInstance?.LastException is not null)
+                            PushStyleColor(plugin.HasConfig ? ImGuiCol.Text : ImGuiCol.TextDisabled,
+                                plugin.HasConfig ? Color.Red.ToFloat4() : Color.DarkRed.ToFloat4());
                         if (Selectable(plugin.Metadata.Name, false, ImGuiSelectableFlags.SpanAllColumns))
                             plugin.OpenConfig();
+                        if (plugin.WrappedInstance?.LastException is not null)
+                        {
+                            PopStyleColor();
+                            if (IsItemHovered(ImGuiHoveredFlags.ForTooltip))
+                                SetTooltip(
+                                    $"{plugin.WrappedInstance.LastException.GetType()}: {plugin.WrappedInstance.LastException.Message}");
+                        }
                         EndDisabled();
                         TableNextColumn();
                         Text(plugin.Metadata.Version.ToString());
