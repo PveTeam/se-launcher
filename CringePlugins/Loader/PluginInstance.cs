@@ -2,7 +2,6 @@
 using System.Runtime.Loader;
 using CringeBootstrap.Abstractions;
 using CringePlugins.Utils;
-using dnlib.DotNet;
 using NLog;
 using SharedCringe.Loader;
 using VRage.Plugins;
@@ -16,10 +15,12 @@ internal sealed class PluginInstance
     private readonly string _entrypointPath;
     private PluginAssemblyLoadContext? _context;
     private IPlugin? _instance;
+
     private Action? _openConfigAction;
     private IHandleInputPlugin? _handleInputInstance;
+    private PluginWrapper? _wrappedInstance;
 
-    private static readonly NLog.ILogger Log = LogManager.GetCurrentClassLogger();
+    private static readonly ILogger Log = LogManager.GetCurrentClassLogger();
     public PluginMetadata Metadata { get; }
 
     public PluginInstance(PluginMetadata metadata, string entrypointPath)
@@ -67,6 +68,7 @@ internal sealed class PluginInstance
         }
 
         _handleInputInstance = _instance as IHandleInputPlugin;
+        _wrappedInstance = new PluginWrapper(Metadata.Name, _instance);
     }
 
     public void RegisterLifetime()
@@ -74,9 +76,9 @@ internal sealed class PluginInstance
         if (_instance is null)
             throw new InvalidOperationException("Must call Instantiate first");
         
-        MyPlugins.m_plugins.Add(_instance);
+        MyPlugins.m_plugins.Add(_wrappedInstance);
         if (_handleInputInstance is not null)
-            MyPlugins.m_handleInputPlugins.Add(_handleInputInstance);
+            MyPlugins.m_handleInputPlugins.Add(_wrappedInstance);
     }
 
     public void OpenConfig()
