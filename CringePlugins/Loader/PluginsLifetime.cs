@@ -63,6 +63,9 @@ public class PluginsLifetime(string gameFolder) : ILoadingStage
         
         progress.Report("Loading plugins");
 
+        //we can move this, but it should be before plugin init
+        RenderHandler.Current.RegisterComponent(new NotificationsComponent());
+
         await LoadPlugins(cachedPackages, sourceMapping, packagesConfig);
         
         RenderHandler.Current.RegisterComponent(new PluginListComponent(packagesConfig, sourceMapping, configPath, gameFolder, _plugins));

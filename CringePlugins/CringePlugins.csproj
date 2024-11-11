@@ -18,6 +18,7 @@
     <ItemGroup>
         <Publicize Include="VRage:VRage.Plugins.MyPlugins.m_plugins" />
         <Publicize Include="VRage:VRage.Plugins.MyPlugins.m_handleInputPlugins" />
+		<Publicize Include="VRage.Render11:VRageRender.MyCommon" />
     </ItemGroup>
     
     <ItemGroup>
