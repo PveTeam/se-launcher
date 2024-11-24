@@ -18,6 +18,11 @@ internal class ImGuiHandler : IDisposable
     private DeviceContext? _deviceContext;
     private static nint _wndproc;
 
+    public bool BlockMouse { get; private set; }
+    public bool BlockKeys { get; private set; }
+    public bool DrawMouse { get; private set; }
+
+
     public static ImGuiHandler? Instance;
     
     public static RenderTargetView? Rtv;
@@ -65,7 +70,11 @@ internal class ImGuiHandler : IDisposable
         ImGui_ImplDX11_NewFrame();
         ImGui_ImplWin32_NewFrame();
         NewFrame();
-        
+
+        var io = GetIO();
+        BlockMouse = io.WantCaptureMouse;
+        BlockKeys = io.WantTextInput;
+        DrawMouse = io.MouseDrawCursor;
         _renderHandler.OnFrame();
         
         Render();
