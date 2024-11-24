@@ -8,7 +8,7 @@ using System.Reflection;
 namespace CringeLauncher.Patches;
 
 [HarmonyPatch]
-public class RenderHookPatch
+public static class RenderHookPatch
 {
     [HarmonyPrefix, HarmonyPatch(typeof(SwapChain), nameof(SwapChain.Present))]
     private static void PresentPrefix()

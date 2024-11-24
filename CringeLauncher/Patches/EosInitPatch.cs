@@ -6,7 +6,7 @@ namespace CringeLauncher.Patches;
 
 // eos is disabled
 // [HarmonyPatch]
-public class EosInitPatch
+public static class EosInitPatch
 {
     private static MethodInfo TargetMethod() =>
         AccessTools.Method(Type.GetType("VRage.EOS.MyEOSNetworking, VRage.EOS", true), "Init");
