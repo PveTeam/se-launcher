@@ -11,6 +11,8 @@ internal sealed class PluginWrapper(PluginMetadata metadata, IPlugin plugin) : I
     public bool HasError => LastException != null;
     public Exception? LastException { get; private set; } //todo: show exception when hovered in plugin menu?
 
+    public Type InstanceType => plugin.GetType();
+
     private static readonly ILogger Log = LogManager.GetCurrentClassLogger();
     
     private readonly IHandleInputPlugin? _handleInputPlugin = plugin as IHandleInputPlugin;
