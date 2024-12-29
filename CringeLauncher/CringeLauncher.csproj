@@ -18,7 +18,7 @@
         <Publicize Include="Sandbox.Game:Sandbox.Engine.Platform.Game.set_DrawThread" />
         <Publicize Include="Sandbox.Game:Sandbox.MySandboxGame.form" />
         <Publicize Include="Sandbox.Game:Sandbox.MySandboxGame.RenderThread_SizeChanged" />
-        <Publicize Include="VRage.Render;VRage.Render11;VRage.Platform.Windows;VRage.Scripting;Sandbox.Game" IncludeCompilerGeneratedMembers="false" />
+        <Publicize Include="VRage.Render;VRage.Render11;VRage.Platform.Windows;VRage.Scripting" IncludeCompilerGeneratedMembers="false" />
     </ItemGroup>
 
     <ItemGroup>
