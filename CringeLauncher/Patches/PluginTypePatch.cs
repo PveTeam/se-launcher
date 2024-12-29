@@ -24,22 +24,22 @@ internal static class PluginTypePatch
             .DefineLabel(out var continueLabel)
             .Insert(new(OpCodes.Ldloc_2), 
                 new(OpCodes.Isinst, typeof(PluginWrapper)), new(OpCodes.Stloc, wrapper),
-                new(OpCodes.Ldloc, wrapper), 
-                new(OpCodes.Brfalse, regularPluginLabel), 
+                new(OpCodes.Ldloc_S, wrapper), 
+                new(OpCodes.Brfalse_S, regularPluginLabel), 
                 new(OpCodes.Ldloc_0),
-                new(OpCodes.Ldloc, wrapper),
+                new(OpCodes.Ldloc_S, wrapper),
                 new(OpCodes.Call,
                     AccessTools.PropertyGetter(typeof(PluginWrapper), nameof(PluginWrapper.InstanceType))),
                 new(OpCodes.Callvirt, AccessTools.PropertyGetter(typeof(Type), nameof(Type.Assembly))),
                 CodeInstruction.Call(typeof(MyGlobalTypeMetadata), nameof(MyGlobalTypeMetadata.RegisterAssembly),
                     [typeof(Assembly)]), 
-                new(OpCodes.Br, continueLabel))
+                new(OpCodes.Br_S, continueLabel))
             .SearchForward(b => b.opcode == OpCodes.Ldloca_S)
             .AddLabels([continueLabel])
             .InstructionEnumeration();
     }
 
-    [HarmonyPatch(typeof(MySession), "RegisterComponentsFromAssemblies", typeof(Assembly), typeof(bool), typeof(MyModContext))]
+    [HarmonyPatch(typeof(MySession), "RegisterComponentsFromAssemblies")]
     [HarmonyPrefix]
     private static bool RegisterComponentsPrefix(MySession __instance)
     {

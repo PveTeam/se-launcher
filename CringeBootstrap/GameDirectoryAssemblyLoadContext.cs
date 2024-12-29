@@ -25,10 +25,6 @@ public class GameDirectoryAssemblyLoadContext : AssemblyLoadContext, ICoreLoadCo
 
                 AddOverride(name, file);
             }
-            catch (InvalidOperationException)
-            {
-                // fucking microsoft broke the standard in net9
-            }
             catch (BadImageFormatException)
             {
                 // if we are trying to load native image
