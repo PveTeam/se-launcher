@@ -1,7 +1,7 @@
 {
   "version": 1,
   "dependencies": {
-    "net8.0": {
+    "net9.0": {
       "NLog": {
         "type": "Direct",
         "requested": "[5.3.4, )",
@@ -11,8 +11,8 @@
       "SpaceEngineersDedicated.ReferenceAssemblies": {
         "type": "Direct",
         "requested": "[1.*, )",
-        "resolved": "1.205.24",
-        "contentHash": "cgzWJWflVITp+fY5OPgffcoJ08KL5YHMQrMwaDAkUxfRwPgTzU8qOADsrMqq25vXsEbznU1DzNWwTPviYYi7UA==",
+        "resolved": "1.205.26",
+        "contentHash": "kQSFCLgi0nFUhLvXlp9D2w4cTnXtEIctWtNlK+Vw4FAofws60rwR6Kil9YBNlaDyoo19dcyNt3bs4G9VculcIA==",
         "dependencies": {
           "SharpDX": "4.2.0-keen-cringe",
           "protobuf-net": "1.0.0"
@@ -32,6 +32,6 @@
         "type": "Project"
       }
     },
-    "net8.0/win-x64": {}
+    "net9.0/win-x64": {}
   }
 }

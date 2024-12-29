@@ -18,12 +18,16 @@ public class GameDirectoryAssemblyLoadContext : AssemblyLoadContext, ICoreLoadCo
         {
             if (File.Exists(Path.Join(AppContext.BaseDirectory, Path.GetFileName(file))))
                 continue;
-            
+
             try
             {
                 var name = AssemblyName.GetAssemblyName(file);
-                
+
                 AddOverride(name, file);
+            }
+            catch (InvalidOperationException)
+            {
+                // fucking microsoft broke the standard in net9
             }
             catch (BadImageFormatException)
             {

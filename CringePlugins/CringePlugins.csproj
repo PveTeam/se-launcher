@@ -1,7 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
     <PropertyGroup>
-        <TargetFramework>net8.0-windows</TargetFramework>
+        <TargetFramework>net9.0-windows</TargetFramework>
         <RuntimeIdentifier>win-x64</RuntimeIdentifier>
         <ImplicitUsings>enable</ImplicitUsings>
         <Nullable>enable</Nullable>
@@ -24,6 +24,7 @@
     <ItemGroup>
         <PackageReference Include="Basic.Reference.Assemblies.Net80" Version="1.7.9" PrivateAssets="all" />
         <PackageReference Include="Basic.Reference.Assemblies.Net80Windows" Version="1.7.9" PrivateAssets="all" />
+        <PackageReference Include="MonoMod.Core" Version="1.2.1-daily.24.11.24.120.1" />
         <PackageReference Include="NLog" Version="5.3.4" />
         <PackageReference Include="Lib.Harmony.Thin" Version="2.3.3" />
         <PackageReference Include="ImGui.NET.DirectX" Version="1.91.0.1" />

@@ -3,6 +3,7 @@ using System.Runtime.CompilerServices;
 using CringeBootstrap.Abstractions;
 using CringeLauncher.Utils;
 using CringePlugins.Loader;
+using CringePlugins.Render;
 using CringePlugins.Splash;
 using HarmonyLib;
 using NLog;
@@ -108,7 +109,7 @@ public class Launcher : ICorePlugin
         InitRender();
         
         _renderComponent = new();
-        _renderComponent.Start(new(), InitEarlyWindow, MyVideoSettingsManager.Initialize(), MyPerGameSettings.MaxFrameRate);
+        _renderComponent.Start(new(), () => InitEarlyWindow(splash), MyVideoSettingsManager.Initialize(), MyPerGameSettings.MaxFrameRate);
         _renderComponent.RenderThread.BeforeDraw += MyFpsManager.Update;
         
         // this technically should wait for render thread init, but who cares
@@ -132,9 +133,11 @@ public class Launcher : ICorePlugin
 
     public void Run() => _game?.Run();
 
-    private IVRageWindow InitEarlyWindow()
+    private IVRageWindow InitEarlyWindow(Splash splash)
     {
         ImGuiHandler.Instance = new();
+        
+        RenderHandler.Current.RegisterComponent(splash);
         
         MyVRage.Platform.Windows.CreateWindow("Cringe Launcher", MyPerGameSettings.GameIcon, null);
 

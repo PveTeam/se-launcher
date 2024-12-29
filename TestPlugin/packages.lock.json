@@ -1,7 +1,7 @@
 {
   "version": 1,
   "dependencies": {
-    "net8.0-windows7.0": {
+    "net9.0-windows7.0": {
       "ImGui.NET.DirectX": {
         "type": "Direct",
         "requested": "[1.91.0.1, )",
@@ -22,27 +22,12 @@
       "SpaceEngineersDedicated.ReferenceAssemblies": {
         "type": "Direct",
         "requested": "[1.*, )",
-        "resolved": "1.205.24",
-        "contentHash": "cgzWJWflVITp+fY5OPgffcoJ08KL5YHMQrMwaDAkUxfRwPgTzU8qOADsrMqq25vXsEbznU1DzNWwTPviYYi7UA==",
+        "resolved": "1.205.26",
+        "contentHash": "kQSFCLgi0nFUhLvXlp9D2w4cTnXtEIctWtNlK+Vw4FAofws60rwR6Kil9YBNlaDyoo19dcyNt3bs4G9VculcIA==",
         "dependencies": {
           "SharpDX": "4.2.0-keen-cringe",
           "protobuf-net": "1.0.0"
         }
-      },
-      "dnlib": {
-        "type": "Transitive",
-        "resolved": "4.4.0",
-        "contentHash": "cKHI720q+zfEEvzklWVGt6B0TH3AibAyJbpUJl4U6KvTP13tycfnqJpkGHRZ/oQ45BTIoIxIwltHIJVDN+iCqQ=="
-      },
-      "NuGet.Frameworks": {
-        "type": "Transitive",
-        "resolved": "6.11.1",
-        "contentHash": "plTZ3ariSWQVsFn2mk83SsdmSg1VpgIMTSZpP/eSE/NNQF02p+M9ItxAYeUZBMX+cQ2nFkSwxQRJ0/fkaV9Hbg=="
-      },
-      "NuGet.Versioning": {
-        "type": "Transitive",
-        "resolved": "6.11.1",
-        "contentHash": "YNn3BB71F+guJW42TbAhGcMh3gpyqFMZcPVD9pm5vcvGivTALtRely/VCPWQQ6JQ5PfwIrjPaJMO7VnqyeK3rg=="
       },
       "protobuf-net": {
         "type": "Transitive",
@@ -68,37 +53,9 @@
         "type": "Transitive",
         "resolved": "6.0.0",
         "contentHash": "/iUeP3tq1S0XdNNoMz5C9twLSrM/TH+qElHkXWaPvuNOt+99G75NrV0OS2EqHx5wMN7popYjpc8oTjC1y16DLg=="
-      },
-      "cringebootstrap.abstractions": {
-        "type": "Project"
-      },
-      "cringeplugins": {
-        "type": "Project",
-        "dependencies": {
-          "NLog": "[5.3.4, )",
-          "NuGet": "[1.0.0, )",
-          "SharedCringe": "[1.0.0, )",
-          "SpaceEngineersDedicated.ReferenceAssemblies": "[1.*, )",
-          "dnlib": "[4.4.0, )"
-        }
-      },
-      "nuget": {
-        "type": "Project",
-        "dependencies": {
-          "NuGet.Frameworks": "[6.11.1, )",
-          "NuGet.Versioning": "[6.11.1, )"
-        }
-      },
-      "sharedcringe": {
-        "type": "Project",
-        "dependencies": {
-          "CringeBootstrap.Abstractions": "[1.0.0, )",
-          "NLog": "[5.3.4, )",
-          "SpaceEngineersDedicated.ReferenceAssemblies": "[1.*, )"
-        }
       }
     },
-    "net8.0-windows7.0/win-x64": {
+    "net9.0-windows7.0/win-x64": {
       "ImGui.NET.DirectX": {
         "type": "Direct",
         "requested": "[1.91.0.1, )",

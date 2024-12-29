@@ -1,7 +1,7 @@
 {
   "version": 1,
   "dependencies": {
-    "net8.0-windows7.0": {
+    "net9.0-windows7.0": {
       "Basic.Reference.Assemblies.Net80": {
         "type": "Direct",
         "requested": "[1.7.9, )",
@@ -53,6 +53,18 @@
           "System.Text.Json": "8.0.1"
         }
       },
+      "MonoMod.Core": {
+        "type": "Direct",
+        "requested": "[1.2.1-daily.24.11.24.120.1, )",
+        "resolved": "1.2.1-daily.24.11.24.120.1",
+        "contentHash": "290eD12uM89ITcQ/7QuRUCpOdofG7E04mBk6CIIcSxnV/cuBLatTZoF8/YvI8o+ESljhD8Vx6Giji/5eZeMYoA==",
+        "dependencies": {
+          "Mono.Cecil": "0.11.5",
+          "MonoMod.Backports": "1.1.2-daily.24.11.24.120.1",
+          "MonoMod.ILHelpers": "1.1.0-daily.24.11.24.120.1",
+          "MonoMod.Utils": "25.0.7-daily.24.11.24.120.1"
+        }
+      },
       "NLog": {
         "type": "Direct",
         "requested": "[5.3.4, )",
@@ -96,47 +108,36 @@
       },
       "MonoMod.Backports": {
         "type": "Transitive",
-        "resolved": "1.1.0",
-        "contentHash": "GUAjCrCZEddqHKHFA7Lh61PgTzoKY7gfBShFe0hQe0p8iynHhBK3TWGyRi+QIw/PGfaRPwx6c33CPGFURBVM6g==",
+        "resolved": "1.1.2-daily.24.11.24.120.1",
+        "contentHash": "LUH6Zvx+1M/WxLYv38i/CrWtIYbBg7bOSA2FRTLpilKOaaC4RdeUi060oTQRjrpZ+ZEIbRMBx0c799Uoryugrw==",
         "dependencies": {
-          "MonoMod.ILHelpers": "1.0.1"
-        }
-      },
-      "MonoMod.Core": {
-        "type": "Transitive",
-        "resolved": "1.1.0",
-        "contentHash": "Ks8RntZGVcktr2QF/AovTEbuOkrgXz6omjrvT5LRveOIQJuy+IFuEQPBVWu+cSKVIoZD5XkpRFvlVrItgPIrXw==",
-        "dependencies": {
-          "Mono.Cecil": "0.11.5",
-          "MonoMod.Backports": "1.1.0",
-          "MonoMod.ILHelpers": "1.0.1",
-          "MonoMod.Utils": "25.0.4"
+          "MonoMod.ILHelpers": "1.1.0-daily.24.11.24.120.1"
         }
       },
       "MonoMod.ILHelpers": {
         "type": "Transitive",
-        "resolved": "1.0.1",
-        "contentHash": "6djj/Hz+/eTomo1H/sJEJNxBz2ZdhXjvH0MOmyU2xRtbjaIfBQuyVV0zNUbJhMY/8qoWrz7WXfskfFhdaY0afA=="
+        "resolved": "1.1.0-daily.24.11.24.120.1",
+        "contentHash": "81kWbDUDiE/xA9WbYF/5U5RjLDemhnjQULIMm/7UDNQontJVFcGUFKHOtr7KOCXw+MkZK832pOC7cX3YBTKyKw=="
       },
       "MonoMod.Utils": {
         "type": "Transitive",
-        "resolved": "25.0.4",
-        "contentHash": "cB94MaZtFD9u4clYEFTwM4jGXnJnzXsxYF3yBpMZKHhXOas66tMF2frbdYte023i0MH4C5iRJbDjxHmA4x5VgA==",
+        "resolved": "25.0.7-daily.24.11.24.120.1",
+        "contentHash": "K36oN5h57PQJJsTcqvVEQah3HNU5RbhF+M9Ln3zTkYcsRq9t8i3UlFfA1qIl7LFxxDHWl8LNytb6QV0VJ27Ggw==",
         "dependencies": {
           "Mono.Cecil": "0.11.5",
-          "MonoMod.Backports": "1.1.0",
-          "MonoMod.ILHelpers": "1.0.1"
+          "MonoMod.Backports": "1.1.2-daily.24.11.24.120.1",
+          "MonoMod.ILHelpers": "1.1.0-daily.24.11.24.120.1"
         }
       },
       "NuGet.Frameworks": {
         "type": "Transitive",
-        "resolved": "6.11.1",
-        "contentHash": "plTZ3ariSWQVsFn2mk83SsdmSg1VpgIMTSZpP/eSE/NNQF02p+M9ItxAYeUZBMX+cQ2nFkSwxQRJ0/fkaV9Hbg=="
+        "resolved": "6.12.1",
+        "contentHash": "kPaRD5RJC0ByUg+yGX6bDz5XHMI7OYmQwP8kbtef+vZ+csj/VDb5Bwas4ChxwhoAbI8lEvwP5/3aViQPpgNBow=="
       },
       "NuGet.Versioning": {
         "type": "Transitive",
-        "resolved": "6.11.1",
-        "contentHash": "YNn3BB71F+guJW42TbAhGcMh3gpyqFMZcPVD9pm5vcvGivTALtRely/VCPWQQ6JQ5PfwIrjPaJMO7VnqyeK3rg=="
+        "resolved": "6.12.1",
+        "contentHash": "fJ6rFYANDnohFsdpaY79FvrJxI6murmoOxXz6nZlf819F48+IBKMnAIg3oIBRtZq5y498ObMtKnro5IitvizUg=="
       },
       "protobuf-net": {
         "type": "Transitive",
@@ -203,8 +204,8 @@
       "nuget": {
         "type": "Project",
         "dependencies": {
-          "NuGet.Frameworks": "[6.11.1, )",
-          "NuGet.Versioning": "[6.11.1, )",
+          "NuGet.Frameworks": "[6.12.1, )",
+          "NuGet.Versioning": "[6.12.1, )",
           "System.Linq.Async": "[6.0.1, )"
         }
       },
@@ -217,7 +218,7 @@
         }
       }
     },
-    "net8.0-windows7.0/win-x64": {
+    "net9.0-windows7.0/win-x64": {
       "ImGui.NET.DirectX": {
         "type": "Direct",
         "requested": "[1.91.0.1, )",

@@ -1,14 +1,20 @@
-﻿using NLog;
+﻿using System.Numerics;
+using CringePlugins.Abstractions;
+using ImGuiNET;
+using NLog;
+
+using static ImGuiNET.ImGui;
 
 namespace CringePlugins.Splash;
 
-public class Splash : ISplashProgress
+public class Splash : ISplashProgress, IRenderComponent
 {
     private static readonly Logger Logger = LogManager.GetCurrentClassLogger();
     
     private readonly List<ILoadingStage> _loadingStages = [];
 
     private ProgressInfo? _lastInfo;
+    private bool _done;
     
     public void Report(ProgressInfo value)
     {
@@ -34,11 +40,41 @@ public class Splash : ISplashProgress
 
     public void ExecuteLoadingStages()
     {
-        foreach (var loadingStage in _loadingStages)
+        try
         {
-            // todo sync context
-            loadingStage.Load(this).AsTask().GetAwaiter().GetResult();
-            _lastInfo = null;
+            foreach (var loadingStage in _loadingStages)
+            {
+                // todo sync context
+                loadingStage.Load(this).AsTask().GetAwaiter().GetResult();
+                _lastInfo = null;
+            }
         }
+        finally
+        {
+            _done = true;
+        }
+    }
+
+    public void OnFrame()
+    {
+        if (_done) return;
+        
+        SetNextWindowPos(GetMainViewport().GetCenter(), ImGuiCond.Always, new(.5f, .5f));
+        SetNextWindowSize(new(400, GetFrameHeightWithSpacing()), ImGuiCond.Always);
+        Begin("Splash", ImGuiWindowFlags.NoDecoration | ImGuiWindowFlags.NoInputs);
+
+        var sizeArg = new Vector2(GetWindowWidth() - GetStyle().WindowPadding.X * 2, 0);
+        if (_lastInfo is null)
+        {
+            const string text = "Loading...";
+            var size = CalcTextSize(text);
+            
+            SetCursorPosX((GetWindowWidth() - size.X) * .5f);
+            Text(text);
+        }
+        else
+            ProgressBar((_lastInfo as PercentProgressInfo)?.Percent ?? 0, sizeArg, _lastInfo.Text);
+        
+        End();
     }
 }

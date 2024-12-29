@@ -1,7 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
     <PropertyGroup>
-        <TargetFramework>net8.0-windows10.0.19041.0</TargetFramework>
+        <TargetFramework>net9.0-windows10.0.19041.0</TargetFramework>
         <RuntimeIdentifier>win-x64</RuntimeIdentifier>
         <ImplicitUsings>enable</ImplicitUsings>
         <Nullable>enable</Nullable>
@@ -29,11 +29,11 @@
             <PrivateAssets>all</PrivateAssets>
             <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
         </PackageReference>
-        <PackageReference Include="System.Diagnostics.PerformanceCounter" Version="8.0.0" />
-        <PackageReference Include="System.Management" Version="8.0.0" />
+        <PackageReference Include="System.Diagnostics.PerformanceCounter" Version="9.0.0" />
+        <PackageReference Include="System.Management" Version="9.0.0" />
         <PackageReference Include="System.Private.ServiceModel" Version="4.10.3" />
         <PackageReference Include="Torch.SixLabors.ImageSharp" Version="1.0.0-beta6" />
-        <PackageReference Include="Velopack" Version="0.0.630-g9c52e40" />
+        <PackageReference Include="Velopack" Version="0.0.942" />
         <PackageReference Include="Microsoft.Windows.CsWin32" Version="0.3.106">
             <PrivateAssets>all</PrivateAssets>
             <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
