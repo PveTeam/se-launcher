@@ -22,14 +22,13 @@
     </ItemGroup>
     
     <ItemGroup>
-        <PackageReference Include="Basic.Reference.Assemblies.Net80" Version="1.7.9" PrivateAssets="all" />
-        <PackageReference Include="Basic.Reference.Assemblies.Net80Windows" Version="1.7.9" PrivateAssets="all" />
+        <PackageReference Include="Basic.Reference.Assemblies.Net90" Version="1.7.9" PrivateAssets="all" />
         <PackageReference Include="NLog" Version="5.3.4" />
         <PackageReference Include="Lib.Harmony.Thin" Version="2.3.4-torch" />
         <PackageReference Include="ImGui.NET.DirectX" Version="1.91.0.1" />
         <PackageReference Include="SpaceEngineersDedicated.ReferenceAssemblies" Version="1.*" ExcludeAssets="runtime" />
         <PackageReference Include="dnlib" Version="4.4.0" />
-        <PackageReference Include="Krafs.Publicizer" Version="2.2.1">
+        <PackageReference Include="Krafs.Publicizer" Version="2.3.0">
             <PrivateAssets>all</PrivateAssets>
             <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
         </PackageReference>

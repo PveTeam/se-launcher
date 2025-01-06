@@ -18,18 +18,10 @@
           "NuGet.Versioning": "6.12.1"
         }
       },
-      "Basic.Reference.Assemblies.Net80": {
+      "Basic.Reference.Assemblies.Net90": {
         "type": "Transitive",
         "resolved": "1.7.9",
-        "contentHash": "1wbS9ZJLFVrKD2jqv27gekIrpjpLffR9sitLQh5drWoG9KbyR/CgrAhw5I0c8Eq3zFMOToCmrpZi3VpRoInCgg==",
-        "dependencies": {
-          "Microsoft.CodeAnalysis.Common": "4.11.0"
-        }
-      },
-      "Basic.Reference.Assemblies.Net80Windows": {
-        "type": "Transitive",
-        "resolved": "1.7.9",
-        "contentHash": "98GFm8MC+pv37rTHaxBm5KFucqdJj0jK0XRHSGt2sXK9HNqtGImIFCFahxjUzskQjiUkPAzVhTou2OYZOuhhEg==",
+        "contentHash": "9CUkU6Z17tJL/cQc6FeZL0qfQf4CBaNpSBqFL6CTmrIC8827x7NEPyNq/inZA/r6Y5ziWo2Yd8caMxLPqDUpeA==",
         "dependencies": {
           "Microsoft.CodeAnalysis.Common": "4.11.0"
         }
@@ -70,8 +62,8 @@
       },
       "Microsoft.CodeAnalysis.Common": {
         "type": "Transitive",
-        "resolved": "4.11.0",
-        "contentHash": "djf8ujmqYImFgB04UGtcsEhHrzVqzHowS+EEl/Yunc5LdrYrZhGBWUTXoCF0NzYXJxtfuD+UVQarWpvrNc94Qg==",
+        "resolved": "4.12.0",
+        "contentHash": "c1kNYihL2gdcuU1dqm8R8YeA4YkB43TpU3pa2r66Uooh6AAhRtENzj9A4Kj0a+H8JDDyuTjNZql9XlVUzV+UjA==",
         "dependencies": {
           "Microsoft.CodeAnalysis.Analyzers": "3.3.4",
           "System.Collections.Immutable": "8.0.0",
@@ -80,11 +72,11 @@
       },
       "Microsoft.CodeAnalysis.CSharp": {
         "type": "Transitive",
-        "resolved": "4.11.0",
-        "contentHash": "6XYi2EusI8JT4y2l/F3VVVS+ISoIX9nqHsZRaG6W5aFeJ5BEuBosHfT/ABb73FN0RZ1Z3cj2j7cL28SToJPXOw==",
+        "resolved": "4.12.0",
+        "contentHash": "30vVQ1MizeC22iEdEvI2w0eTIYG43/L20yBzuQH01xKzJgHAoWehzI2F8u07o4mXh4DGMOjQF7aEm0zzvsG3Mg==",
         "dependencies": {
           "Microsoft.CodeAnalysis.Analyzers": "3.3.4",
-          "Microsoft.CodeAnalysis.Common": "[4.11.0]",
+          "Microsoft.CodeAnalysis.Common": "[4.12.0]",
           "System.Collections.Immutable": "8.0.0",
           "System.Reflection.Metadata": "8.0.0"
         }
@@ -339,11 +331,10 @@
       "cringelauncher": {
         "type": "Project",
         "dependencies": {
-          "Basic.Reference.Assemblies.Net80": "[1.7.9, )",
-          "Basic.Reference.Assemblies.Net80Windows": "[1.7.9, )",
+          "Basic.Reference.Assemblies.Net90": "[1.7.9, )",
           "CringeBootstrap.Abstractions": "[1.0.0, )",
           "CringePlugins": "[1.0.0, )",
-          "Microsoft.CodeAnalysis.CSharp": "[4.11.0, )",
+          "Microsoft.CodeAnalysis.CSharp": "[4.12.0, )",
           "NLog": "[5.3.4, )",
           "SpaceEngineersDedicated.ReferenceAssemblies": "[1.*, )",
           "Steamworks.NET": "[20.1.0, )",

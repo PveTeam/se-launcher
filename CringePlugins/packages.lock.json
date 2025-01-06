@@ -2,20 +2,11 @@
   "version": 1,
   "dependencies": {
     "net9.0-windows7.0": {
-      "Basic.Reference.Assemblies.Net80": {
+      "Basic.Reference.Assemblies.Net90": {
         "type": "Direct",
         "requested": "[1.7.9, )",
         "resolved": "1.7.9",
-        "contentHash": "1wbS9ZJLFVrKD2jqv27gekIrpjpLffR9sitLQh5drWoG9KbyR/CgrAhw5I0c8Eq3zFMOToCmrpZi3VpRoInCgg==",
-        "dependencies": {
-          "Microsoft.CodeAnalysis.Common": "4.11.0"
-        }
-      },
-      "Basic.Reference.Assemblies.Net80Windows": {
-        "type": "Direct",
-        "requested": "[1.7.9, )",
-        "resolved": "1.7.9",
-        "contentHash": "98GFm8MC+pv37rTHaxBm5KFucqdJj0jK0XRHSGt2sXK9HNqtGImIFCFahxjUzskQjiUkPAzVhTou2OYZOuhhEg==",
+        "contentHash": "9CUkU6Z17tJL/cQc6FeZL0qfQf4CBaNpSBqFL6CTmrIC8827x7NEPyNq/inZA/r6Y5ziWo2Yd8caMxLPqDUpeA==",
         "dependencies": {
           "Microsoft.CodeAnalysis.Common": "4.11.0"
         }
@@ -39,9 +30,9 @@
       },
       "Krafs.Publicizer": {
         "type": "Direct",
-        "requested": "[2.2.1, )",
-        "resolved": "2.2.1",
-        "contentHash": "QGI4nMGQbKsuFUUboixVHu4mv3lHB5RejIa7toIlzTmwLkuCYYEpUBJjmy3OpXYyj5dVSZAXVbr4oeMSloE67Q=="
+        "requested": "[2.3.0, )",
+        "resolved": "2.3.0",
+        "contentHash": "DjktTgctwxUMhMkWKrRECer3LR1lHzanCOlE4mpinAiY8SfWJq4DG/QitP5h1A+WBjyWHzQSOG+204i3VpO1FA=="
       },
       "Lib.Harmony.Thin": {
         "type": "Direct",

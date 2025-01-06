@@ -11,7 +11,7 @@ namespace CringePlugins.Resolver;
 public class PackageResolver(NuGetFramework runtimeFramework, ImmutableArray<PackageReference> references, PackageSourceMapping packageSources)
 {
     private static readonly ILogger Log = LogManager.GetCurrentClassLogger();
-    public async Task<ImmutableHashSet<ResolvedPackage>> ResolveAsync()
+    public async Task<ImmutableSortedSet<ResolvedPackage>> ResolveAsync()
     {
         var order = 0;
         var packages = new SortedDictionary<Package, CatalogEntry>();
@@ -40,10 +40,12 @@ public class PackageResolver(NuGetFramework runtimeFramework, ImmutableArray<Pac
             
             if (version is null)
                 throw new Exception($"Unable to find version for package {reference.Id}");
+
+            var catalogEntry = items[version].CatalogEntry;
             
-            var package = new Package(order, reference.Id, version, []); // todo resolve dependencies
-            
-            if (packages.TryAdd(package, items[version].CatalogEntry))
+            var package = new Package(order, reference.Id, version);
+
+            if (packages.TryAdd(package, catalogEntry))
                 continue;
             
             if (!packages.TryGetValue(package, out _))
@@ -61,10 +63,10 @@ public class PackageResolver(NuGetFramework runtimeFramework, ImmutableArray<Pac
             packages.Add(package with
             {
                 Order = ++order
-            }, items[version].CatalogEntry);
+            }, catalogEntry);
         }
 
-        var set = ImmutableHashSet<ResolvedPackage>.Empty.ToBuilder();
+        var set = ImmutableSortedSet<ResolvedPackage>.Empty.ToBuilder();
         foreach (var (package, catalogEntry) in packages)
         {
             var client = await packageSources.GetClientAsync(package.Id);
@@ -79,6 +81,78 @@ public class PackageResolver(NuGetFramework runtimeFramework, ImmutableArray<Pac
                 throw new Exception($"Unable to find compatible dependency group for package {package.Id}");
 
             set.Add(new RemotePackage(package, nearestGroup.TargetFramework, client, catalogEntry));
+        }
+        
+        for (var i = 0; i < set.Count; i++)
+        {
+            if (set[i] is not RemotePackage package) continue;
+
+            var dependencies = package.Entry.DependencyGroups
+                                   ?.Single(b => b.TargetFramework == package.ResolvedFramework)?.Dependencies ??
+                               [];
+            
+            foreach (var (id, versionRange) in dependencies)
+            {
+                var client = await packageSources.GetClientAsync(id);
+                
+                RegistrationRoot? registrationRoot;
+
+                try
+                {
+                    registrationRoot = await client.GetPackageRegistrationRootAsync(id);
+                }
+                catch (HttpRequestException ex)
+                {
+                    throw new Exception($"Failed to resolve dependency {id} for {package.Package}", ex);
+                }
+                
+                var items = registrationRoot.Items.SelectMany(page => page.Items!)
+                    .ToImmutableDictionary(b => b.CatalogEntry.Version);
+
+                var version = items.Values.Select(b => b.CatalogEntry.Version).OrderDescending().FirstOrDefault(b => versionRange.Satisfies(b));
+            
+                if (version is null)
+                    throw new Exception($"Unable to find version for package {id} as dependency of {package.Package}");
+                
+                var catalogEntry = items[version].CatalogEntry;
+
+                var dependencyPackage = new Package(i, id, version);
+
+                if (packages.TryGetValue(dependencyPackage, out var existingPackage))
+                {
+                    if (dependencyPackage.Version < existingPackage.Version)
+                    {
+                        // dependency has lower version than already resolved
+                        // need to check if existing fits the version range
+                        // and reorder existing to ensure it's ordered before requesting package
+
+                        if (!versionRange.Satisfies(existingPackage.Version))
+                            throw new Exception(
+                                $"Incompatible package version {dependencyPackage} (required by {package.Package}) from {existingPackage}");
+                        
+                        if (dependencyPackage.CompareTo(existingPackage) < 0)
+                        {
+                            packages.Remove(dependencyPackage);
+                            packages.Add(dependencyPackage, existingPackage);
+                        }
+                        
+                        continue;
+                    }
+                    
+                    throw new Exception($"Detected package downgrade from {existingPackage} to {dependencyPackage} as dependency of {package.Package}");
+                }
+                
+                if (!packages.TryAdd(dependencyPackage, catalogEntry))
+                    throw new Exception($"Duplicate package {dependencyPackage.Id}");
+                
+                var nearestGroup = NuGetFrameworkUtility.GetNearest(catalogEntry.DependencyGroups ?? [], runtimeFramework,
+                    g => g.TargetFramework);
+            
+                if (nearestGroup is null)
+                    throw new Exception($"Unable to find compatible dependency group for {dependencyPackage} as dependency of {package.Package}");
+                
+                set.Add(new RemoteDependencyPackage(dependencyPackage, nearestGroup.TargetFramework, client, package, catalogEntry));
+            }
         }
 
         return set.ToImmutable();
@@ -127,9 +201,40 @@ public class PackageResolver(NuGetFramework runtimeFramework, ImmutableArray<Pac
 public record CachedPackage(Package Package, NuGetFramework ResolvedFramework, DirectoryInfo Directory, CatalogEntry Entry) : ResolvedPackage(Package, ResolvedFramework, Entry);
 public record RemotePackage(Package Package, NuGetFramework ResolvedFramework, NuGetClient Client, CatalogEntry Entry) : ResolvedPackage(Package, ResolvedFramework, Entry);
 
-public abstract record ResolvedPackage(Package Package, NuGetFramework ResolvedFramework, CatalogEntry Entry);
+// should not inherit from RemotePackage
+public record RemoteDependencyPackage(
+    Package Package,
+    NuGetFramework ResolvedFramework,
+    NuGetClient Client,
+    RemotePackage Parent,
+    CatalogEntry Entry) : ResolvedPackage(Package, ResolvedFramework, Entry);
 
-public record Package(int Order, string Id, NuGetVersion Version, ImmutableArray<string> Dependencies) : IComparable<Package>, IComparable
+public abstract record ResolvedPackage(Package Package, NuGetFramework ResolvedFramework, CatalogEntry Entry) : IComparable<ResolvedPackage>, IComparable
+{
+    public int CompareTo(ResolvedPackage? other)
+    {
+        if (ReferenceEquals(this, other)) return 0;
+        if (other is null) return 1;
+        return Package.CompareTo(other.Package);
+    }
+
+    public int CompareTo(object? obj)
+    {
+        if (obj is null) return 1;
+        if (ReferenceEquals(this, obj)) return 0;
+        return obj is ResolvedPackage other ? CompareTo(other) : throw new ArgumentException($"Object must be of type {nameof(ResolvedPackage)}");
+    }
+
+    public override int GetHashCode() => Package.GetHashCode();
+
+    public virtual bool Equals(Package? other)
+    {
+        if (other is null) return false;
+        return Package.Equals(other);
+    }
+}
+
+public record Package(int Order, string Id, NuGetVersion Version) : IComparable<Package>, IComparable
 {
     public int CompareTo(Package? other)
     {

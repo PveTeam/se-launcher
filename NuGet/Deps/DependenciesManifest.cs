@@ -56,7 +56,7 @@ public record ManifestPackageKey(string Id, NuGetVersion Version)
     public override string ToString() => $"{Id}/{Version}";
 }
 
-public class DependencyManifestBuilder(DirectoryInfo cacheDirectory, PackageSourceMapping packageSources, Func<Models.Dependency, NuGetVersion?> versionResolver)
+public class DependencyManifestBuilder(DirectoryInfo cacheDirectory, PackageSourceMapping packageSources, Func<Models.Dependency, CatalogEntry?> catalogEntryResolver)
 {
     private static readonly JsonSerializerOptions SerializerOptions = new(JsonSerializerDefaults.Web)
     {
@@ -100,22 +100,11 @@ public class DependencyManifestBuilder(DirectoryInfo cacheDirectory, PackageSour
         targets.Add(new(catalogEntry.Id, catalogEntry.Version),
             await MapEntryAsync(catalogEntry, nearest));
 
-        foreach (var dependency in nearest.Dependencies ?? [])
+        foreach (var entry in (nearest.Dependencies ?? []).Select(catalogEntryResolver))
         {
-            var client = await packageSources.GetClientAsync(dependency.Id);
-            var registrationRoot = await client.GetPackageRegistrationRootAsync(dependency.Id);
-
-            var version = versionResolver(dependency)!;
-            var entry = registrationRoot.Items.SelectMany(b => b.Items ?? []).FirstOrDefault(b => b.CatalogEntry.Version == version)?.CatalogEntry;
-
             if (entry is null)
-            {
-                var (url, sleetEntry) = await client.GetPackageRegistrationAsync(dependency.Id, versionResolver(dependency)!);
-
-                entry = sleetEntry;
-                entry ??= await client.GetPackageCatalogEntryAsync(url);
-            }
-
+                continue;
+            
             await MapCatalogEntryAsync(entry, targetFramework, targets);
         }
     }
@@ -123,8 +112,10 @@ public class DependencyManifestBuilder(DirectoryInfo cacheDirectory, PackageSour
     private async Task<DependencyTarget> MapEntryAsync(CatalogEntry entry, DependencyGroup group)
     {
         var packageEntries = entry.PackageEntries ?? await GetPackageContent(entry);
-        
-        return new(group.Dependencies?.ToImmutableDictionary(b => b.Id, versionResolver) ?? ImmutableDictionary<string, NuGetVersion>.Empty,
+
+        return new(
+            group.Dependencies?.ToImmutableDictionary(b => b.Id, b => catalogEntryResolver(b)!.Version) ??
+            ImmutableDictionary<string, NuGetVersion>.Empty,
             packageEntries.Where(b => b.FullName.StartsWith($"lib/{group.TargetFramework.GetShortFolderName()}/"))
                 .ToImmutableDictionary(b => b.FullName, _ => new RuntimeDependency()),
             packageEntries.Where(b =>

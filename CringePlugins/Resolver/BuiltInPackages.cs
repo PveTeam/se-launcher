@@ -41,14 +41,14 @@ public static class BuiltInPackages
             var version = attribute is null ? new(99, 0, 0) : NuGetVersion.Parse((string)attribute.ConstructorArguments[0].Value);
             
             return new BuiltInSdkPackage(
-                new(0, Path.GetFileNameWithoutExtension(r.FileName), version, []), runtimeFramework,
+                new(0, Path.GetFileNameWithoutExtension(r.FileName), version), runtimeFramework,
                 new(Path.GetFileNameWithoutExtension(r.FileName), version, [new(runtimeFramework, [])], null, []));
         }
 
         return
         [
-            ..Net80.ReferenceInfos.AllValues.Select(MapSdkPackage),
-            ..Net80Windows.ReferenceInfos.AllValues.Select(MapSdkPackage),
+            ..Net90.ReferenceInfos.AllValues.Select(MapSdkPackage),
+            // ..Net80Windows.ReferenceInfos.AllValues.Select(MapSdkPackage),
             nlog,
             se,
             imGui,
@@ -72,7 +72,7 @@ public static class BuiltInPackages
         dependencies ??= [];
 
         return new(
-            new(0, id, version, [..dependencies.Value.Select(b => b.Id)]),
+            new(0, id, version),
             runtimeFramework,
             new(id, version, [
                 new(runtimeFramework, dependencies.Value)

@@ -25,7 +25,7 @@ public class PluginsLifetime(string gameFolder) : ILoadingStage
     
     private ImmutableArray<PluginInstance> _plugins = [];
     private readonly DirectoryInfo _dir = Directory.CreateDirectory(Path.Join(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "CringeLauncher"));
-    private readonly NuGetFramework _runtimeFramework = NuGetFramework.ParseFolder("net8.0-windows10.0.19041.0");
+    private readonly NuGetFramework _runtimeFramework = NuGetFramework.ParseFolder("net9.0-windows10.0.19041.0");
 
     public async ValueTask Load(ISplashProgress progress)
     {
@@ -89,35 +89,40 @@ public class PluginsLifetime(string gameFolder) : ILoadingStage
         Contexts = contextBuilder.ToImmutable();
     }
 
-    private async Task LoadPlugins(IReadOnlySet<CachedPackage> packages, PackageSourceMapping sourceMapping,
+    private async Task LoadPlugins(IReadOnlyCollection<CachedPackage> packages, PackageSourceMapping sourceMapping,
         PackagesConfig packagesConfig)
     {
         var plugins = _plugins.ToBuilder();
 
-        var packageVersions = BuiltInPackages.GetPackages(_runtimeFramework)
-            .ToImmutableDictionary(b => b.Package.Id, b => b.Package.Version,
-                StringComparer.OrdinalIgnoreCase);
-
-        packageVersions = packageVersions.AddRange(packages.Select(b =>
-            new KeyValuePair<string, NuGetVersion>(b.Package.Id, b.Package.Version)));
+        var builtInPackages = BuiltInPackages.GetPackages(_runtimeFramework)
+            .ToImmutableDictionary(package => package.Package.Id);
+        
+        var resolvedPackages = builtInPackages.ToDictionary();
+        foreach (var package in packages)
+        {
+            resolvedPackages.TryAdd(package.Package.Id, package);
+        }
 
         var manifestBuilder = new DependencyManifestBuilder(_dir.CreateSubdirectory("cache"), sourceMapping,
-            dependency => packageVersions.TryGetValue(dependency.Id, out var version) && version.Major != 99
-                ? version
-                : dependency.Range.MinVersion ?? dependency.Range.MaxVersion);
+            dependency =>
+            {
+                resolvedPackages.TryGetValue(dependency.Id, out var package);
+                return package?.Entry;
+            });
         
         foreach (var package in packages)
         {
+            if (builtInPackages.ContainsKey(package.Package.Id)) continue;
+            
             var dir = Path.Join(package.Directory.FullName, "lib", package.ResolvedFramework.GetShortFolderName());
 
             var path = Path.Join(dir, $"{package.Package.Id}.deps.json");
             if (!File.Exists(path))
             {
-                await using (var stream = File.Create(path))
-                    await manifestBuilder.WriteDependencyManifestAsync(stream, package.Entry, _runtimeFramework);
+                await using var stream = File.Create(path);
+                await manifestBuilder.WriteDependencyManifestAsync(stream, package.Entry, _runtimeFramework);
             }
             
-
             var client = await sourceMapping.GetClientAsync(package.Package.Id);
             var sourceName = packagesConfig.Sources.First(b => b.Url == client.ToString()).Name;
             LoadComponent(plugins, Path.Join(dir, $"{package.Package.Id}.dll"),
