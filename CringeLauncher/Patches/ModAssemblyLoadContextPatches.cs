@@ -26,25 +26,24 @@ public static class ModAssemblyLoadContextPatches
         var load1Method = AccessTools.DeclaredMethod(typeof(Assembly), nameof(Assembly.Load), [typeof(byte[]), typeof(byte[])]);
         var load2Method = AccessTools.DeclaredMethod(typeof(Assembly), nameof(Assembly.Load), [typeof(byte[])]);
 
-        matcher.SearchForward(i => i.Calls(load1Method))
+        return matcher.SearchForward(i => i.Calls(load1Method))
             .InsertAndAdvance(new(OpCodes.Ldarg_0), CodeInstruction.LoadField(original.DeclaringType, "target"))
             .SetInstruction(CodeInstruction.CallClosure((byte[] assembly, byte[] symbols, MyApiTarget target) =>
             {
                 if (target is not MyApiTarget.Mod) return Assembly.Load(assembly, symbols);
                 ArgumentNullException.ThrowIfNull(_currentSessionContext, "No session context");
                 return _currentSessionContext.LoadFromStream(new MemoryStream(assembly), new MemoryStream(symbols));
-            }));
-        
-        matcher.SearchForward(i => i.Calls(load2Method))
+            }))
+            .Start()
+            .SearchForward(i => i.Calls(load2Method))
             .InsertAndAdvance(new(OpCodes.Ldarg_0), CodeInstruction.LoadField(original.DeclaringType, "target"))
             .SetInstruction(CodeInstruction.CallClosure((byte[] assembly, MyApiTarget target) =>
             {
                 if (target is not MyApiTarget.Mod) return Assembly.Load(assembly);
                 ArgumentNullException.ThrowIfNull(_currentSessionContext, "No session context");
                 return _currentSessionContext.LoadFromStream(new MemoryStream(assembly));
-            }));
-
-        return matcher.Instructions();
+            }))
+            .Instructions();
     }
 
     [HarmonyPatch(typeof(MyScriptManager), "Compile")]
