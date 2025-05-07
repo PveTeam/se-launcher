@@ -22,8 +22,8 @@
     </ItemGroup>
     
     <ItemGroup>
-        <PackageReference Include="Basic.Reference.Assemblies.Net90" Version="1.7.9" PrivateAssets="all" />
-        <PackageReference Include="NLog" Version="5.3.4" />
+        <PackageReference Include="Basic.Reference.Assemblies.Net90" Version="1.8.0" PrivateAssets="all" />
+        <PackageReference Include="NLog" Version="5.4.0" />
         <PackageReference Include="Lib.Harmony.Thin" Version="2.3.4-torch" />
         <PackageReference Include="ImGui.NET.DirectX" Version="1.91.0.1" />
         <PackageReference Include="SpaceEngineersDedicated.ReferenceAssemblies" Version="1.*" ExcludeAssets="runtime" />

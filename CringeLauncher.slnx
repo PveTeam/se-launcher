@@ -1,0 +1,16 @@
+<Solution>
+    <Configurations>
+        <Platform Name="x64"/>
+        <BuildType Name="Debug"/>
+        <BuildType Name="Release"/>
+    </Configurations>
+    <Project Path="CringeBootstrap.Abstractions/CringeBootstrap.Abstractions.csproj"/>
+    <Project Path="CringeBootstrap/CringeBootstrap.csproj">
+        <BuildDependency Project="TestPlugin/TestPlugin.csproj"/>
+    </Project>
+    <Project Path="CringeLauncher/CringeLauncher.csproj"/>
+    <Project Path="CringePlugins/CringePlugins.csproj"/>
+    <Project Path="NuGet/NuGet.csproj"/>
+    <Project Path="SharedCringe/SharedCringe.csproj"/>
+    <Project Path="TestPlugin/TestPlugin.csproj"/>
+</Solution>

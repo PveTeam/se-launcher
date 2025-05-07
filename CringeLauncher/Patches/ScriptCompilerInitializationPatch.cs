@@ -18,7 +18,7 @@ public static class ScriptCompilerInitializationPatch
     private static bool Prefix(Thread updateThread, Type[] referencedTypes, string[] symbols)
     {
         MyModWatchdog.Init(updateThread);
-        MyScriptCompiler.Static.AddImplicitIngameNamespacesFromTypes(referencedTypes);
+        MyScriptCompiler.Static.AddImplicitInGameNamespacesFromTypes(referencedTypes);
         MyScriptCompiler.Static.AddConditionalCompilationSymbols(symbols);
 
         using var batch = MyScriptCompiler.Static.Whitelist.OpenBatch();

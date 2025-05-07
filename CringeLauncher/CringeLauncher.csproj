@@ -22,23 +22,23 @@
     </ItemGroup>
 
     <ItemGroup>
-        <PackageReference Include="Basic.Reference.Assemblies.Net90" Version="1.7.9" />
+        <PackageReference Include="Basic.Reference.Assemblies.Net90" Version="1.8.0" />
         <PackageReference Include="dnlib" Version="4.4.0" />
         <PackageReference Include="Krafs.Publicizer" Version="2.3.0">
             <PrivateAssets>all</PrivateAssets>
             <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
         </PackageReference>
-        <PackageReference Include="System.Diagnostics.PerformanceCounter" Version="9.0.0" />
-        <PackageReference Include="System.Management" Version="9.0.0" />
+        <PackageReference Include="System.Diagnostics.PerformanceCounter" Version="9.0.4" />
+        <PackageReference Include="System.Management" Version="9.0.4" />
         <PackageReference Include="System.Private.ServiceModel" Version="4.10.3" />
         <PackageReference Include="Torch.SixLabors.ImageSharp" Version="1.0.0-beta6" />
         <PackageReference Include="Velopack" Version="0.0.942" />
-        <PackageReference Include="Microsoft.Windows.CsWin32" Version="0.3.106">
+        <PackageReference Include="Microsoft.Windows.CsWin32" Version="0.3.183">
             <PrivateAssets>all</PrivateAssets>
             <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
         </PackageReference>
-        <PackageReference Include="NLog" Version="5.3.4" />
-        <PackageReference Include="Microsoft.CodeAnalysis.CSharp" Version="4.12.0" />
+        <PackageReference Include="NLog" Version="5.4.0" />
+        <PackageReference Include="Microsoft.CodeAnalysis.CSharp" Version="4.13.0" />
         <PackageReference Include="SpaceEngineersDedicated.ReferenceAssemblies" Version="1.*" ExcludeAssets="runtime" />
         <PackageReference Include="Steamworks.NET" Version="20.1.0" />
     </ItemGroup>

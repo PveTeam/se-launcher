@@ -4,9 +4,9 @@
     "net9.0-windows7.0": {
       "Basic.Reference.Assemblies.Net90": {
         "type": "Direct",
-        "requested": "[1.7.9, )",
-        "resolved": "1.7.9",
-        "contentHash": "9CUkU6Z17tJL/cQc6FeZL0qfQf4CBaNpSBqFL6CTmrIC8827x7NEPyNq/inZA/r6Y5ziWo2Yd8caMxLPqDUpeA==",
+        "requested": "[1.8.0, )",
+        "resolved": "1.8.0",
+        "contentHash": "xC9ZVnkVHnkQafDPOrOnWWObi3iiVYCnUFECTnhV4QXmxOBdxfH3hakgpaeP+Y1wEU9/uaepLTyjSTqtSnUDzQ==",
         "dependencies": {
           "Microsoft.CodeAnalysis.Common": "4.11.0"
         }
@@ -46,15 +46,15 @@
       },
       "NLog": {
         "type": "Direct",
-        "requested": "[5.3.4, )",
-        "resolved": "5.3.4",
-        "contentHash": "gLy7+O1hEYJXIlcTr1/VWjGXrZTQFZzYNO18IWasD64pNwz0BreV+nHLxWKXWZzERRzoKnsk2XYtwLkTVk7J1A=="
+        "requested": "[5.4.0, )",
+        "resolved": "5.4.0",
+        "contentHash": "LwMcGSW3soF3/SL68rlJN3Eh3ktrAPycC3zZR/07OYBPraZUu0bygEC7kIN10lUQgMXT4s84Fi1chglGdGrQEg=="
       },
       "SpaceEngineersDedicated.ReferenceAssemblies": {
         "type": "Direct",
         "requested": "[1.*, )",
-        "resolved": "1.205.26",
-        "contentHash": "kQSFCLgi0nFUhLvXlp9D2w4cTnXtEIctWtNlK+Vw4FAofws60rwR6Kil9YBNlaDyoo19dcyNt3bs4G9VculcIA==",
+        "resolved": "1.206.30",
+        "contentHash": "xk/EgMhbG7oT4fPzW1DcFT8tYkxJFPK3+j+t4vms9a/wz8cCmszbilA2Y+JWIpmauUDcfovX8eqAOKlgz3dpcg==",
         "dependencies": {
           "SharpDX": "4.2.0-keen-cringe",
           "protobuf-net": "1.0.0"
@@ -121,13 +121,13 @@
       },
       "NuGet.Frameworks": {
         "type": "Transitive",
-        "resolved": "6.12.1",
-        "contentHash": "kPaRD5RJC0ByUg+yGX6bDz5XHMI7OYmQwP8kbtef+vZ+csj/VDb5Bwas4ChxwhoAbI8lEvwP5/3aViQPpgNBow=="
+        "resolved": "6.13.2",
+        "contentHash": "SQKUf56j7IdJL//fU7fcmn234awjRA2qLvgbfs/TxmY7oJrNOxaaDxASyCbS4eJW3LCOd6ONHMZ/cPlbQh4xVg=="
       },
       "NuGet.Versioning": {
         "type": "Transitive",
-        "resolved": "6.12.1",
-        "contentHash": "fJ6rFYANDnohFsdpaY79FvrJxI6murmoOxXz6nZlf819F48+IBKMnAIg3oIBRtZq5y498ObMtKnro5IitvizUg=="
+        "resolved": "6.13.2",
+        "contentHash": "pGYNyvCVM+Z9jITTiJiuxFC8oJXFdh2k25ZDV4tSAOSuKyAWvh1VcfJy0WZGWdI6J7Avkbl0qra7XENYFSy4Ng=="
       },
       "protobuf-net": {
         "type": "Transitive",
@@ -186,8 +186,8 @@
       "nuget": {
         "type": "Project",
         "dependencies": {
-          "NuGet.Frameworks": "[6.12.1, )",
-          "NuGet.Versioning": "[6.12.1, )",
+          "NuGet.Frameworks": "[6.13.2, )",
+          "NuGet.Versioning": "[6.13.2, )",
           "System.Linq.Async": "[6.0.1, )"
         }
       },
@@ -195,7 +195,7 @@
         "type": "Project",
         "dependencies": {
           "CringeBootstrap.Abstractions": "[1.0.0, )",
-          "NLog": "[5.3.4, )",
+          "NLog": "[5.4.0, )",
           "SpaceEngineersDedicated.ReferenceAssemblies": "[1.*, )"
         }
       }
