@@ -20,7 +20,7 @@ internal static class InputPatch
         return true;
     }
 
-    [HarmonyPrefix, HarmonyPatch("VRage.Input.Keyboard.MyGuiLocalizedKeyboardState", "GetCurrentState")]
+    [HarmonyPrefix, HarmonyPatch(typeof(MyGuiLocalizedKeyboardState), nameof(MyGuiLocalizedKeyboardState.GetCurrentState))]
     private static bool GetKeyboardStatePrefix(ref MyKeyboardState __result)
     {
         if (ImGuiHandler.Instance?.BlockKeys == true)
