@@ -66,11 +66,11 @@ public class Launcher : ICorePlugin
         //environment variable for viktor's plugins
         Environment.SetEnvironmentVariable("SE_PLUGIN_DISABLE_METHOD_VERIFICATION", "True");
         
-        _harmony.PatchAll(typeof(Launcher).Assembly);
+#if !DEBUG
+        CheckUpdates(args).GetAwaiter().GetResult();
+#endif
         
-        #if !DEBUG
-            CheckUpdates(args).GetAwaiter().GetResult();
-        #endif
+        _harmony.PatchAll(typeof(Launcher).Assembly);
 
         var splash = new Splash();
         
