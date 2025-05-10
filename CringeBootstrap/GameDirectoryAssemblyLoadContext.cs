@@ -8,11 +8,13 @@ namespace CringeBootstrap;
 
 public class GameDirectoryAssemblyLoadContext : AssemblyLoadContext, ICoreLoadContext
 {
+    private readonly string _dir;
     private static readonly ImmutableHashSet<string> ReferenceAssemblies = ["netstandard"];
     private readonly Dictionary<string, string> _assemblyNames = [];
 
     public GameDirectoryAssemblyLoadContext(string dir) : base("CringeBootstrap")
     {
+        _dir = dir;
         var files = Directory.GetFiles(dir, "*.dll");
         foreach (var file in files)
         {
@@ -60,6 +62,27 @@ public class GameDirectoryAssemblyLoadContext : AssemblyLoadContext, ICoreLoadCo
             Debug.WriteLine(e);
             return null;
         }
+    }
+
+    protected override nint LoadUnmanagedDll(string unmanagedDllName)
+    {
+        // if specified name is a path, skip to default logic 
+        if (unmanagedDllName.AsSpan().ContainsAny(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar))
+            return base.LoadUnmanagedDll(unmanagedDllName);
+
+        // prefer System32 over ours
+        ReadOnlySpan<string> dirs = [Environment.SystemDirectory, _dir];
+        foreach (var dir in dirs)
+        {
+            var path = Path.Join(dir, unmanagedDllName);
+            if (!Path.HasExtension(path))
+                path += ".dll";
+            
+            if (File.Exists(path))
+                return LoadUnmanagedDllFromPath(path);
+        }
+        
+        throw new DllNotFoundException($"Unable to load {unmanagedDllName}, module not found in valid locations");
     }
 
     public Assembly? ResolveFromAssemblyName(AssemblyName assemblyName) => Load(assemblyName);
