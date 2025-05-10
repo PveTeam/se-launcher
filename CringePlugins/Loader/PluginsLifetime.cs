@@ -24,6 +24,7 @@ public class PluginsLifetime(string gameFolder) : ILoadingStage
     public string Name => "Loading Plugins";
     
     private ImmutableArray<PluginInstance> _plugins = [];
+    // TODO move this as api for other plugins
     private readonly DirectoryInfo _dir = Directory.CreateDirectory(Path.Join(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "CringeLauncher"));
     private readonly NuGetFramework _runtimeFramework = NuGetFramework.ParseFolder("net9.0-windows10.0.19041.0");
 
