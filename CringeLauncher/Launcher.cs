@@ -1,5 +1,7 @@
 ﻿using System.Reflection;
 using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
+using System.Runtime.Loader;
 using CringeBootstrap.Abstractions;
 using CringeLauncher.Utils;
 using CringePlugins.Loader;
@@ -7,7 +9,6 @@ using CringePlugins.Render;
 using CringePlugins.Splash;
 using HarmonyLib;
 using NLog;
-using ParallelTasks;
 using Sandbox;
 using Sandbox.Engine.Networking;
 using Sandbox.Engine.Platform.VideoMode;
@@ -69,6 +70,10 @@ public class Launcher : ICorePlugin
 #if !DEBUG
         CheckUpdates(args).GetAwaiter().GetResult();
 #endif
+        
+        // hook up steam as we ship it inside base context as an override
+        if (AssemblyLoadContext.GetLoadContext(typeof(Launcher).Assembly) is ICoreLoadContext coreLoadContext)
+            NativeLibrary.SetDllImportResolver(typeof(Steamworks.Constants).Assembly, (name, _, _) => coreLoadContext.ResolveUnmanagedDll(name));
         
         _harmony.PatchAll(typeof(Launcher).Assembly);
 
