@@ -85,7 +85,6 @@ internal class PluginListComponent : IRenderComponent
 
         if (BeginTabBar("Main"))
         {
-            // TODO support for opening plugin loader plugin config (reflection call to a specific method)
             if (BeginTabItem("Installed Plugins"))
             {
                 if (BeginTable("InstalledTable", 3, ImGuiTableFlags.ScrollY | ImGuiTableFlags.Resizable))
