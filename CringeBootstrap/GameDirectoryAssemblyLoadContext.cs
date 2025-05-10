@@ -10,7 +10,9 @@ public class GameDirectoryAssemblyLoadContext : AssemblyLoadContext, ICoreLoadCo
 {
     private readonly string _dir;
     private static readonly ImmutableHashSet<string> ReferenceAssemblies = ["netstandard"];
-    private readonly Dictionary<string, string> _assemblyNames = [];
+    // Assembly simple names are case-insensitive per the runtime behavior
+    // (see SimpleNameToFileNameMapTraits for the TPA lookup hash).
+    private readonly Dictionary<string, string> _assemblyNames = new(StringComparer.OrdinalIgnoreCase);
 
     public GameDirectoryAssemblyLoadContext(string dir) : base("CringeBootstrap")
     {
