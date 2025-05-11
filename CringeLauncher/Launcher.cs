@@ -125,6 +125,8 @@ public class Launcher : ICorePlugin
         
         _lifetime.RegisterLifetime();
         
+        WaitForDevice();
+        
         _game = new(args)
         {
             GameRenderComponent = _renderComponent,
@@ -138,6 +140,24 @@ public class Launcher : ICorePlugin
 
     public void Run() => _game?.Run();
 
+    private void WaitForDevice()
+    {
+        if (_renderComponent!.RenderThread.CurrentSettings.DRSSettingsPresets is not null)
+            return;
+        
+        var resetEvent = new ManualResetEventSlim(false);
+
+        void RenderThreadOnSizeChanged(int width, int height, MyViewport viewport)
+        {
+            _renderComponent.RenderThread.SizeChanged -= RenderThreadOnSizeChanged;
+            resetEvent.Set();
+        }
+
+        _renderComponent.RenderThread.SizeChanged += RenderThreadOnSizeChanged;
+
+        resetEvent.Wait();
+    }
+
     private IVRageWindow InitEarlyWindow(Splash splash)
     {
         ImGuiHandler.Instance = new();
@@ -148,8 +168,7 @@ public class Launcher : ICorePlugin
 
         MyVRage.Platform.Windows.Window.OnExit += MySandboxGame.ExitThreadSafe;
         
-        _renderComponent!.RenderThread.UpdateSize();
-        MyRenderProxy.RenderThread = _renderComponent.RenderThread;
+        MyRenderProxy.RenderThread = _renderComponent!.RenderThread;
         
         MyVRage.Platform.Windows.Window.ShowAndFocus();
 
