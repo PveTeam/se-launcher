@@ -337,7 +337,6 @@
           "Microsoft.CodeAnalysis.CSharp": "[4.13.0, )",
           "NLog": "[5.4.0, )",
           "SpaceEngineersDedicated.ReferenceAssemblies": "[1.*, )",
-          "Steamworks.NET": "[20.1.0, )",
           "System.Diagnostics.PerformanceCounter": "[9.0.4, )",
           "System.Management": "[9.0.4, )",
           "System.Private.ServiceModel": "[4.10.3, )",
@@ -355,6 +354,7 @@
           "NuGet": "[1.0.0, )",
           "SharedCringe": "[1.0.0, )",
           "SpaceEngineersDedicated.ReferenceAssemblies": "[1.*, )",
+          "Steamworks.NET": "[20.1.0, 20.1.0]",
           "dnlib": "[4.4.0, )"
         }
       },

@@ -60,6 +60,12 @@
           "protobuf-net": "1.0.0"
         }
       },
+      "Steamworks.NET": {
+        "type": "Direct",
+        "requested": "[20.1.0, 20.1.0]",
+        "resolved": "20.1.0",
+        "contentHash": "+GntwnyJ5tCNvUIaQxv2+ehDvZJzGUqlSB5xRBk1hTj1qqBJ6s4vK/OfGD/jae7aTmXiGSm8wpJORosNtQevJQ=="
+      },
       "Microsoft.Bcl.AsyncInterfaces": {
         "type": "Transitive",
         "resolved": "6.0.0",
@@ -211,6 +217,12 @@
           "System.Numerics.Vectors": "4.5.0",
           "System.Runtime.CompilerServices.Unsafe": "6.0.0"
         }
+      },
+      "Steamworks.NET": {
+        "type": "Direct",
+        "requested": "[20.1.0, 20.1.0]",
+        "resolved": "20.1.0",
+        "contentHash": "+GntwnyJ5tCNvUIaQxv2+ehDvZJzGUqlSB5xRBk1hTj1qqBJ6s4vK/OfGD/jae7aTmXiGSm8wpJORosNtQevJQ=="
       }
     }
   }

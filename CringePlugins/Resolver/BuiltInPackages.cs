@@ -21,6 +21,7 @@ public static class BuiltInPackages
     private const string SeReferenceAssemblies = "SpaceEngineersDedicated.ReferenceAssemblies";
     private const string ImGui = "ImGui.NET.DirectX";
     private const string Harmony = "Lib.Harmony.Thin";
+    private const string Steamworks = "Steamworks.NET";
 
     public static ImmutableArray<ResolvedPackage> GetPackages(NuGetFramework runtimeFramework)
     {
@@ -32,6 +33,7 @@ public static class BuiltInPackages
         ], SeReferenceAssemblies, new(seVersion));
         var imGui = FromAssembly<ImGuiKey>(runtimeFramework, id: ImGui);
         var harmony = FromAssembly<HarmonyLib.Harmony>(runtimeFramework, id: Harmony);
+        var steam = FromAssembly<Steamworks.CSteamID>(runtimeFramework, id: Steamworks);
 
         BuiltInSdkPackage MapSdkPackage(
             (string FileName, byte[] ImageBytes, PortableExecutableReference Reference, Guid Mvid) r)
@@ -53,6 +55,7 @@ public static class BuiltInPackages
             se,
             imGui,
             harmony,
+            steam,
             FromAssembly<PluginsLifetime>(runtimeFramework,
                 [se.AsDependency(), imGui.AsDependency(), harmony.AsDependency()]
 #if DEBUG

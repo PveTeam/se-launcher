@@ -59,15 +59,16 @@ public class PluginsLifetime(string gameFolder) : ILoadingStage
         var packages = await resolver.ResolveAsync();
         
         progress.Report("Downloading packages");
-        
-        var cachedPackages = await resolver.DownloadPackagesAsync(_dir.CreateSubdirectory("cache"), packages, progress);
+
+        var builtInPackages = BuiltInPackages.GetPackages(_runtimeFramework).ToImmutableDictionary(package => package.Package.Id);
+        var cachedPackages = await resolver.DownloadPackagesAsync(_dir.CreateSubdirectory("cache"), packages, builtInPackages.Keys.ToHashSet(), progress);
         
         progress.Report("Loading plugins");
 
         //we can move this, but it should be before plugin init
         RenderHandler.Current.RegisterComponent(new NotificationsComponent());
 
-        await LoadPlugins(cachedPackages, sourceMapping, packagesConfig);
+        await LoadPlugins(cachedPackages, sourceMapping, packagesConfig, builtInPackages);
         
         RenderHandler.Current.RegisterComponent(new PluginListComponent(packagesConfig, sourceMapping, configPath, gameFolder, _plugins));
     }
@@ -91,12 +92,9 @@ public class PluginsLifetime(string gameFolder) : ILoadingStage
     }
 
     private async Task LoadPlugins(IReadOnlyCollection<CachedPackage> packages, PackageSourceMapping sourceMapping,
-        PackagesConfig packagesConfig)
+        PackagesConfig packagesConfig, ImmutableDictionary<string, ResolvedPackage> builtInPackages)
     {
         var plugins = _plugins.ToBuilder();
-
-        var builtInPackages = BuiltInPackages.GetPackages(_runtimeFramework)
-            .ToImmutableDictionary(package => package.Package.Id);
         
         var resolvedPackages = builtInPackages.ToDictionary();
         foreach (var package in packages)
@@ -120,8 +118,17 @@ public class PluginsLifetime(string gameFolder) : ILoadingStage
             var path = Path.Join(dir, $"{package.Package.Id}.deps.json");
             if (!File.Exists(path))
             {
-                await using var stream = File.Create(path);
-                await manifestBuilder.WriteDependencyManifestAsync(stream, package.Entry, _runtimeFramework);
+                try
+                {
+                    await using var stream = File.Create(path);
+                    await manifestBuilder.WriteDependencyManifestAsync(stream, package.Entry, _runtimeFramework);
+                }
+                catch (Exception ex)
+                {
+                    Log.Error(ex, $"Failed to write dependency manifest for {path}");
+                    File.Delete(path); //delete file to avoid breaking cache
+                    throw;
+                }
             }
             
             var client = await sourceMapping.GetClientAsync(package.Package.Id);
