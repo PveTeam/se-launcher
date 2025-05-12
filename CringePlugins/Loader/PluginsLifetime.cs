@@ -10,6 +10,7 @@ using NLog;
 using NuGet;
 using NuGet.Deps;
 using NuGet.Frameworks;
+using NuGet.Models;
 using NuGet.Versioning;
 using SharedCringe.Loader;
 
@@ -26,7 +27,7 @@ public class PluginsLifetime(string gameFolder) : ILoadingStage
     private ImmutableArray<PluginInstance> _plugins = [];
     // TODO move this as api for other plugins
     private readonly DirectoryInfo _dir = Directory.CreateDirectory(Path.Join(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "CringeLauncher"));
-    private readonly NuGetFramework _runtimeFramework = NuGetFramework.ParseFolder("net9.0-windows10.0.19041.0");
+    private readonly NuGetRuntimeFramework _runtimeFramework = new(NuGetFramework.ParseFolder("net9.0-windows10.0.19041.0"), RuntimeInformation.RuntimeIdentifier);
 
     public async ValueTask Load(ISplashProgress progress)
     {
@@ -54,13 +55,14 @@ public class PluginsLifetime(string gameFolder) : ILoadingStage
         progress.Report("Resolving packages");
 
         var sourceMapping = new PackageSourceMapping(packagesConfig.Sources);
-        var resolver = new PackageResolver(_runtimeFramework, packagesConfig.Packages, sourceMapping);
+        // TODO take into account the target framework runtime identifier
+        var resolver = new PackageResolver(_runtimeFramework.Framework, packagesConfig.Packages, sourceMapping);
 
         var packages = await resolver.ResolveAsync();
         
         progress.Report("Downloading packages");
 
-        var builtInPackages = BuiltInPackages.GetPackages(_runtimeFramework).ToImmutableDictionary(package => package.Package.Id);
+        var builtInPackages = await BuiltInPackages.GetPackagesAsync(_runtimeFramework);
         var cachedPackages = await resolver.DownloadPackagesAsync(_dir.CreateSubdirectory("cache"), packages, builtInPackages.Keys.ToHashSet(), progress);
         
         progress.Report("Loading plugins");

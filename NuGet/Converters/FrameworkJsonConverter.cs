@@ -10,7 +10,7 @@ public class FrameworkJsonConverter(FrameworkNameFormat format) : JsonConverter<
     {
         if (reader.TokenType != JsonTokenType.String)
             throw new JsonException("Invalid framework string");
-
+        
         var s = reader.GetString()!;
         return format switch
         {

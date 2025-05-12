@@ -10,9 +10,10 @@ using NuGet.Versioning;
 
 namespace NuGet.Deps;
 
-public record DependenciesManifest(RuntimeTarget RuntimeTarget, 
-    ImmutableDictionary<NuGetFramework, string> CompilationOptions,
-    ImmutableDictionary<NuGetFramework, ImmutableDictionary<ManifestPackageKey, DependencyTarget>> Targets,
+public record DependenciesManifest(
+    RuntimeTarget RuntimeTarget,
+    ImmutableDictionary<NuGetRuntimeFramework, string> CompilationOptions,
+    ImmutableDictionary<NuGetRuntimeFramework, ImmutableDictionary<ManifestPackageKey, DependencyTarget>> Targets,
     ImmutableDictionary<ManifestPackageKey, DependencyLibrary> Libraries);
 
 public record DependencyLibrary(
@@ -26,7 +27,9 @@ public record DependencyLibrary(
 public enum LibraryType
 {
     Project,
-    Package
+    Package,
+    Reference,
+    Runtimepack
 }
 
 public record DependencyTarget(ImmutableDictionary<string, NuGetVersion>? Dependencies,
@@ -39,7 +42,7 @@ public record Dependency(Version? FileVersion = null);
 
 public record RuntimeDependency(Version? AssemblyVersion = null, Version? FileVersion = null) : Dependency(FileVersion);
 
-public record RuntimeTarget([property: JsonPropertyName("name")] NuGetFramework Framework, string Signature = "");
+public record RuntimeTarget([property: JsonPropertyName("name")] NuGetRuntimeFramework RuntimeFramework, string Signature = "");
 
 [JsonConverter(typeof(ManifestPackageKeyJsonConverter))]
 public record ManifestPackageKey(string Id, NuGetVersion Version)
@@ -56,7 +59,7 @@ public record ManifestPackageKey(string Id, NuGetVersion Version)
     public override string ToString() => $"{Id}/{Version}";
 }
 
-public class DependencyManifestBuilder(DirectoryInfo cacheDirectory, PackageSourceMapping packageSources, Func<Models.Dependency, CatalogEntry?> catalogEntryResolver)
+public static class DependencyManifestSerializer
 {
     private static readonly JsonSerializerOptions SerializerOptions = new(JsonSerializerDefaults.Web)
     {
@@ -68,8 +71,15 @@ public class DependencyManifestBuilder(DirectoryInfo cacheDirectory, PackageSour
             new VersionJsonConverter()
         }
     };
+    
+    public static Task SerializeAsync(Stream stream, DependenciesManifest manifest) => JsonSerializer.SerializeAsync(stream, manifest, SerializerOptions);
+    
+    public static ValueTask<DependenciesManifest> DeserializeAsync(Stream stream) => JsonSerializer.DeserializeAsync<DependenciesManifest>(stream, SerializerOptions)!;
+}
 
-    public async ValueTask WriteDependencyManifestAsync(Stream stream, CatalogEntry catalogEntry, NuGetFramework targetFramework)
+public class DependencyManifestBuilder(DirectoryInfo cacheDirectory, PackageSourceMapping packageSources, Func<Models.Dependency, CatalogEntry?> catalogEntryResolver)
+{
+    public async ValueTask WriteDependencyManifestAsync(Stream stream, CatalogEntry catalogEntry, NuGetRuntimeFramework targetFramework)
     {
         var runtimeTarget = new RuntimeTarget(targetFramework);
 
@@ -77,21 +87,22 @@ public class DependencyManifestBuilder(DirectoryInfo cacheDirectory, PackageSour
 
         await MapCatalogEntryAsync(catalogEntry, targetFramework, targets);
         
-        var manifest = new DependenciesManifest(runtimeTarget, ImmutableDictionary<NuGetFramework, string>.Empty,
-            ImmutableDictionary<NuGetFramework, ImmutableDictionary<ManifestPackageKey, DependencyTarget>>.Empty
+        var manifest = new DependenciesManifest(runtimeTarget, ImmutableDictionary<NuGetRuntimeFramework, string>.Empty,
+            ImmutableDictionary<NuGetRuntimeFramework, ImmutableDictionary<ManifestPackageKey, DependencyTarget>>.Empty
                 .Add(targetFramework, targets.ToImmutable()), 
             ImmutableDictionary<ManifestPackageKey, DependencyLibrary>.Empty);
         
-        await JsonSerializer.SerializeAsync(stream, manifest, SerializerOptions);
+        await DependencyManifestSerializer.SerializeAsync(stream, manifest);
     }
 
-    private async Task MapCatalogEntryAsync(CatalogEntry catalogEntry, NuGetFramework targetFramework,
+    private async Task MapCatalogEntryAsync(CatalogEntry catalogEntry, NuGetRuntimeFramework targetFramework,
         ImmutableDictionary<ManifestPackageKey, DependencyTarget>.Builder targets)
     {
         if (targets.ContainsKey(new(catalogEntry.Id, catalogEntry.Version)) || !catalogEntry.DependencyGroups.HasValue)
             return;
         
-        var nearest = NuGetFrameworkUtility.GetNearest(catalogEntry.DependencyGroups.Value, targetFramework,
+        // TODO take into account the target framework runtime identifier
+        var nearest = NuGetFrameworkUtility.GetNearest(catalogEntry.DependencyGroups.Value, targetFramework.Framework,
             group => group.TargetFramework);
 
         if (nearest is null)
