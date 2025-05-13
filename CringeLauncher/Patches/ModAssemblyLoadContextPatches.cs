@@ -12,7 +12,7 @@ using VRage.Scripting;
 namespace CringeLauncher.Patches;
 
 [HarmonyPatch]
-public static class ModAssemblyLoadContextPatches
+public static class ModAssemblyLoadContextPatches //todo: use ModScriptCompilerPatch
 {
     private static ModAssemblyLoadContext? _currentSessionContext;
     private static readonly MyConcurrentHashSet<string> AssemblyNames = [];
@@ -30,7 +30,7 @@ public static class ModAssemblyLoadContextPatches
             .InsertAndAdvance(new(OpCodes.Ldarg_0), CodeInstruction.LoadField(original.DeclaringType, "target"))
             .SetInstruction(CodeInstruction.CallClosure((byte[] assembly, byte[] symbols, MyApiTarget target) =>
             {
-                if (target is not MyApiTarget.Mod) return Assembly.Load(assembly, symbols);
+                //if (target is not MyApiTarget.Mod) return Assembly.Load(assembly, symbols);
                 ArgumentNullException.ThrowIfNull(_currentSessionContext, "No session context");
                 return _currentSessionContext.LoadFromStream(new MemoryStream(assembly), new MemoryStream(symbols));
             }))
@@ -39,7 +39,7 @@ public static class ModAssemblyLoadContextPatches
             .InsertAndAdvance(new(OpCodes.Ldarg_0), CodeInstruction.LoadField(original.DeclaringType, "target"))
             .SetInstruction(CodeInstruction.CallClosure((byte[] assembly, MyApiTarget target) =>
             {
-                if (target is not MyApiTarget.Mod) return Assembly.Load(assembly);
+                //if (target is not MyApiTarget.Mod) return Assembly.Load(assembly);
                 ArgumentNullException.ThrowIfNull(_currentSessionContext, "No session context");
                 return _currentSessionContext.LoadFromStream(new MemoryStream(assembly));
             }))

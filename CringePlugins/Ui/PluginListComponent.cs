@@ -33,6 +33,7 @@ internal class PluginListComponent : IRenderComponent
     private bool _open = true;
     private PackagesConfig _packagesConfig;
     private readonly PackageSourceMapping _sourceMapping;
+    private readonly JsonSerializerOptions _serializerOptions = new(JsonSerializerDefaults.Web);
     private ImmutableHashSet<PackageSource>? _selectedSources;
     private readonly string _configPath;
     private readonly string _gameFolder;
@@ -255,17 +256,50 @@ internal class PluginListComponent : IRenderComponent
             if (BeginTabItem("Settings"))
             {
                 var oldConfigPath = Path.Join(_gameFolder, "Plugins", "config.xml");
-                if (File.Exists(oldConfigPath) && Button("Migrate PluginLoader Config"))
+                if (File.Exists(oldConfigPath))
                 {
-                    var configSerializer = new XmlSerializer(typeof(PluginLoaderConfig));
-                    using var fs = File.OpenRead(oldConfigPath);
-
-                    if (configSerializer.Deserialize(fs) is PluginLoaderConfig oldConfig)
+                    if (Button("Migrate PluginLoader Plugins"))
                     {
-                        _packagesConfig = oldConfig.Migrate(_packagesConfig);
+                        var configSerializer = new XmlSerializer(typeof(PluginLoaderConfig));
+                        using var fs = File.OpenRead(oldConfigPath);
 
+                        if (configSerializer.Deserialize(fs) is PluginLoaderConfig oldConfig)
+                        {
+                            _packagesConfig = oldConfig.MigratePlugins(_packagesConfig);
 
-                        Save(false);
+                            Save(false);
+
+                            _packages = _packagesConfig.Packages.ToImmutableDictionary(b => b.Id, b => b.Range, StringComparer.OrdinalIgnoreCase);
+                        }
+                    }
+
+                    var hasModLodaer = _packages.ContainsKey("Plugin.ClientModLoader");
+
+                    if (!hasModLodaer)
+                        BeginDisabled();
+
+                    if (Button("Migrate Pluginloader Mods"))
+                    {
+                        var configSerializer = new XmlSerializer(typeof(PluginLoaderConfig));
+                        using var fs = File.OpenRead(oldConfigPath);
+
+                        if (configSerializer.Deserialize(fs) is PluginLoaderConfig plConfig)
+                        {
+                            var dir = new DirectoryInfo(Path.Join(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
+                                "CringeLauncher"));
+                            var file = Path.Join(dir.FullName, "mods.json");
+
+                            using var modsFile = File.Create(file);
+                            JsonSerializer.Serialize(modsFile, plConfig.GetMods(), _serializerOptions);
+                        }
+                    }
+
+                    if (!hasModLodaer)
+                    {
+                        if (IsItemHovered())
+                            SetTooltip("Requires Plugin.ClientModLoader");
+
+                        EndDisabled();
                     }
                 }
                 EndTabItem();
