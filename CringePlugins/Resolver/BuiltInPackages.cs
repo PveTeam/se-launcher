@@ -101,7 +101,8 @@ public static class BuiltInPackages
     
     private static Dependency AsDependency(this ResolvedPackage package, ImmutableDictionary<ManifestPackageKey, DependencyLibrary> libraries)
     {
-        if (!libraries.ContainsKey(new(package.Package.Id, package.Package.Version)))
+        //ignore the SE reference because the game can update without a launcher update
+        if (package.Entry.Id != SeReferenceAssemblies && !libraries.ContainsKey(new(package.Package.Id, package.Package.Version)))
             throw new KeyNotFoundException($"Package {package.Package} not found in root dependencies manifest");
         
         return new Dependency(package.Package.Id, new(package.Package.Version));

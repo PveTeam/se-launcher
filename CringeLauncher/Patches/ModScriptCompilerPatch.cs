@@ -1,49 +1,74 @@
-﻿namespace CringeLauncher.Patches;
+﻿using CringeBootstrap.Abstractions;
+using CringeLauncher.Loader;
+using HarmonyLib;
+using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.CSharp;
+using Microsoft.CodeAnalysis.Diagnostics;
+using Microsoft.CodeAnalysis.Emit;
+using NLog;
+using Sandbox;
+using Sandbox.Game;
+using Sandbox.Game.Entities.Blocks;
+using Sandbox.Game.EntityComponents;
+using Sandbox.Game.Gui;
+using Sandbox.Game.Localization;
+using Sandbox.Game.World;
+using Sandbox.Graphics.GUI;
+using Sandbox.ModAPI;
+using Sandbox.ModAPI.Ingame;
+using System.Reflection;
+using System.Runtime.CompilerServices;
+using System.Runtime.Loader;
+using System.Text;
+using VRage;
+using VRage.ModAPI;
+using VRage.Scripting;
+using Message = VRage.Scripting.Message;
 
-#if false
+namespace CringeLauncher.Patches;
+
 [HarmonyPatch]
 public static class ModScriptCompilerPatch
 {
-    private static readonly ILogger Log = LogManager.GetCurrentClassLogger();
-    private static AssemblyLoadContext _modContext = new(null, true);
-    private static readonly HashSet<string> LoadedModAssemblyNames = new();
+    private static readonly Logger Log = LogManager.GetCurrentClassLogger();
+    private static ModAssemblyLoadContext _modContext;
+    private static readonly HashSet<string> LoadedModAssemblyNames = [];
 
-    private static readonly ConditionalWeakTable<MyProgrammableBlock, AssemblyLoadContext> LoadContexts = new();
+    private static readonly ConditionalWeakTable<MyProgrammableBlock, PbAssemblyLoadContext> LoadContexts = [];
 
     private static readonly FieldInfo InstanceField = AccessTools.Field(typeof(MyProgrammableBlock), "m_instance");
-    private static readonly FieldInfo AssemblyField = AccessTools.Field(typeof(MyProgrammableBlock), "m_assembly");
+    private static readonly PropertyInfo AssemblyProperty = AccessTools.Property(typeof(MyProgrammableBlock), "CurrentAssembly");
     private static readonly FieldInfo CompilerErrorsField = AccessTools.Field(typeof(MyProgrammableBlock), "m_compilerErrors");
+    private static readonly MethodInfo CreateInstanceMethod = AccessTools.Method(typeof(MyProgrammableBlock), "CreateInstance");
+    private static readonly MethodInfo SetDetailedInfoMethod = AccessTools.Method(typeof(MyProgrammableBlock), "SetDetailedInfo");
+    private static readonly ICoreLoadContext CoreContext = (ICoreLoadContext)AssemblyLoadContext.GetLoadContext(typeof(MySession).Assembly)!;
+
+    private static readonly DiagnosticAnalyzer ModWhitelistAnalyzer = AccessTools.FieldRefAccess<MyScriptCompiler, DiagnosticAnalyzer>(
+                MyScriptCompiler.Static, "m_modApiWhitelistDiagnosticAnalyzer");
+
+    private static readonly DiagnosticAnalyzer ScriptWhitelistAnalyzer =
+            AccessTools.FieldRefAccess<MyScriptCompiler, DiagnosticAnalyzer>(MyScriptCompiler.Static, "m_inGameWhitelistDiagnosticAnalyzer");
+
+    private static readonly Func<CSharpCompilation, SyntaxTree, int, SyntaxTree> InjectMod = AccessTools.MethodDelegate<Func<CSharpCompilation, SyntaxTree, int, SyntaxTree>>(
+            AccessTools.Method(typeof(MyScriptCompiler), "InjectMod"), MyScriptCompiler.Static);
+
+    private static readonly Func<CSharpCompilation, SyntaxTree, bool, SyntaxTree> InjectResourceMonitoring = AccessTools.MethodDelegate<Func<CSharpCompilation, SyntaxTree, bool, SyntaxTree>>(
+            AccessTools.Method(typeof(MyScriptCompiler), "InjectResourceMonitoring"), MyScriptCompiler.Static);
+
+    private static readonly Func<CompilationWithAnalyzers, EmitResult, List<Message>, bool, Task<bool>> EmitDiagnostics = AccessTools.MethodDelegate<Func<CompilationWithAnalyzers, EmitResult, List<Message>, bool, Task<bool>>>(
+            AccessTools.Method(typeof(MyScriptCompiler), "EmitDiagnostics"), MyScriptCompiler.Static);
+
+    private static readonly Func<string, string> MakeAssemblyName = AccessTools.MethodDelegate<Func<string, string>>(AccessTools.Method(typeof(MyScriptCompiler),
+                "MakeAssemblyName"));
+
+    private static readonly Func<MyScriptCompiler, string, IEnumerable<Script>, bool, CSharpCompilation> CreateCompilation =
+            AccessTools.MethodDelegate<Func<MyScriptCompiler, string, IEnumerable<Script>, bool, CSharpCompilation>>(AccessTools.Method(typeof(MyScriptCompiler),
+                "CreateCompilation"));
 
     static ModScriptCompilerPatch()
     {
         MySession.OnUnloaded += OnUnloaded;
-
-        ModWhitelistAnalyzer =
-            AccessTools.FieldRefAccess<MyScriptCompiler, DiagnosticAnalyzer>(
-                MyScriptCompiler.Static, "m_modApiWhitelistDiagnosticAnalyzer");
-        ScriptWhitelistAnalyzer =
-            AccessTools.FieldRefAccess<MyScriptCompiler, DiagnosticAnalyzer>(
-                MyScriptCompiler.Static, "m_ingameWhitelistDiagnosticAnalyzer");
-
-        MetadataReferences =
-            AccessTools.FieldRefAccess<MyScriptCompiler, List<MetadataReference>>(
-                MyScriptCompiler.Static, "m_metadataReferences");
-
-        InjectMod = AccessTools.MethodDelegate<Func<CSharpCompilation, SyntaxTree, int, SyntaxTree>>(
-            AccessTools.Method(typeof(MyScriptCompiler), "InjectMod"), MyScriptCompiler.Static);
-        
-        InjectInstructionCounter = AccessTools.MethodDelegate<Func<CSharpCompilation, SyntaxTree, SyntaxTree>>(
-            AccessTools.Method(typeof(MyScriptCompiler), "InjectInstructionCounter"), MyScriptCompiler.Static);
-        
-        EmitDiagnostics = AccessTools.MethodDelegate<Func<CompilationWithAnalyzers, EmitResult, List<Message>, bool, Task<bool>>>(
-            AccessTools.Method(typeof(MyScriptCompiler), "EmitDiagnostics"), MyScriptCompiler.Static);
-
-        MakeAssemblyName =
-            AccessTools.MethodDelegate<Func<string, string>>(AccessTools.Method(typeof(MyScriptCompiler),
-                "MakeAssemblyName"));
-
-        CreateInstanceMethod = AccessTools.Method(typeof(MyProgrammableBlock), "CreateInstance");
-        SetDetailedInfoMethod = AccessTools.Method(typeof(MyProgrammableBlock), "SetDetailedInfo");
+        _modContext = new(CoreContext);
     }
 
     private static void OnUnloaded()
@@ -51,22 +76,22 @@ public static class ModScriptCompilerPatch
         LoadedModAssemblyNames.Clear();
         if (!_modContext.Assemblies.Any())
             return;
-        
+
         _modContext.Unload();
-        _modContext = new(null, true);
+        _modContext = new(CoreContext);
     }
-    
+
     [HarmonyPatch(typeof(MyProgrammableBlock), "Compile")]
     [HarmonyPrefix]
     private static bool CompilePrefix(MyProgrammableBlock __instance, string program, string storage, bool instantiate,
                                       ref MyProgrammableBlock.ScriptTerminationReason ___m_terminationReason,
-                                      MyIngameScriptComponent ___ScriptComponent)
+                                      MyIngameScriptComponent ___m_scriptComponent)
     {
-        if (!MySession.Static.EnableIngameScripts || __instance.CubeGrid is {IsPreview: true} or {CreatePhysics: false})
+        if (!MySession.Static.EnableIngameScripts || __instance.CubeGrid is { IsPreview: true } or { CreatePhysics: false })
             return false;
 
         ___m_terminationReason = MyProgrammableBlock.ScriptTerminationReason.None;
-        CompileAsync(__instance, program, storage, instantiate, ___ScriptComponent);
+        CompileAsync(__instance, program, storage, instantiate, ___m_scriptComponent);
         return false;
     }
 
@@ -78,13 +103,21 @@ public static class ModScriptCompilerPatch
 
         var progress = new MyGuiScreenProgress(MyTexts.Get(MySpaceTexts.ProgrammableBlock_Editor_CheckingCode));
         MyScreenManager.AddScreen(progress);
-        
+
         if (__instance.Description.Text.Length > 0)
-            CompileAsync(__instance, ___m_compilerErrors, __instance.Description.Text.ToString(), progress).Wait();
-        
+        {
+            var task = CompileAsync(__instance, ___m_compilerErrors, __instance.Description.Text.ToString(), progress);
+            task.ConfigureAwait(false).GetAwaiter().GetResult();
+
+            MyScreenManager.RemoveScreen(progress);
+
+            MyVRage.Platform.ImeProcessor?.RegisterActiveScreen(__instance);
+            __instance.FocusedControl = __instance.Description;
+        }
+
         return false;
     }
-    
+
     [HarmonyPatch(typeof(MyScriptCompiler), nameof(MyScriptCompiler.Compile))]
     [HarmonyPrefix]
     private static bool Prefix(ref Task<Assembly?> __result, MyApiTarget target, string assemblyName, IEnumerable<Script> scripts,
@@ -97,11 +130,11 @@ public static class ModScriptCompilerPatch
 
     private static async Task CompileAsync(MyGuiScreenEditor editor, List<string> errors, string program, MyGuiScreenProgress progress)
     {
-        var context = new AssemblyLoadContext(null, true);
+        var context = new PbAssemblyLoadContext(CoreContext, editor.Name);
         var messages = new List<Message>();
         var script = MyVRage.Platform.Scripting.GetIngameScript(program, "Program", nameof(MyGridProgram));
-        await CompileAsync(context, MyApiTarget.Ingame, "check", new[] { script }, messages,
-            "PB Code Editor");
+        await CompileAsync(context, MyApiTarget.Ingame, "check", [script], messages,
+            "PB Code Editor", true);
 
         errors.AddRange(messages.OrderBy(b => b.IsError ? 0 : 1).Select(b => b.Text));
         context.Unload();
@@ -115,7 +148,7 @@ public static class ModScriptCompilerPatch
             {
                 sb.AppendLine(error);
             }
-            
+
             MyScreenManager.AddScreen(new MyGuiScreenEditorError(sb.ToString()));
             return;
         }
@@ -131,58 +164,55 @@ public static class ModScriptCompilerPatch
                                            string storage,
                                            bool instantiate, MyIngameScriptComponent scriptComponent)
     {
-        scriptComponent.NextUpdate = UpdateType.None;
         scriptComponent.NeedsUpdate = MyEntityUpdateEnum.NONE;
+        scriptComponent.UpdateFrequency = UpdateFrequency.None;
 
-        SetDetailedInfoMethod.Invoke(block, new object?[] { "Compiling..." });
+        SetDetailedInfoMethod.Invoke(block, ["Compiling..."]);
 
         try
         {
             if (LoadContexts.TryGetValue(block, out var context))
             {
                 AccessTools.FieldRefAccess<MyProgrammableBlock, IMyGridProgram?>(block, InstanceField) = null;
-                AccessTools.FieldRefAccess<MyProgrammableBlock, Assembly?>(block, AssemblyField) = null;
+                AssemblyProperty.SetValue(block, null);
                 context.Unload();
             }
-               
-            LoadContexts.AddOrUpdate(block, context = new(null, true));
-               
+
+            LoadContexts.AddOrUpdate(block, context = new(CoreContext, $"pb_{block.EntityId}"));
+
             var messages = new List<Message>();
-            var assembly = await CompileAsync(context, MyApiTarget.Ingame,
-                                              $"pb_{block.EntityId}_{Random.Shared.NextInt64()}",
-                                              new[]
-                                              {
-                                                  MyVRage.Platform.Scripting.GetIngameScript(
-                                                      program, "Program", nameof(MyGridProgram))
-                                              }, messages, $"PB: {block.DisplayName} ({block.EntityId})");
-            
-            AccessTools.FieldRefAccess<MyProgrammableBlock, Assembly?>(block, AssemblyField) = assembly;
+            var assembly = await CompileAsync(context, MyApiTarget.Ingame, $"pb_{block.EntityId}_{Random.Shared.NextInt64()}",
+                                              [MyVRage.Platform.Scripting.GetIngameScript(program, "Program", nameof(MyGridProgram))],
+                                              messages, $"PB: {block.DisplayName} ({block.EntityId})", true);
+
+            AssemblyProperty.SetValue(block, assembly);
 
             var errors = AccessTools.FieldRefAccess<MyProgrammableBlock, List<string>>(block, CompilerErrorsField);
-            
+
             errors.Clear();
             errors.AddRange(messages.Select(b => b.Text));
 
             if (instantiate)
-                MySandboxGame.Static.Invoke(
-                    () => CreateInstanceMethod.Invoke(block, new object?[] { assembly, errors, storage }),
+            {
+                MySandboxGame.Static.Invoke(() => CreateInstanceMethod.Invoke(block, [assembly, errors, storage]),
                     nameof(CompileAsync));
+            }
         }
         catch (Exception e)
         {
-            SetDetailedInfoMethod.Invoke(block, new object?[] { e.ToString() });
+            SetDetailedInfoMethod.Invoke(block, [e.ToString()]);
             Log.Error(e);
         }
     }
 
     private static async Task<Assembly?> CompileAsync(AssemblyLoadContext context, MyApiTarget target,
                                                       string assemblyName, IEnumerable<Script> scripts,
-                                                      List<Message> messages, string? friendlyName,
+                                                      List<Message> messages, string? friendlyName, bool trackMemoryUsage = false,
                                                       bool enableDebugInformation = false)
     {
         friendlyName ??= "<No Name>";
         var assemblyFileName = MakeAssemblyName(assemblyName);
-        Func<CSharpCompilation, SyntaxTree, SyntaxTree>? syntaxTreeInjector;
+        Func<CSharpCompilation, SyntaxTree, bool, SyntaxTree>? syntaxTreeInjector;
         DiagnosticAnalyzer? whitelistAnalyzer;
         switch (target)
         {
@@ -191,27 +221,27 @@ public static class ModScriptCompilerPatch
                 syntaxTreeInjector = null;
                 break;
             case MyApiTarget.Mod:
-            {
-                var modId = MyModWatchdog.AllocateModId(friendlyName);
-                whitelistAnalyzer = ModWhitelistAnalyzer;
-                syntaxTreeInjector = (c, st) => InjectMod(c, st, modId);
-                
-                //skip if name exists already
-                if (!LoadedModAssemblyNames.Add(assemblyFileName))
                 {
-                    Console.WriteLine($"{assemblyFileName} is already loaded, skipping");
-                    return null;
+                    var modId = MyModWatchdog.AllocateModId(friendlyName);
+                    whitelistAnalyzer = ModWhitelistAnalyzer;
+                    syntaxTreeInjector = (c, st, _) => InjectMod(c, st, modId);
+
+                    //skip if name exists already
+                    if (!LoadedModAssemblyNames.Add(assemblyFileName))
+                    {
+                        Console.WriteLine($"{assemblyFileName} is already loaded, skipping");
+                        return null;
+                    }
+                    break;
                 }
-                break;
-            }
             case MyApiTarget.Ingame:
-                syntaxTreeInjector = InjectInstructionCounter;
+                syntaxTreeInjector = InjectResourceMonitoring;
                 whitelistAnalyzer = ScriptWhitelistAnalyzer;
                 break;
             default:
                 throw new ArgumentOutOfRangeException(nameof(target), target, "Invalid compilation target");
         }
-        var compilation = CreateCompilation(assemblyFileName, scripts);
+        var compilation = CreateCompilation(MyScriptCompiler.Static, assemblyFileName, scripts, enableDebugInformation);
         var compilationWithoutInjection = compilation;
         var injectionFailed = false;
 
@@ -223,14 +253,14 @@ public static class ModScriptCompilerPatch
                 var syntaxTrees = compilation.SyntaxTrees;
                 if (syntaxTrees.Length == 1)
                 {
-                    newSyntaxTrees = new[] { syntaxTreeInjector(compilation, syntaxTrees[0]) };
+                    newSyntaxTrees = [syntaxTreeInjector(compilation, syntaxTrees[0], trackMemoryUsage)];
                 }
                 else
                 {
                     var compilation1 = compilation;
                     newSyntaxTrees = await Task
                         .WhenAll(syntaxTrees.Select(
-                            x => Task.Run(() => syntaxTreeInjector(compilation1, x)))).ConfigureAwait(false);
+                            x => Task.Run(() => syntaxTreeInjector(compilation1, x, trackMemoryUsage)))).ConfigureAwait(false);
                 }
             }
             catch (Exception e)
@@ -238,19 +268,18 @@ public static class ModScriptCompilerPatch
                 Log.Warn(e);
                 injectionFailed = true;
             }
-            
+
             if (newSyntaxTrees is not null)
                 compilation = compilation.RemoveAllSyntaxTrees().AddSyntaxTrees(newSyntaxTrees);
-
         }
         CompilationWithAnalyzers? analyticCompilation = null;
         if (whitelistAnalyzer != null)
         {
-            analyticCompilation = compilation.WithAnalyzers(ImmutableArray.Create(whitelistAnalyzer));
+            analyticCompilation = compilation.WithAnalyzers([whitelistAnalyzer]);
             compilation = (CSharpCompilation)analyticCompilation.Compilation;
         }
 
-        using var assemblyStream = new MemoryStream();
+        await using var assemblyStream = new MemoryStream();
 
         var emitResult = compilation.Emit(assemblyStream);
         var success = emitResult.Success;
@@ -266,44 +295,17 @@ public static class ModScriptCompilerPatch
         }
         else
         {
-            success = await EmitDiagnostics(analyticCompilation, emitResult, messages, success).ConfigureAwait(false);
+            success = await EmitDiagnostics(analyticCompilation!, emitResult, messages, success).ConfigureAwait(false);
             assemblyStream.Seek(0, SeekOrigin.Begin);
-            if (injectionFailed) return null;
+            if (injectionFailed)
+                return null;
             if (success)
                 return context.LoadFromStream(assemblyStream);
 
-            await EmitDiagnostics(analyticCompilation, compilationWithoutInjection.Emit(assemblyStream), messages,
+            await EmitDiagnostics(analyticCompilation!, compilationWithoutInjection.Emit(assemblyStream), messages,
                 false).ConfigureAwait(false);
         }
 
         return null;
     }
-
-    private static readonly CSharpCompilationOptions CompilationOptions =
-        new(OutputKind.DynamicallyLinkedLibrary, optimizationLevel: OptimizationLevel.Release, platform: Platform.X64);
-    private static readonly CSharpParseOptions ParseOptions = new(LanguageVersion.CSharp11, DocumentationMode.None);
-    private static readonly DiagnosticAnalyzer ModWhitelistAnalyzer;
-    private static readonly DiagnosticAnalyzer ScriptWhitelistAnalyzer;
-    private static readonly List<MetadataReference> MetadataReferences;
-    private static readonly Func<CSharpCompilation, SyntaxTree, int, SyntaxTree> InjectMod;
-    private static readonly Func<CSharpCompilation, SyntaxTree, SyntaxTree> InjectInstructionCounter;
-    private static readonly Func<CompilationWithAnalyzers, EmitResult, List<Message>, bool, Task<bool>> EmitDiagnostics;
-    private static readonly Func<string, string> MakeAssemblyName;
-    private static readonly MethodInfo CreateInstanceMethod;
-    private static readonly MethodInfo SetDetailedInfoMethod;
-    
-    
-    private static CSharpCompilation CreateCompilation(string assemblyFile, IEnumerable<Script>? scripts)
-    {
-        if (scripts == null)
-            return CSharpCompilation.Create(assemblyFile, null, MetadataReferences,
-                                            CompilationOptions);
-
-
-        var parseOptions = ParseOptions.WithPreprocessorSymbols(MyScriptCompiler.Static.ConditionalCompilationSymbols);
-        var enumerable = scripts.Select(s => CSharpSyntaxTree.ParseText(s.Code, parseOptions, s.Name, Encoding.UTF8));
-        
-        return CSharpCompilation.Create(assemblyFile, enumerable, MetadataReferences, CompilationOptions);
-    }
 }
-#endif
