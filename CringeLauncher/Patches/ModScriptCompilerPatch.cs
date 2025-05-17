@@ -21,6 +21,7 @@ using System.Runtime.CompilerServices;
 using System.Runtime.Loader;
 using System.Text;
 using VRage;
+using VRage.Collections;
 using VRage.ModAPI;
 using VRage.Scripting;
 using Message = VRage.Scripting.Message;
@@ -30,6 +31,8 @@ namespace CringeLauncher.Patches;
 [HarmonyPatch]
 public static class ModScriptCompilerPatch
 {
+    internal static readonly MyConcurrentHashSet<MyProgrammableBlock> CompilingPbs = [];
+
     private static readonly Logger Log = LogManager.GetCurrentClassLogger();
     private static ModAssemblyLoadContext _modContext;
     private static readonly HashSet<string> LoadedModAssemblyNames = [];
@@ -87,7 +90,7 @@ public static class ModScriptCompilerPatch
                                       ref MyProgrammableBlock.ScriptTerminationReason ___m_terminationReason,
                                       MyIngameScriptComponent ___m_scriptComponent)
     {
-        if (!MySession.Static.EnableIngameScripts || __instance.CubeGrid is { IsPreview: true } or { CreatePhysics: false })
+        if (!MySession.Static.EnableIngameScripts || __instance.CubeGrid is { IsPreview: true } or { CreatePhysics: false } || !CompilingPbs.Add(__instance))
             return false;
 
         ___m_terminationReason = MyProgrammableBlock.ScriptTerminationReason.None;
@@ -164,13 +167,13 @@ public static class ModScriptCompilerPatch
                                            string storage,
                                            bool instantiate, MyIngameScriptComponent scriptComponent)
     {
-        scriptComponent.NeedsUpdate = MyEntityUpdateEnum.NONE;
-        scriptComponent.UpdateFrequency = UpdateFrequency.None;
-
-        SetDetailedInfoMethod.Invoke(block, ["Compiling..."]);
-
         try
         {
+            scriptComponent.NeedsUpdate = MyEntityUpdateEnum.NONE;
+            scriptComponent.UpdateFrequency = UpdateFrequency.None;
+
+            SetDetailedInfoMethod.Invoke(block, ["Compiling..."]);
+
             if (LoadContexts.TryGetValue(block, out var context))
             {
                 AccessTools.FieldRefAccess<MyProgrammableBlock, IMyGridProgram?>(block, InstanceField) = null;
@@ -202,6 +205,10 @@ public static class ModScriptCompilerPatch
         {
             SetDetailedInfoMethod.Invoke(block, [e.ToString()]);
             Log.Error(e);
+        }
+        finally
+        {
+            CompilingPbs.Remove(block);
         }
     }
 

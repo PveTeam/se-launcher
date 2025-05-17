@@ -10,6 +10,7 @@ using CringePlugins.Render;
 using ImGuiNET;
 using SharpDX.Direct3D11;
 using static ImGuiNET.ImGui;
+using VRage;
 
 namespace CringeLauncher;
 
@@ -91,6 +92,10 @@ internal class ImGuiHandler : IDisposable
     [UnmanagedCallersOnly(CallConvs = [typeof(CallConvStdcall)])]
     private static unsafe int WndProcHook(HWND hWnd, int msg, nint wParam, nint lParam)
     {
+        //ignore input if mouse is hidden
+        if (MyVRage.Platform?.Input?.ShowCursor == false && Instance?.DrawMouse != true)
+            return CallWindowProc(_wndproc, hWnd, msg, wParam, lParam);
+
         var hookResult = ImGui_ImplWin32_WndProcHandler(hWnd, msg, wParam, lParam);
 
         if (hookResult != 0)
@@ -101,16 +106,12 @@ internal class ImGuiHandler : IDisposable
         if (!_init)
             return CallWindowProc(_wndproc, hWnd, msg, wParam, lParam);
 
-        //todo: block GetKeyStatesAsync or something related, find mouse input code in sharpDx
         var blockMessage = (msg is >= 256 and <= 265 && io.WantTextInput)
             || (msg is >= 512 and <= 526 && io.WantCaptureMouse);
 
-        /*if (!blockMessage)
-            Console.WriteLine($"{msg} - M:{io.WantCaptureMouse}, K:{io.WantTextInput}");*/
-
         return blockMessage ? hookResult : CallWindowProc(_wndproc, hWnd, msg, wParam, lParam);
     }
-        
+
     [DllImport("USER32.dll", ExactSpelling = true, EntryPoint = "CallWindowProcW")]
     [DefaultDllImportSearchPaths(DllImportSearchPath.System32)]
     [SupportedOSPlatform("windows5.0")]
