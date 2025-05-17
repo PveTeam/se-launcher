@@ -11,23 +11,27 @@ using ImGuiNET;
 using SharpDX.Direct3D11;
 using static ImGuiNET.ImGui;
 using VRage;
+using Sandbox.Graphics.GUI;
 
 namespace CringeLauncher;
 
 internal class ImGuiHandler : IDisposable
 {
     private DeviceContext? _deviceContext;
+    private int _blockKeysCounter;
     private static nint _wndproc;
 
     public bool BlockMouse { get; private set; }
-    public bool BlockKeys { get; private set; }
+    public bool BlockKeys => _blockKeysCounter > 0;
     public bool DrawMouse { get; private set; }
 
+    internal bool MouseToggle { get; set; }
+    internal bool MouseKey { get; set; }
 
     public static ImGuiHandler? Instance;
-    
+
     public static RenderTargetView? Rtv;
-    
+
     private readonly IRootRenderComponent _renderHandler = new RenderHandler();
     private static bool _init;
 
@@ -36,16 +40,16 @@ internal class ImGuiHandler : IDisposable
         _deviceContext = deviceContext;
 
         CreateContext();
-        
+
         var io = GetIO();
-        
+
         var path = Path.Join(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "CringeLauncher", "imgui.ini");
 
         io.NativePtr->IniFilename = AnsiStringMarshaller.ConvertToUnmanaged(path);
 
         io.ConfigWindowsMoveFromTitleBarOnly = true;
         io.ConfigFlags |= ImGuiConfigFlags.DockingEnable | ImGuiConfigFlags.ViewportsEnable;
-        
+
         ImGui_ImplWin32_Init(windowHandle);
         ImGui_ImplDX11_Init(device.NativePointer, deviceContext.NativePointer);
         _init = true;
@@ -58,7 +62,7 @@ internal class ImGuiHandler : IDisposable
         unsafe
         {
             delegate* unmanaged[Stdcall]<HWND, int, nint, nint, int> wndProcHook = &WndProcHook;
-            
+
             PInvoke.SetWindowLongPtr(windowHandle, WINDOW_LONG_PTR_INDEX.GWL_WNDPROC, (nint)wndProcHook);
         }
     }
@@ -67,33 +71,69 @@ internal class ImGuiHandler : IDisposable
     {
         if (Rtv is null)
             return;
-        
+
         ImGui_ImplDX11_NewFrame();
         ImGui_ImplWin32_NewFrame();
         NewFrame();
 
         var io = GetIO();
         BlockMouse = io.WantCaptureMouse;
-        BlockKeys = io.WantTextInput;
-        DrawMouse = io.MouseDrawCursor;
+
+        if (io.WantTextInput)
+            _blockKeysCounter = 10; //WantTextInput can be false briefly after pressing enter in a textbox
+        else
+            _blockKeysCounter--;
+
+            DrawMouse = io.MouseDrawCursor || MouseToggle || MouseKey;
+
+        var focusedScreen = MyScreenManager.GetScreenWithFocus(); //migrated logic from MyDX9Gui.Draw
+
+        if (DrawMouse || focusedScreen?.GetDrawMouseCursor() == true || (MyScreenManager.InputToNonFocusedScreens && MyScreenManager.GetScreensCount() > 1))
+        {
+            MyGuiSandbox.SetMouseCursorVisibility(true, false);
+        }
+        else if (focusedScreen != null)
+        {
+            MyGuiSandbox.SetMouseCursorVisibility(focusedScreen.GetDrawMouseCursor());
+        }
+
         _renderHandler.OnFrame();
-        
+
         Render();
-        
+
         _deviceContext!.ClearState();
         _deviceContext.OutputMerger.SetRenderTargets(Rtv);
-        
+
         ImGui_ImplDX11_RenderDrawData(GetDrawData());
-        
+
         UpdatePlatformWindows();
         RenderPlatformWindowsDefault();
     }
-    
+
     [UnmanagedCallersOnly(CallConvs = [typeof(CallConvStdcall)])]
     private static unsafe int WndProcHook(HWND hWnd, int msg, nint wParam, nint lParam)
     {
+        //special handling for the mouse free key
+
+        if (msg is 0x0100 or 0x104 && (int)wParam == 0xC0 && Instance != null)
+        {
+            Instance.MouseKey = true;
+
+            return 0;
+        }
+
+        if (msg is 0x0101 or 0x105 && (int)wParam == 0xC0 && Instance != null)
+        {
+            Instance.MouseKey = false;
+
+            return 0;
+        }
+
+        if (msg == 0x102 && (char)(int)wParam == '`')
+            return 0;
+
         //ignore input if mouse is hidden
-        if (MyVRage.Platform?.Input?.ShowCursor == false && Instance?.DrawMouse != true)
+        if (Instance?.BlockKeys != true && MyVRage.Platform?.Input?.ShowCursor == false && Instance?.DrawMouse != true)
             return CallWindowProc(_wndproc, hWnd, msg, wParam, lParam);
 
         var hookResult = ImGui_ImplWin32_WndProcHandler(hWnd, msg, wParam, lParam);
@@ -101,10 +141,10 @@ internal class ImGuiHandler : IDisposable
         if (hookResult != 0)
             return hookResult;
 
-        var io = GetIO();
-
         if (!_init)
             return CallWindowProc(_wndproc, hWnd, msg, wParam, lParam);
+
+        var io = GetIO();
 
         var blockMessage = (msg is >= 256 and <= 265 && io.WantTextInput)
             || (msg is >= 512 and <= 526 && io.WantCaptureMouse);

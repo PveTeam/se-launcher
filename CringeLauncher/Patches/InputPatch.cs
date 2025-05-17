@@ -1,5 +1,9 @@
 ﻿using HarmonyLib;
+using Sandbox.Engine.Platform.VideoMode;
+using Sandbox.Game.World;
 using Sandbox.Graphics;
+using Sandbox.Graphics.GUI;
+using System.Reflection.Emit;
 using VRage;
 using VRage.Input;
 using VRage.Input.Keyboard;
@@ -25,6 +29,45 @@ internal static class InputPatch
         }
     }
 
+    [HarmonyPrefix, HarmonyPatch(typeof(MyVRageInput), nameof(MyVRageInput.GetMouseXForGamePlayF))]
+    private static bool GetMouseXForGamePlayFPrefix(ref float __result)
+    {
+        if (ImGuiHandler.Instance?.DrawMouse == true)
+        {
+            __result = 0;
+            return false;
+        }
+        return true;
+    }
+
+    [HarmonyPrefix, HarmonyPatch(typeof(MyVRageInput), nameof(MyVRageInput.GetMouseYForGamePlayF))]
+    private static bool GetMouseYForGamePlayFPrefix(ref float __result)
+    {
+        if (ImGuiHandler.Instance?.DrawMouse == true)
+        {
+            __result = 0;
+            return false;
+        }
+        return true;
+    }
+
+    [HarmonyTranspiler, HarmonyPatch(typeof(MyDX9Gui), nameof(MyDX9Gui.Draw))]
+    private static List<CodeInstruction> Dx9GuiDrawTranspiler(IEnumerable<CodeInstruction> instructions)
+    {
+        var list = instructions.ToList();
+
+        var method = AccessTools.Method(typeof(MyVideoSettingsManager), nameof(MyVideoSettingsManager.IsHardwareCursorUsed));
+
+        var index = list.FindIndex(b => b.Calls(method));
+
+        list[index].opcode = OpCodes.Ret;
+        list[index].operand = null;
+
+        list.RemoveRange(index + 1, list.Count - index - 1);
+
+        return list;
+    }
+
     [HarmonyPrefix, HarmonyPatch(typeof(MyGuiLocalizedKeyboardState), nameof(MyGuiLocalizedKeyboardState.GetCurrentState))]
     private static bool GetKeyboardStatePrefix(ref MyKeyboardState __result)
     {
@@ -45,5 +88,17 @@ internal static class InputPatch
             return false;
         }
         return true;
+    }
+
+    [HarmonyPostfix, HarmonyPatch(typeof(MySession), nameof(MySession.HandleInput))]
+    private static void HandleInputPostfix()
+    {
+        if (ImGuiHandler.Instance == null || MyInput.Static == null)
+            return;
+
+        if (MyInput.Static.IsAnyAltKeyPressed() && MyInput.Static.IsNewKeyPressed(MyKeys.Delete))
+        {
+            ImGuiHandler.Instance.MouseToggle = !ImGuiHandler.Instance.MouseToggle;
+        }
     }
 }

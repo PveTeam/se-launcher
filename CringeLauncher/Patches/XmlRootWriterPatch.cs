@@ -6,7 +6,7 @@ using VRage;
 namespace CringeLauncher.Patches;
 
 [HarmonyPatch(typeof(CustomRootWriter), "Init")]
-public class XmlRootWriterPatch
+public static class XmlRootWriterPatch
 {
     private static IEnumerable<CodeInstruction> Transpiler(IEnumerable<CodeInstruction> instructions)
     {
