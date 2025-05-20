@@ -8,15 +8,18 @@ namespace CringePlugins.Render;
 public sealed class RenderHandler : IRootRenderComponent
 {
     private static readonly Logger Log = LogManager.GetCurrentClassLogger();
-    
+
     private static RenderHandler? _current;
+    private static IGuiHandler? _guiHandler;
     public static RenderHandler Current => _current ?? throw new InvalidOperationException("Render is not yet initialized");
-    
+    public static IGuiHandler GuiHandler => _guiHandler ?? throw new InvalidOperationException("Render is not yet initialized");
+
     private readonly ConcurrentBag<ComponentRegistration> _components = [];
 
-    internal RenderHandler()
+    internal RenderHandler(IGuiHandler guiHandler)
     {
         _current = this;
+        _guiHandler = guiHandler;
     }
 
     public void RegisterComponent<TComponent>(TComponent instance) where TComponent : IRenderComponent
@@ -29,7 +32,7 @@ public sealed class RenderHandler : IRootRenderComponent
 #if DEBUG
         ImGui.ShowDemoWindow();
 #endif
-        
+
         foreach (var (instanceType, renderComponent) in _components)
         {
             try

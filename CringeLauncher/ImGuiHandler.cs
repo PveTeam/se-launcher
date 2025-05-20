@@ -15,7 +15,7 @@ using Sandbox.Graphics.GUI;
 
 namespace CringeLauncher;
 
-internal class ImGuiHandler : IDisposable
+internal sealed class ImGuiHandler : IGuiHandler, IDisposable
 {
     private DeviceContext? _deviceContext;
     private int _blockKeysCounter;
@@ -25,15 +25,22 @@ internal class ImGuiHandler : IDisposable
     public bool BlockKeys => _blockKeysCounter > 0;
     public bool DrawMouse { get; private set; }
 
-    internal bool MouseToggle { get; set; }
-    internal bool MouseKey { get; set; }
+    public bool MouseToggle { get; set; }
+    public bool MouseKey { get; set; }
+
+    public bool Initialized => _init;
 
     public static ImGuiHandler? Instance;
 
     public static RenderTargetView? Rtv;
 
-    private readonly IRootRenderComponent _renderHandler = new RenderHandler();
+    private readonly IRootRenderComponent _renderHandler;
     private static bool _init;
+
+    public ImGuiHandler()
+    {
+        _renderHandler = new RenderHandler(this);
+    }
 
     public unsafe void Init(nint windowHandle, Device1 device, DeviceContext deviceContext)
     {
@@ -84,7 +91,7 @@ internal class ImGuiHandler : IDisposable
         else
             _blockKeysCounter--;
 
-            DrawMouse = io.MouseDrawCursor || MouseToggle || MouseKey;
+        DrawMouse = io.MouseDrawCursor || MouseToggle || MouseKey;
 
         var focusedScreen = MyScreenManager.GetScreenWithFocus(); //migrated logic from MyDX9Gui.Draw
 
