@@ -20,6 +20,9 @@ public class PackageResolver(NuGetFramework runtimeFramework, ImmutableArray<Pac
         {
             var client = await packageSources.GetClientAsync(reference.Id);
 
+            if (client == null)
+                continue; //todo: check cached files. test with Internet disconnected
+
             RegistrationRoot? registrationRoot;
 
             try
@@ -67,7 +70,7 @@ public class PackageResolver(NuGetFramework runtimeFramework, ImmutableArray<Pac
         {
             var client = await packageSources.GetClientAsync(package.Id);
             
-            if (!catalogEntry.DependencyGroups.HasValue)
+            if (client == null || !catalogEntry.DependencyGroups.HasValue)
                 continue;
 
             var nearestGroup = NuGetFrameworkUtility.GetNearest(catalogEntry.DependencyGroups.Value, runtimeFramework,
@@ -92,6 +95,9 @@ public class PackageResolver(NuGetFramework runtimeFramework, ImmutableArray<Pac
             foreach (var (id, versionRange) in dependencies)
             {
                 var client = await packageSources.GetClientAsync(id);
+
+                if (client == null)
+                    continue;
                 
                 RegistrationRoot? registrationRoot;
 

@@ -149,7 +149,8 @@ public class DependencyManifestBuilder(DirectoryInfo cacheDirectory, PackageSour
                 ];
             }
 
-            var client = await packageSources.GetClientAsync(entry.Id);
+            //don't call this method if client is null
+            var client = await packageSources.GetClientAsync(entry.Id)!;
 
             dir.Create();
 

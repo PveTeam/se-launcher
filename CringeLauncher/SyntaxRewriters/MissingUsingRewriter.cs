@@ -2,12 +2,13 @@
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using System.Diagnostics;
+using VRage.Scripting.Rewriters;
 
 namespace CringeLauncher.SyntaxRewriters;
-internal sealed class MissingUsingRewriter : CSharpSyntaxRewriter
+internal sealed class MissingUsingRewriter : ProtoTagRewriter //use existing rewriter to prevent another iteration
 {
     private readonly SemanticModel _semanticModel;
-    private MissingUsingRewriter(CSharpCompilation compilation, SyntaxTree tree) => _semanticModel = compilation.GetSemanticModel(tree);
+    private MissingUsingRewriter(CSharpCompilation compilation, SyntaxTree tree) : base(compilation, tree) => _semanticModel = compilation.GetSemanticModel(tree);
 
     public static SyntaxTree Rewrite(CSharpCompilation compilation, SyntaxTree tree)
     {

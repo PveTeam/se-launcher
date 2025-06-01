@@ -512,7 +512,7 @@ internal class PluginListComponent : IRenderComponent
 
         await foreach (var source in _sourceMapping)
         {
-            if (_selectedSources is not null && _selectedSources.All(b => b.Url != source.ToString()))
+            if (source == null || _selectedSources is not null && _selectedSources.All(b => b.Url != source.ToString()))
                 continue;
             
             try

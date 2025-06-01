@@ -195,8 +195,11 @@ public class Launcher : ICorePlugin
 
     private static void InitThreadPool()
     {
+#if DEBUG
         ParallelTasks.Parallel.Scheduler = new ThreadPoolScheduler();
-        // MySandboxGame.InitMultithreading();
+#else
+        MySandboxGame.InitMultithreading();
+#endif
     }
 
     private static void ConfigureSettings()

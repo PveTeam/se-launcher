@@ -43,7 +43,7 @@ public class PluginsLifetime(string gameFolder) : ILoadingStage
         var configPath = Path.Join(_dir.FullName, "packages.json");
         if (File.Exists(configPath))
             await using (var stream = File.OpenRead(configPath))
-                packagesConfig = JsonSerializer.Deserialize<PackagesConfig>(stream, NuGetClient.SerializerOptions)!;
+                packagesConfig = await JsonSerializer.DeserializeAsync<PackagesConfig>(stream, NuGetClient.SerializerOptions)!;
 
         if (packagesConfig == null)
         {
@@ -114,7 +114,15 @@ public class PluginsLifetime(string gameFolder) : ILoadingStage
         foreach (var package in packages)
         {
             if (builtInPackages.ContainsKey(package.Package.Id)) continue;
-            
+
+            var client = await sourceMapping.GetClientAsync(package.Package.Id);
+
+            if (client == null)
+            {
+                Log.Warn("Client not found for {Package}", package.Package.Id);
+                continue;
+            }
+
             var dir = Path.Join(package.Directory.FullName, "lib", package.ResolvedFramework.GetShortFolderName());
 
             var path = Path.Join(dir, $"{package.Package.Id}.deps.json");
@@ -123,6 +131,8 @@ public class PluginsLifetime(string gameFolder) : ILoadingStage
                 try
                 {
                     await using var stream = File.Create(path);
+
+                    //client should not be null for calls to this
                     await manifestBuilder.WriteDependencyManifestAsync(stream, package.Entry, _runtimeFramework);
                 }
                 catch (Exception ex)
@@ -132,8 +142,7 @@ public class PluginsLifetime(string gameFolder) : ILoadingStage
                     throw;
                 }
             }
-            
-            var client = await sourceMapping.GetClientAsync(package.Package.Id);
+
             var sourceName = packagesConfig.Sources.First(b => b.Url == client.ToString()).Name;
             LoadComponent(plugins, Path.Join(dir, $"{package.Package.Id}.dll"),
                 new(package.Package.Id, package.Package.Version, sourceName));

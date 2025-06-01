@@ -19,7 +19,8 @@
         <Publicize Include="Sandbox.Game:Sandbox.MySandboxGame.form" />
         <Publicize Include="Sandbox.Game:Sandbox.MySandboxGame.RenderThread_SizeChanged" />
         <Publicize Include="VRage.Render;VRage.Render11;VRage.Platform.Windows;VRage.Scripting;VRage.Input" IncludeCompilerGeneratedMembers="false" />
-    </ItemGroup>
+		<Publicize Include="VRage.Scripting:VRage.Scripting.Rewriters.ProtoTagRewriter" />
+	</ItemGroup>
 
     <ItemGroup>
         <PackageReference Include="Basic.Reference.Assemblies.Net90" Version="1.8.0" />

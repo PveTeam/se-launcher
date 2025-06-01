@@ -7,19 +7,19 @@ namespace NuGet;
 
 public class PackageSourceMapping(ImmutableArray<PackageSource> sources)
 {
-    private readonly ImmutableArray<(string pattern, Task<NuGetClient> client)> _clients = [
+    private readonly ImmutableArray<(string pattern, Task<NuGetClient?> client)> _clients = [
         ..sources.Select(b =>
             (b.Pattern,
                 NuGetClient.CreateFromIndexUrlAsync(b.Url)))
     ];
 
-    public Task<NuGetClient> GetClientAsync(string packageId) =>
+    public Task<NuGetClient?> GetClientAsync(string packageId) =>
         _clients.FirstOrDefault(b => Regex.IsMatch(packageId, b.pattern)).client;
 
-    public ConfiguredCancelableAsyncEnumerable<NuGetClient>.Enumerator GetAsyncEnumerator(CancellationToken cancellationToken = default)
+    public ConfiguredCancelableAsyncEnumerable<NuGetClient?>.Enumerator GetAsyncEnumerator(CancellationToken cancellationToken = default)
     {
         return _clients.ToAsyncEnumerable()
-            .SelectAwait(b => new ValueTask<NuGetClient>(b.client))
+            .SelectAwait(b => new ValueTask<NuGetClient?>(b.client))
             .WithCancellation(cancellationToken)
             .GetAsyncEnumerator();
     }

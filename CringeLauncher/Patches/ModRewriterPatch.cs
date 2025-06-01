@@ -1,18 +1,18 @@
 ﻿using HarmonyLib;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis;
-using VRage.Scripting;
 using CringeLauncher.SyntaxRewriters;
+using VRage.Scripting.Rewriters;
 
 namespace CringeLauncher.Patches;
 
-[HarmonyPatch(typeof(MyScriptCompiler), "InjectMod")]
+[HarmonyPatch(typeof(ProtoTagRewriter), "Rewrite")]
 internal static class ModRewriterPatch
 {
-    public static void Prefix(ref CSharpCompilation compilation, ref SyntaxTree syntaxTree)
+    public static bool Prefix(CSharpCompilation compilation, SyntaxTree syntaxTree, ref SyntaxTree __result)
     {
-        var fixedSyntaxTree = MissingUsingRewriter.Rewrite(compilation, syntaxTree);
-        compilation = compilation.ReplaceSyntaxTree(syntaxTree, fixedSyntaxTree);
-        syntaxTree = fixedSyntaxTree;
+        __result = MissingUsingRewriter.Rewrite(compilation, syntaxTree);
+
+        return false;
     }
 }
