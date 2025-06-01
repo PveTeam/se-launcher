@@ -112,7 +112,8 @@ public class Launcher : ICorePlugin
         InitThreadPool();
         MyVRage.Platform.System.OnThreadpoolInitialized();
         InitRender();
-        
+
+        Application.SetHighDpiMode(HighDpiMode.PerMonitorV2);
         _renderComponent = new();
         _renderComponent.Start(new(), () => InitEarlyWindow(splash), MyVideoSettingsManager.Initialize(), MyPerGameSettings.MaxFrameRate);
         _renderComponent.RenderThread.BeforeDraw += MyFpsManager.Update;
