@@ -26,6 +26,7 @@ internal class PluginListComponent : IRenderComponent
 
     private ImmutableDictionary<string, VersionRange> _packages;
     private ImmutableDictionary<NuGetClient, SearchResult>? _searchResults;
+    private bool _searchResultsDirty;
     private string _searchQuery = "";
     private Task? _searchTask;
 
@@ -37,7 +38,7 @@ internal class PluginListComponent : IRenderComponent
     private ImmutableHashSet<PackageSource>? _selectedSources;
     private readonly string _configPath;
     private readonly string _gameFolder;
-    private readonly ImmutableArray<PluginInstance> _plugins;
+    private ImmutableArray<PluginInstance> _plugins;
     private (SearchResultEntry entry, NuGetClient client)? _selected;
     private (PackageSource source, int index)? _selectedSource;
 
@@ -88,12 +89,20 @@ internal class PluginListComponent : IRenderComponent
         {
             if (BeginTabItem("Installed Plugins"))
             {
-                if (BeginTable("InstalledTable", 3, ImGuiTableFlags.ScrollY | ImGuiTableFlags.Resizable))
+                if (BeginTable("InstalledTable", 3, ImGuiTableFlags.ScrollY | ImGuiTableFlags.Resizable | ImGuiTableFlags.Sortable))
                 {
-                    TableSetupColumn("Id", ImGuiTableColumnFlags.None, .5f);
-                    TableSetupColumn("Version", ImGuiTableColumnFlags.None, .25f);
-                    TableSetupColumn("Source", ImGuiTableColumnFlags.None, .25f);
+                    TableSetupColumn("Id", ImGuiTableColumnFlags.None, .5f, (uint)Columns.Id);
+                    TableSetupColumn("Version", ImGuiTableColumnFlags.None, .25f, (uint)Columns.Version);
+                    TableSetupColumn("Source", ImGuiTableColumnFlags.None, .25f, (uint)Columns.Source);
                     TableHeadersRow();
+
+                    var sortSpecs = TableGetSortSpecs();
+
+                    if (sortSpecs.SpecsDirty)
+                    {
+                        _plugins = _plugins.Sort((x, y) => ComparePlugins(x, y, sortSpecs));
+                        sortSpecs.SpecsDirty = false;
+                    }
 
                     foreach (var plugin in _plugins)
                     {
@@ -386,12 +395,33 @@ internal class PluginListComponent : IRenderComponent
         BeginChild("List", new(400, 0), ImGuiChildFlags.Border | ImGuiChildFlags.ResizeX);
         {
             if (BeginTable("AvailableTable", 3,
-                    ImGuiTableFlags.ScrollY | ImGuiTableFlags.Resizable | ImGuiTableFlags.SizingStretchProp))
+                    ImGuiTableFlags.ScrollY | ImGuiTableFlags.Resizable | ImGuiTableFlags.SizingStretchProp | ImGuiTableFlags.Sortable))
             {
-                TableSetupColumn("Id", ImGuiTableColumnFlags.None, .5f);
-                TableSetupColumn("Version", ImGuiTableColumnFlags.None, .25f);
-                TableSetupColumn("Installed", ImGuiTableColumnFlags.None, .25f);
+                TableSetupColumn("Id", ImGuiTableColumnFlags.None, .5f, (uint)Columns.Id);
+                TableSetupColumn("Version", ImGuiTableColumnFlags.None, .25f, (uint)Columns.Version);
+                TableSetupColumn("Installed", ImGuiTableColumnFlags.None, .25f, (uint)Columns.Installed);
                 TableHeadersRow();
+
+                var sortSpecs = TableGetSortSpecs();
+
+                if (_searchResultsDirty || sortSpecs.SpecsDirty)
+                {
+                    var builder = searchResults.ToBuilder();
+                    foreach (var kvp in builder.ToArray())
+                    {
+                        builder[kvp.Key] = kvp.Value with
+                        {
+                            Entries = kvp.Value.Entries.Sort(
+                                (x, y) => SortSearchResults(x, y, _packages.ContainsKey(x.Id), _packages.ContainsKey(y.Id), sortSpecs))
+                        };
+                    }
+
+                    _searchResults = builder.ToImmutable();
+                    searchResults = _searchResults;
+
+                    _searchResultsDirty = false;
+                    sortSpecs.SpecsDirty = false;
+                }
 
                 foreach (var (client, result) in searchResults)
                 {
@@ -507,6 +537,7 @@ internal class PluginListComponent : IRenderComponent
     private async Task RefreshAsync()
     {
         _searchResults = null;
+        _searchResultsDirty = true;
 
         var builder = ImmutableDictionary.CreateBuilder<NuGetClient, SearchResult>();
 
@@ -540,5 +571,78 @@ internal class PluginListComponent : IRenderComponent
         {
             Packages = [.._packages.Select(b => new PackageReference(b.Key, b.Value))]
         } : _packagesConfig, NuGetClient.SerializerOptions);
+    }
+
+    private static unsafe int ComparePlugins(PluginInstance x, PluginInstance y, ImGuiTableSortSpecsPtr specs)
+    {
+        ImGuiTableColumnSortSpecs* ptr = specs.Specs;
+        for (var i = 0; i < specs.SpecsCount; i++)
+        {
+            var spec = ptr[i];
+            var delta = 0;
+
+            switch ((Columns)spec.ColumnUserID)
+            {
+                case Columns.Id:
+                    delta = string.Compare(x.Metadata.Name, y.Metadata.Name, StringComparison.OrdinalIgnoreCase);
+                    break;
+                case Columns.Version:
+                    delta = x.Metadata.Version.CompareTo(y.Metadata.Version);
+                    break;
+                case Columns.Source:
+                    delta = string.Compare(x.Metadata.Source, y.Metadata.Source, StringComparison.OrdinalIgnoreCase);
+                    break;
+            }
+
+            if (delta > 0)
+                return spec.SortDirection == ImGuiSortDirection.Descending ? -1 : 1;
+
+            if (delta < 0)
+                return spec.SortDirection == ImGuiSortDirection.Descending ? 1 : -1;
+        }
+
+        //default
+        return string.Compare(x.Metadata.Name, y.Metadata.Name, StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static unsafe int SortSearchResults(SearchResultEntry x, SearchResultEntry y, bool xInstall, bool yInstall,
+        ImGuiTableSortSpecsPtr specs)
+    {
+        ImGuiTableColumnSortSpecs* ptr = specs.Specs;
+        for (var i = 0; i < specs.SpecsCount; i++)
+        {
+            var spec = ptr[i];
+            var delta = 0;
+
+            switch ((Columns)spec.ColumnUserID)
+            {
+                case Columns.Id:
+                    delta = string.Compare(x.Title, y.Title, StringComparison.OrdinalIgnoreCase);
+                    break;
+                case Columns.Version:
+                    delta = x.Version.CompareTo(y.Version);
+                    break;
+                case Columns.Installed:
+                    delta = xInstall.CompareTo(yInstall);
+                    break;
+            }
+
+            if (delta > 0)
+                return spec.SortDirection == ImGuiSortDirection.Descending ? -1 : 1;
+
+            if (delta < 0)
+                return spec.SortDirection == ImGuiSortDirection.Descending ? 1 : -1;
+        }
+
+        //default
+        return string.Compare(x.Title, y.Title, StringComparison.OrdinalIgnoreCase);
+    }
+
+    private enum Columns : uint
+    {
+        Id,
+        Version,
+        Source,
+        Installed
     }
 }

@@ -40,7 +40,9 @@ public class PluginsLifetime(string gameFolder) : ILoadingStage
         progress.Report("Loading config");
 
         PackagesConfig? packagesConfig = null;
-        var configPath = Path.Join(_dir.FullName, "packages.json");
+
+        var configDir = _dir.CreateSubdirectory("config");
+        var configPath = Path.Join(configDir.FullName, "packages.json");
         if (File.Exists(configPath))
             await using (var stream = File.OpenRead(configPath))
                 packagesConfig = await JsonSerializer.DeserializeAsync<PackagesConfig>(stream, NuGetClient.SerializerOptions)!;

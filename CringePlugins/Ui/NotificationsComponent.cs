@@ -1,12 +1,11 @@
 ﻿using CringePlugins.Abstractions;
-using HarmonyLib;
 using ImGuiNET;
 using System.Numerics;
 using VRage;
 using VRageRender;
 
 namespace CringePlugins.Ui;
-internal class NotificationsComponent : IRenderComponent
+public sealed class NotificationsComponent : IRenderComponent
 {
     private static int _globalNotificationId;
     private const float TransitionTime = .5f;
