@@ -45,6 +45,7 @@ var context = new GameDirectoryAssemblyLoadContext(dir);
 // a list of assemblies which are not in the game binaries but reference them
 context.AddDependencyOverride("CringeLauncher");
 context.AddDependencyOverride("CringePlugins");
+context.AddDependencyOverride("EOSSDK");
 
 var launcher = context.LoadFromAssemblyName(new AssemblyName("CringeLauncher"));
 

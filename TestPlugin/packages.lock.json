@@ -6,12 +6,7 @@
         "type": "Direct",
         "requested": "[1.91.0.1, )",
         "resolved": "1.91.0.1",
-        "contentHash": "PpW1gQ9g97h6Hm/h/tkSBOmsBYgGwN8wKNmlJomcQFD/zRY1HPkJZz18XRSfRLHPmH2eeh4hhhZv1KHug7dF9g==",
-        "dependencies": {
-          "System.Buffers": "4.5.1",
-          "System.Numerics.Vectors": "4.5.0",
-          "System.Runtime.CompilerServices.Unsafe": "6.0.0"
-        }
+        "contentHash": "PpW1gQ9g97h6Hm/h/tkSBOmsBYgGwN8wKNmlJomcQFD/zRY1HPkJZz18XRSfRLHPmH2eeh4hhhZv1KHug7dF9g=="
       },
       "NLog": {
         "type": "Direct",
@@ -22,8 +17,8 @@
       "SpaceEngineersDedicated.ReferenceAssemblies": {
         "type": "Direct",
         "requested": "[1.*, )",
-        "resolved": "1.206.30",
-        "contentHash": "xk/EgMhbG7oT4fPzW1DcFT8tYkxJFPK3+j+t4vms9a/wz8cCmszbilA2Y+JWIpmauUDcfovX8eqAOKlgz3dpcg==",
+        "resolved": "1.206.32",
+        "contentHash": "uFhkUUxmumct/turcfMeM2f+jJHxuiB6jAE4JMGa/AOFKCsWIr+ZWTX9hW2muEoJpUNKrzCbGrxH8ssaJUZpig==",
         "dependencies": {
           "SharpDX": "4.2.0-keen-cringe",
           "protobuf-net": "1.0.0"
@@ -38,21 +33,6 @@
         "type": "Transitive",
         "resolved": "4.2.0-keen-cringe",
         "contentHash": "LaJN3h1Gi1FWVdef2I5WtOH9gwzKCBniH0CragarbkN2QheYY6Lqm+91PcOfp1w/4wdVb+k8Kjv3sO393Tphtw=="
-      },
-      "System.Buffers": {
-        "type": "Transitive",
-        "resolved": "4.5.1",
-        "contentHash": "Rw7ijyl1qqRS0YQD/WycNst8hUUMgrMH4FCn1nNm27M4VxchZ1js3fVjQaANHO5f3sN4isvP4a+Met9Y4YomAg=="
-      },
-      "System.Numerics.Vectors": {
-        "type": "Transitive",
-        "resolved": "4.5.0",
-        "contentHash": "QQTlPTl06J/iiDbJCiepZ4H//BVraReU4O4EoRw1U02H5TLUIT7xn3GnDp9AXPSlJUDyFs4uWjWafNX6WrAojQ=="
-      },
-      "System.Runtime.CompilerServices.Unsafe": {
-        "type": "Transitive",
-        "resolved": "6.0.0",
-        "contentHash": "/iUeP3tq1S0XdNNoMz5C9twLSrM/TH+qElHkXWaPvuNOt+99G75NrV0OS2EqHx5wMN7popYjpc8oTjC1y16DLg=="
       }
     },
     "net9.0-windows7.0/win-x64": {
@@ -60,12 +40,7 @@
         "type": "Direct",
         "requested": "[1.91.0.1, )",
         "resolved": "1.91.0.1",
-        "contentHash": "PpW1gQ9g97h6Hm/h/tkSBOmsBYgGwN8wKNmlJomcQFD/zRY1HPkJZz18XRSfRLHPmH2eeh4hhhZv1KHug7dF9g==",
-        "dependencies": {
-          "System.Buffers": "4.5.1",
-          "System.Numerics.Vectors": "4.5.0",
-          "System.Runtime.CompilerServices.Unsafe": "6.0.0"
-        }
+        "contentHash": "PpW1gQ9g97h6Hm/h/tkSBOmsBYgGwN8wKNmlJomcQFD/zRY1HPkJZz18XRSfRLHPmH2eeh4hhhZv1KHug7dF9g=="
       }
     }
   }

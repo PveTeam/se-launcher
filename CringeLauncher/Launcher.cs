@@ -1,5 +1,4 @@
-﻿using System.Diagnostics.CodeAnalysis;
-using System.Reflection;
+﻿using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Runtime.Loader;
@@ -10,12 +9,14 @@ using CringePlugins.Loader;
 using CringePlugins.Render;
 using CringePlugins.Services;
 using CringePlugins.Splash;
+using Epic.OnlineServices.VRage;
 using HarmonyLib;
 using Microsoft.Extensions.DependencyInjection;
 using NLog;
 using Polly;
 using Polly.Extensions.Http;
 using Sandbox;
+using Sandbox.Engine.Multiplayer;
 using Sandbox.Engine.Networking;
 using Sandbox.Engine.Platform.VideoMode;
 using Sandbox.Engine.Utils;
@@ -81,6 +82,7 @@ public class Launcher : ICorePlugin
         // hook up steam as we ship it inside base context as an override
         if (AssemblyLoadContext.GetLoadContext(typeof(Launcher).Assembly) is ICoreLoadContext coreLoadContext)
             NativeLibrary.SetDllImportResolver(typeof(Steamworks.Constants).Assembly, (name, _, _) => coreLoadContext.ResolveUnmanagedDll(name));
+        NativeLibrary.SetDllImportResolver(typeof(EosService).Assembly, (name, _, _) => NativeLibrary.Load(Path.Join(AppContext.BaseDirectory, name)));
         
         _harmony.PatchAll(typeof(Launcher).Assembly);
 
@@ -275,13 +277,12 @@ public class Launcher : ICorePlugin
     
         var aggregator = new MyServerDiscoveryAggregator();
         MySteamGameService.InitNetworking(false, steamGameService, MyPerGameSettings.GameName, aggregator);
-        // MyEOSService.InitNetworking(false, false, MyPerGameSettings.GameName, steamGameService, "xyza7891964JhtVD93nm3nZp8t1MbnhC",
-        //                             "AKGM16qoFtct0IIIA8RCqEIYG4d4gXPPDNpzGuvlhLA", "24b1cd652a18461fa9b3d533ac8d6b5b",
-        //                             "1958fe26c66d4151a327ec162e4d49c8", "07c169b3b641401496d352cad1c905d6",
-        //                             "https://retail.epicgames.com/", MyEOSService.CreatePlatform(),
-        //                             MyPlatformGameSettings.VERBOSE_NETWORK_LOGGING, ArraySegment<string>.Empty, aggregator,
-        //                             MyMultiplayer.Channels);
-        // EOS networking is disabled due to memory leak, waiting for update with EOSSDK >= 1.15.4
+        EosService.InitNetworking(false, false, MyPerGameSettings.GameName, steamGameService, "xyza7891964JhtVD93nm3nZp8t1MbnhC",
+                                    "AKGM16qoFtct0IIIA8RCqEIYG4d4gXPPDNpzGuvlhLA", "24b1cd652a18461fa9b3d533ac8d6b5b",
+                                    "1958fe26c66d4151a327ec162e4d49c8", "07c169b3b641401496d352cad1c905d6",
+                                    "https://retail.epicgames.com/", EosService.CreatePlatform(),
+                                    MyPlatformGameSettings.VERBOSE_NETWORK_LOGGING, ArraySegment<string>.Empty, aggregator,
+                                    MyMultiplayer.Channels);
         
         MyServiceManager.Instance.AddService<IMyServerDiscovery>(aggregator);
     
