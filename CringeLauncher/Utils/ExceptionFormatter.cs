@@ -1,6 +1,5 @@
 ﻿using System.Diagnostics;
 using System.Reflection;
-using System.Runtime.ExceptionServices;
 using System.Runtime.Loader;
 using System.Text;
 using HarmonyLib;

@@ -2,8 +2,6 @@
 using HarmonyLib;
 using SharpDX.DXGI;
 using VRage.Platform.Windows.Forms;
-using SharpDX.Windows;
-using System.Reflection;
 
 namespace CringeLauncher.Patches;
 

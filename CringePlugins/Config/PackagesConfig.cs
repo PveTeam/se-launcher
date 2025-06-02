@@ -1,7 +1,6 @@
 ﻿using System.Collections.Immutable;
 using CringePlugins.Resolver;
 using NuGet;
-using NuGet.Models;
 
 namespace CringePlugins.Config;
 

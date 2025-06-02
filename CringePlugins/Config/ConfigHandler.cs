@@ -2,7 +2,6 @@
 using System.Text.Json.Nodes;
 using CringePlugins.Config.Spec;
 using Json.Schema;
-using Json.Schema.Generation;
 using NLog;
 using NuGet;
 

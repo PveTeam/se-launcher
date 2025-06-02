@@ -1,6 +1,5 @@
 ﻿using System.Reflection;
 using Json.Schema;
-using Json.Schema.Generation;
 
 namespace CringePlugins.Config.Spec;
 
