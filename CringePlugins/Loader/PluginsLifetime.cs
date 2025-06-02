@@ -1,6 +1,5 @@
 ﻿using System.Collections.Immutable;
 using System.Runtime.InteropServices;
-using System.Text.Json;
 using CringePlugins.Config;
 using CringePlugins.Render;
 using CringePlugins.Resolver;
@@ -11,13 +10,12 @@ using NuGet;
 using NuGet.Deps;
 using NuGet.Frameworks;
 using NuGet.Models;
-using NuGet.Versioning;
 using SharedCringe.Loader;
 using VRage.FileSystem;
 
 namespace CringePlugins.Loader;
 
-public class PluginsLifetime(ConfigHandler configHandler, HttpClient client) : ILoadingStage
+internal class PluginsLifetime(ConfigHandler configHandler, HttpClient client) : IPluginsLifetime
 {
     public static ImmutableArray<DerivedAssemblyLoadContext> Contexts { get; private set; } = [];
 
@@ -26,7 +24,6 @@ public class PluginsLifetime(ConfigHandler configHandler, HttpClient client) : I
     public string Name => "Loading Plugins";
     
     private ImmutableArray<PluginInstance> _plugins = [];
-    // TODO move this as api for other plugins
     private readonly DirectoryInfo _dir = Directory.CreateDirectory(Path.Join(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "CringeLauncher"));
     private readonly NuGetRuntimeFramework _runtimeFramework = new(NuGetFramework.ParseFolder("net9.0-windows10.0.19041.0"), RuntimeInformation.RuntimeIdentifier);
     

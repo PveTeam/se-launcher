@@ -46,7 +46,7 @@ public class Launcher : ICorePlugin
     private const uint AppId = 244850U;
     private SpaceEngineersGame? _game;
     private readonly Harmony _harmony = new("CringeBootstrap");
-    private PluginsLifetime? _lifetime;
+    private IPluginsLifetime? _lifetime;
 
     private MyGameRenderComponent? _renderComponent;
 
@@ -93,7 +93,7 @@ public class Launcher : ICorePlugin
 
         var serviceProvider = SetupServices();
 
-        splash.DefineStage(_lifetime = serviceProvider.GetRequiredService<PluginsLifetime>());
+        splash.DefineStage(_lifetime = serviceProvider.GetRequiredService<IPluginsLifetime>());
 
         InitTexts();
         SpaceEngineersGame.SetupBasicGameInfo();
@@ -166,6 +166,7 @@ public class Launcher : ICorePlugin
             .AddPolicyHandler(HttpPolicyExtensions.HandleTransientHttpError().WaitAndRetryAsync(5, _ => TimeSpan.FromSeconds(1)));
 
         services.AddSingleton(_ => RenderHandler.Current)
+            .AddSingleton<IPluginsLifetime>(s => s.GetRequiredService<PluginsLifetime>())
             .AddSingleton(_ => new ConfigHandler(Directory.CreateDirectory(Path.Join(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "CringeLauncher", "config"))));
 
         return GameServicesExtension.GameServices = services.BuildServiceProvider();
