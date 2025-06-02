@@ -66,6 +66,11 @@ jobs:
 
       - run: dotnet tool install -g vpk
         
+        # dotnet version for vpk to use as it doesnt want to use preview 10.x
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 9.0.x
+      
       - run: ~/.dotnet/tools/vpk download s3 --bucket $VPK_BUCKET --endpoint $VPK_ENDPOINT
         name: Download previous release
         env:
