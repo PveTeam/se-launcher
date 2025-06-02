@@ -13,10 +13,11 @@ using NuGet.Frameworks;
 using NuGet.Models;
 using NuGet.Versioning;
 using SharedCringe.Loader;
+using VRage.FileSystem;
 
 namespace CringePlugins.Loader;
 
-public class PluginsLifetime(string gameFolder) : ILoadingStage
+public class PluginsLifetime(ConfigHandler configHandler, HttpClient client) : ILoadingStage
 {
     public static ImmutableArray<DerivedAssemblyLoadContext> Contexts { get; private set; } = [];
 
@@ -28,53 +29,43 @@ public class PluginsLifetime(string gameFolder) : ILoadingStage
     // TODO move this as api for other plugins
     private readonly DirectoryInfo _dir = Directory.CreateDirectory(Path.Join(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "CringeLauncher"));
     private readonly NuGetRuntimeFramework _runtimeFramework = new(NuGetFramework.ParseFolder("net9.0-windows10.0.19041.0"), RuntimeInformation.RuntimeIdentifier);
+    
+    private ConfigReference<PackagesConfig>? _configReference;
 
     public async ValueTask Load(ISplashProgress progress)
     {
         progress.DefineStepsCount(6);
-        
+
         progress.Report("Discovering local plugins");
-        
+
         DiscoverLocalPlugins(_dir.CreateSubdirectory("plugins"));
-        
+
         progress.Report("Loading config");
 
-        PackagesConfig? packagesConfig = null;
+        _configReference = configHandler.RegisterConfig("packages", PackagesConfig.Default);
+        var packagesConfig = _configReference.Value;
 
-        var configDir = _dir.CreateSubdirectory("config");
-        var configPath = Path.Join(configDir.FullName, "packages.json");
-        if (File.Exists(configPath))
-            await using (var stream = File.OpenRead(configPath))
-                packagesConfig = await JsonSerializer.DeserializeAsync<PackagesConfig>(stream, NuGetClient.SerializerOptions)!;
-
-        if (packagesConfig == null)
-        {
-            packagesConfig = PackagesConfig.Default;
-            await using var stream = File.Create(configPath);
-            await JsonSerializer.SerializeAsync(stream, packagesConfig, NuGetClient.SerializerOptions);
-        }
-        
         progress.Report("Resolving packages");
 
-        var sourceMapping = new PackageSourceMapping(packagesConfig.Sources);
+        var sourceMapping = new PackageSourceMapping(packagesConfig.Sources, client);
         // TODO take into account the target framework runtime identifier
         var resolver = new PackageResolver(_runtimeFramework.Framework, packagesConfig.Packages, sourceMapping);
 
         var packages = await resolver.ResolveAsync();
-        
+
         progress.Report("Downloading packages");
 
         var builtInPackages = await BuiltInPackages.GetPackagesAsync(_runtimeFramework);
         var cachedPackages = await resolver.DownloadPackagesAsync(_dir.CreateSubdirectory("cache"), packages, builtInPackages.Keys.ToHashSet(), progress);
-        
+
         progress.Report("Loading plugins");
 
         //we can move this, but it should be before plugin init
         RenderHandler.Current.RegisterComponent(new NotificationsComponent());
 
         await LoadPlugins(cachedPackages, sourceMapping, packagesConfig, builtInPackages);
-        
-        RenderHandler.Current.RegisterComponent(new PluginListComponent(packagesConfig, sourceMapping, configPath, gameFolder, _plugins));
+
+        RenderHandler.Current.RegisterComponent(new PluginListComponent(_configReference, sourceMapping, MyFileSystem.ExePath, _plugins));
     }
 
     public void RegisterLifetime()

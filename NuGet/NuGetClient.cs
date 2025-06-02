@@ -97,43 +97,20 @@ public class NuGetClient
         return _client.GetFromJsonAsync<SearchResult>(builder.Uri, SerializerOptions)!;
     }
 
-    public static async Task<NuGetClient?> CreateFromIndexUrlAsync(string indexUrl)
+    public static async Task<NuGetClient?> CreateFromIndexUrlAsync(string indexUrl, HttpClient client)
     {
-        var client = new HttpClient(new HttpClientHandler
-        {
-            AutomaticDecompression = DecompressionMethods.All,
-        });
+        var index = await client.GetFromJsonAsync<NuGetIndex>(indexUrl, SerializerOptions);
 
-        NuGetClient? ngClient = null;
+        var (packageBaseAddress, _, _) = index!.Resources.First(b => b.Type.Id == "PackageBaseAddress");
+        var (registration, _, _) = index.Resources.First(b => b.Type.Id == "RegistrationsBaseUrl");
+        var (search, _, _) = index.Resources.First(b => b.Type.Id == "SearchQueryService");
 
-        const int MaxRetries = 10;
+        if (!packageBaseAddress.EndsWith('/'))
+            packageBaseAddress += '/';
+        if (!registration.EndsWith('/'))
+            registration += '/';
 
-        for (var i  = 0; i < MaxRetries; i++)
-        {
-            try
-            {
-                var index = await client.GetFromJsonAsync<NuGetIndex>(indexUrl, SerializerOptions);
-
-                var (packageBaseAddress, _, _) = index!.Resources.First(b => b.Type.Id == "PackageBaseAddress");
-                var (registration, _, _) = index.Resources.First(b => b.Type.Id == "RegistrationsBaseUrl");
-                var (search, _, _) = index.Resources.First(b => b.Type.Id == "SearchQueryService");
-
-                if (!packageBaseAddress.EndsWith('/'))
-                    packageBaseAddress += '/';
-                if (!registration.EndsWith('/'))
-                    registration += '/';
-
-                ngClient = new NuGetClient(new Uri(indexUrl), client, new Uri(packageBaseAddress), new Uri(registration), new Uri(search));
-
-                break;
-            }
-            catch (HttpRequestException ex)
-            {
-                Console.WriteLine(ex.Message);
-            }
-        }
-
-        return ngClient;
+        return new NuGetClient(new Uri(indexUrl), client, new Uri(packageBaseAddress), new Uri(registration), new Uri(search));
     }
 
     public override string ToString() => _index.ToString();

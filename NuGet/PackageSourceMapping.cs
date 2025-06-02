@@ -5,12 +5,12 @@ using System.Text.RegularExpressions;
 
 namespace NuGet;
 
-public class PackageSourceMapping(ImmutableArray<PackageSource> sources)
+public class PackageSourceMapping(ImmutableArray<PackageSource> sources, HttpClient client)
 {
     private readonly ImmutableArray<(string pattern, Task<NuGetClient?> client)> _clients = [
         ..sources.Select(b =>
             (b.Pattern,
-                NuGetClient.CreateFromIndexUrlAsync(b.Url)))
+                NuGetClient.CreateFromIndexUrlAsync(b.Url, client)))
     ];
 
     public Task<NuGetClient?> GetClientAsync(string packageId) =>

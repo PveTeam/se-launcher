@@ -32,25 +32,23 @@ internal class PluginListComponent : IRenderComponent
 
     private bool _changed;
     private bool _open = true;
-    private PackagesConfig _packagesConfig;
+    private readonly ConfigReference<PackagesConfig> _packagesConfig;
     private readonly PackageSourceMapping _sourceMapping;
     private readonly JsonSerializerOptions _serializerOptions = new(JsonSerializerDefaults.Web);
     private ImmutableHashSet<PackageSource>? _selectedSources;
-    private readonly string _configPath;
     private readonly string _gameFolder;
     private ImmutableArray<PluginInstance> _plugins;
     private (SearchResultEntry entry, NuGetClient client)? _selected;
     private (PackageSource source, int index)? _selectedSource;
 
-    public PluginListComponent(PackagesConfig packagesConfig, PackageSourceMapping sourceMapping, string configPath, string gameFolder,
+    public PluginListComponent(ConfigReference<PackagesConfig> packagesConfig, PackageSourceMapping sourceMapping, string gameFolder,
         ImmutableArray<PluginInstance> plugins)
     {
         _packagesConfig = packagesConfig;
         _sourceMapping = sourceMapping;
-        _configPath = configPath;
         _gameFolder = gameFolder;
         _plugins = plugins;
-        _packages = packagesConfig.Packages.ToImmutableDictionary(b => b.Id, b => b.Range,
+        _packages = packagesConfig.Value.Packages.ToImmutableDictionary(b => b.Id, b => b.Range,
             StringComparer.OrdinalIgnoreCase);
 
         MyScreenManager.ScreenAdded += ScreenChanged;
@@ -153,9 +151,9 @@ internal class PluginListComponent : IRenderComponent
                         TableSetupColumn("Url", ImGuiTableColumnFlags.None, .8f);
                         TableHeadersRow();
 
-                        for (var index = 0; index < _packagesConfig.Sources.Length; index++)
+                        for (var index = 0; index < _packagesConfig.Value.Sources.Length; index++)
                         {
-                            var source = _packagesConfig.Sources[index];
+                            var source = _packagesConfig.Value.Sources[index];
                             TableNextRow();
                             
                             TableNextColumn();
@@ -211,15 +209,15 @@ internal class PluginListComponent : IRenderComponent
 
                         if (Button("Save"))
                         {
-                            var array = _packagesConfig.Sources.RemoveAt(index).Insert(index, selectedSource);
+                            var array = _packagesConfig.Value.Sources.RemoveAt(index).Insert(index, selectedSource);
 
-                            _packagesConfig = _packagesConfig with
+                            _packagesConfig.Value = _packagesConfig.Value with
                             {
                                 Sources = array
                             };
 
                             _selectedSource = null;
-                            
+
                             Save();
                         }
                         
@@ -227,15 +225,15 @@ internal class PluginListComponent : IRenderComponent
 
                         if (Button("Delete"))
                         {
-                            var array = _packagesConfig.Sources.RemoveAt(index);
+                            var array = _packagesConfig.Value.Sources.RemoveAt(index);
 
-                            _packagesConfig = _packagesConfig with
+                            _packagesConfig.Value = _packagesConfig.Value with
                             {
                                 Sources = array
                             };
 
                             _selectedSource = null;
-                            
+
                             Save();
                         }
                     }
@@ -246,10 +244,10 @@ internal class PluginListComponent : IRenderComponent
                 if (Button("Add New"))
                 {
                     var source = new PackageSource("source name", "", "https://url.to/index.json");
-                    
-                    var array = _packagesConfig.Sources.Add(source);
 
-                    _packagesConfig = _packagesConfig with
+                    var array = _packagesConfig.Value.Sources.Add(source);
+
+                    _packagesConfig.Value = _packagesConfig.Value with
                     {
                         Sources = array
                     };
@@ -274,11 +272,11 @@ internal class PluginListComponent : IRenderComponent
 
                         if (configSerializer.Deserialize(fs) is PluginLoaderConfig oldConfig)
                         {
-                            _packagesConfig = oldConfig.MigratePlugins(_packagesConfig);
+                            _packagesConfig.Value = oldConfig.MigratePlugins(_packagesConfig);
 
                             Save(false);
 
-                            _packages = _packagesConfig.Packages.ToImmutableDictionary(b => b.Id, b => b.Range, StringComparer.OrdinalIgnoreCase);
+                            _packages = _packagesConfig.Value.Packages.ToImmutableDictionary(b => b.Id, b => b.Range, StringComparer.OrdinalIgnoreCase);
                         }
                     }
 
@@ -346,15 +344,15 @@ internal class PluginListComponent : IRenderComponent
                 _selectedSources.Count > 2 ? $"{_selectedSources.First().Name} +{_selectedSources.Count - 1}" :
                 string.Join(",", _selectedSources.Select(b => b.Name)), ImGuiComboFlags.WidthFitPreview))
         {
-            foreach (var source in _packagesConfig.Sources)
+            foreach (var source in _packagesConfig.Value.Sources)
             {
                 var selected = _selectedSources?.Contains(source) ?? true;
                 if (Selectable(source.Name, ref selected))
                 {
                     _selectedSources = selected
-                        ? (_selectedSources?.Count ?? 0) + 1 == _packagesConfig.Sources.Length ? null : _selectedSources?.Add(source)
-                        : (_selectedSources ?? _packagesConfig.Sources.ToImmutableHashSet()).Remove(source);
-                    
+                        ? (_selectedSources?.Count ?? 0) + 1 == _packagesConfig.Value.Sources.Length ? null : _selectedSources?.Add(source)
+                        : (_selectedSources ?? _packagesConfig.Value.Sources.ToImmutableHashSet()).Remove(source);
+
                     _searchTask = RefreshAsync();
                     return;
                 }
@@ -488,7 +486,7 @@ internal class PluginListComponent : IRenderComponent
                     Text("Pulled from");
                     SameLine();
                     var url = _selected.Value.client.ToString();
-                    TextLinkOpenURL(_packagesConfig.Sources.FirstOrDefault(b => b.Url == url)?.Name ?? url, url);
+                    TextLinkOpenURL(_packagesConfig.Value.Sources.FirstOrDefault(b => b.Url == url)?.Name ?? url, url);
 
                     if (selected.Authors is not null)
                     {
@@ -563,14 +561,12 @@ internal class PluginListComponent : IRenderComponent
 
     private void Save(bool keepPackages = true)
     {
-        _changed = true;
-
-        using var stream = File.Create(_configPath);
-
-        JsonSerializer.Serialize(stream, keepPackages ? _packagesConfig with
+        _packagesConfig.Value = keepPackages ? _packagesConfig.Value with
         {
-            Packages = [.._packages.Select(b => new PackageReference(b.Key, b.Value))]
-        } : _packagesConfig, NuGetClient.SerializerOptions);
+            Packages = [.. _packages.Select(b => new PackageReference(b.Key, b.Value))]
+        } : _packagesConfig;
+
+        _changed = true;
     }
 
     private static unsafe int ComparePlugins(PluginInstance x, PluginInstance y, ImGuiTableSortSpecsPtr specs)

@@ -1,14 +1,20 @@
-﻿using System.Reflection;
+﻿using System.Diagnostics.CodeAnalysis;
+using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Runtime.Loader;
 using CringeBootstrap.Abstractions;
 using CringeLauncher.Utils;
+using CringePlugins.Config;
 using CringePlugins.Loader;
 using CringePlugins.Render;
+using CringePlugins.Services;
 using CringePlugins.Splash;
 using HarmonyLib;
+using Microsoft.Extensions.DependencyInjection;
 using NLog;
+using Polly;
+using Polly.Extensions.Http;
 using Sandbox;
 using Sandbox.Engine.Networking;
 using Sandbox.Engine.Platform.VideoMode;
@@ -78,10 +84,15 @@ public class Launcher : ICorePlugin
         
         _harmony.PatchAll(typeof(Launcher).Assembly);
 
+        MyFileSystem.ExePath = Path.GetDirectoryName(args.ElementAtOrDefault(0) ?? Assembly.GetExecutingAssembly().Location)!;
+        MyFileSystem.RootPath = new DirectoryInfo(MyFileSystem.ExePath).Parent!.FullName;
+
         var splash = new Splash();
-        
-        splash.DefineStage(_lifetime = new PluginsLifetime(Path.GetDirectoryName(args[0])!));
-        
+
+        var serviceProvider = SetupServices();
+
+        splash.DefineStage(_lifetime = serviceProvider.GetRequiredService<PluginsLifetime>());
+
         InitTexts();
         SpaceEngineersGame.SetupBasicGameInfo();
         MyFinalBuildConstants.APP_VERSION = MyPerGameSettings.BasicGameInfo.GameVersion.GetValueOrDefault();
@@ -99,8 +110,6 @@ public class Launcher : ICorePlugin
             MyPlatformGameSettings.SIMPLIFIED_SIMULATION_OVERRIDE = false;
         }
 
-        MyFileSystem.ExePath = Path.GetDirectoryName(args.ElementAtOrDefault(0) ?? Assembly.GetExecutingAssembly().Location)!;
-        MyFileSystem.RootPath = new DirectoryInfo(MyFileSystem.ExePath).Parent!.FullName;
         MyInitializer.InvokeBeforeRun(AppId, MyPerGameSettings.BasicGameInfo.ApplicationName,
                                       MyVRage.Platform.System.GetRootPath(), MyVRage.Platform.System.GetAppDataPath(),true, 3, () =>
                                       {
@@ -142,11 +151,29 @@ public class Launcher : ICorePlugin
 
     public void Run() => _game?.Run();
 
+
+    private static IServiceProvider SetupServices()
+    {
+        var services = new ServiceCollection();
+
+        services.AddHttpClient<PluginsLifetime>()
+            .ConfigurePrimaryHttpMessageHandler(() => new HttpClientHandler
+            {
+                AutomaticDecompression = System.Net.DecompressionMethods.All
+            })
+            .AddPolicyHandler(HttpPolicyExtensions.HandleTransientHttpError().WaitAndRetryAsync(5, _ => TimeSpan.FromSeconds(1)));
+
+        services.AddSingleton(_ => RenderHandler.Current)
+            .AddSingleton(_ => new ConfigHandler(Directory.CreateDirectory(Path.Join(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "CringeLauncher", "config"))));
+
+        return GameServicesExtension.GameServices = services.BuildServiceProvider();
+    }
+
     private void WaitForDevice()
     {
         if (_renderComponent!.RenderThread.CurrentSettings.DRSSettingsPresets is not null)
             return;
-        
+
         var resetEvent = new ManualResetEventSlim(false);
 
         void RenderThreadOnSizeChanged(int width, int height, MyViewport viewport)
