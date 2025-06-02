@@ -61,14 +61,15 @@ public class Launcher : ICorePlugin
             });
 
         LogManager.ReconfigExistingLoggers();
-        
-        LogManager.GetLogger("CringeBootstrap").Info("Bootstrapping");
+
+        var logger = LogManager.GetLogger("CringeBootstrap");
+        logger.Info("Bootstrapping");
         
         //environment variable for viktor's plugins
         Environment.SetEnvironmentVariable("SE_PLUGIN_DISABLE_METHOD_VERIFICATION", "True");
         
 #if !DEBUG
-        CheckUpdates(args).GetAwaiter().GetResult();
+        CheckUpdates(args, logger).GetAwaiter().GetResult();
 #endif
         
         // hook up steam as we ship it inside base context as an override
@@ -176,17 +177,36 @@ public class Launcher : ICorePlugin
         return MyVRage.Platform.Windows.Window;
     }
 
-    private async Task CheckUpdates(string[] args)
+    private async Task CheckUpdates(string[] args, Logger logger)
     {
+        logger.Info("Checking for updates...");
         var mgr = new UpdateManager("https://dl.zznty.ru/CringeLauncher/");
         
         // check for new version
         var newVersion = await mgr.CheckForUpdatesAsync();
         if (newVersion == null)
+        {
+            logger.Info("Up to date");
             return; // no update available
+        }
+        
+        // print update info
+        Console.ForegroundColor = ConsoleColor.Cyan;
+        Console.WriteLine($"New version available: {mgr.CurrentVersion} -> {newVersion.TargetFullRelease.Version}");
+        Console.ForegroundColor = ConsoleColor.Gray;
+        Console.WriteLine();
+        if (!string.IsNullOrEmpty(newVersion.TargetFullRelease.NotesMarkdown))
+        {
+            Console.WriteLine(newVersion.TargetFullRelease.NotesMarkdown);
+            Console.WriteLine();
+        }
+        Console.ResetColor();
+        logger.Info("Downloading new version...");
 
         // download new version
         await mgr.DownloadUpdatesAsync(newVersion);
+        
+        logger.Info("Done! Restarting...");
 
         // install new version and restart app
         mgr.ApplyUpdatesAndRestart(newVersion, args);
