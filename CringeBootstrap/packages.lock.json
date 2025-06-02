@@ -33,10 +33,10 @@
       },
       "EOSSDK": {
         "type": "Transitive",
-        "resolved": "1.0.1",
-        "contentHash": "KIV+oWbAjUgIm22WmMQEQEFanWQ992F9VASVkP9JDpLHb41rN9Asco3eJM70X1V8j3PZO237KrZur0yKYkO/rg==",
+        "resolved": "1.0.2",
+        "contentHash": "zk6YQMJe1gtnHcuSK8ETopJiJ+pnfdxJZ+eEIPov/T+nUhaoOgioLFvIkARt1g5yfOnQBjRrzT4iMJcQmNQF/Q==",
         "dependencies": {
-          "CringePlugins": "0.1.73"
+          "CringePlugins": "0.1.74"
         }
       },
       "Humanizer.Core": {
@@ -414,7 +414,7 @@
           "Basic.Reference.Assemblies.Net90": "[1.8.0, )",
           "CringeBootstrap.Abstractions": "[1.0.0, )",
           "CringePlugins": "[1.0.0, )",
-          "EOSSDK": "[1.0.1, )",
+          "EOSSDK": "[1.0.2, )",
           "Microsoft.CodeAnalysis.CSharp": "[4.13.0, )",
           "Microsoft.Extensions.DependencyInjection": "[9.0.5, )",
           "Microsoft.Extensions.Http.Polly": "[9.0.5, )",
@@ -462,10 +462,10 @@
     "net9.0-windows10.0.19041/win-x64": {
       "EOSSDK": {
         "type": "Transitive",
-        "resolved": "1.0.1",
-        "contentHash": "KIV+oWbAjUgIm22WmMQEQEFanWQ992F9VASVkP9JDpLHb41rN9Asco3eJM70X1V8j3PZO237KrZur0yKYkO/rg==",
+        "resolved": "1.0.2",
+        "contentHash": "zk6YQMJe1gtnHcuSK8ETopJiJ+pnfdxJZ+eEIPov/T+nUhaoOgioLFvIkARt1g5yfOnQBjRrzT4iMJcQmNQF/Q==",
         "dependencies": {
-          "CringePlugins": "0.1.73"
+          "CringePlugins": "0.1.74"
         }
       },
       "ImGui.NET.DirectX": {

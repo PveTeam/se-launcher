@@ -25,7 +25,7 @@
     <ItemGroup>
         <PackageReference Include="Basic.Reference.Assemblies.Net90" Version="1.8.0" />
         <PackageReference Include="dnlib" Version="4.4.0" />
-        <PackageReference Include="EOSSDK" Version="1.0.1" />
+        <PackageReference Include="EOSSDK" Version="1.0.2" />
         <PackageReference Include="Krafs.Publicizer" Version="2.3.0">
             <PrivateAssets>all</PrivateAssets>
             <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
