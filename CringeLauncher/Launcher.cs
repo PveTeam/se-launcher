@@ -50,6 +50,9 @@ public class Launcher : ICorePlugin
 
     private MyGameRenderComponent? _renderComponent;
 
+    private readonly DirectoryInfo _configDir = Directory.CreateDirectory(
+        Path.Join(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "CringeLauncher", "config"));
+
     public void Initialize(string[] args)
     {
         if (Type.GetType("GameAnalyticsSDK.Net.Logging.GALogger, GameAnalytics.Mono") is { } gaLoggerType)
@@ -154,7 +157,7 @@ public class Launcher : ICorePlugin
     public void Run() => _game?.Run();
 
 
-    private static IServiceProvider SetupServices()
+    private IServiceProvider SetupServices()
     {
         var services = new ServiceCollection();
 
@@ -167,7 +170,7 @@ public class Launcher : ICorePlugin
 
         services.AddSingleton(_ => RenderHandler.Current)
             .AddSingleton<IPluginsLifetime>(s => s.GetRequiredService<PluginsLifetime>())
-            .AddSingleton(_ => new ConfigHandler(Directory.CreateDirectory(Path.Join(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "CringeLauncher", "config"))));
+            .AddSingleton(_ => new ConfigHandler(_configDir));
 
         return GameServicesExtension.GameServices = services.BuildServiceProvider();
     }
@@ -192,7 +195,7 @@ public class Launcher : ICorePlugin
 
     private IVRageWindow InitEarlyWindow(Splash splash)
     {
-        ImGuiHandler.Instance = new();
+        ImGuiHandler.Instance = new(_configDir);
         
         RenderHandler.Current.RegisterComponent(splash);
         

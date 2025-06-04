@@ -17,6 +17,7 @@ namespace CringeLauncher;
 
 internal sealed class ImGuiHandler : IGuiHandler, IDisposable
 {
+    private readonly DirectoryInfo _configDir;
     private DeviceContext? _deviceContext;
     private int _blockKeysCounter;
     private static nint _wndproc;
@@ -37,8 +38,9 @@ internal sealed class ImGuiHandler : IGuiHandler, IDisposable
     private readonly IRootRenderComponent _renderHandler;
     private static bool _init;
 
-    public ImGuiHandler()
+    public ImGuiHandler(DirectoryInfo configDir)
     {
+        _configDir = configDir;
         _renderHandler = new RenderHandler(this);
     }
 
@@ -50,9 +52,9 @@ internal sealed class ImGuiHandler : IGuiHandler, IDisposable
 
         var io = GetIO();
 
-        var path = Path.Join(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "CringeLauncher", "imgui.ini");
+        var path = Path.Join(_configDir.FullName, "imgui.ini");
 
-        io.NativePtr->IniFilename = AnsiStringMarshaller.ConvertToUnmanaged(path);
+        io.NativePtr->IniFilename = Utf8StringMarshaller.ConvertToUnmanaged(path);
 
         io.ConfigWindowsMoveFromTitleBarOnly = true;
         io.ConfigFlags |= ImGuiConfigFlags.DockingEnable | ImGuiConfigFlags.ViewportsEnable;
