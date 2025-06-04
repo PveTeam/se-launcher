@@ -10,7 +10,7 @@ internal sealed class MissingUsingRewriter : ProtoTagRewriter //use existing rew
     private readonly SemanticModel _semanticModel;
     private MissingUsingRewriter(CSharpCompilation compilation, SyntaxTree tree) : base(compilation, tree) => _semanticModel = compilation.GetSemanticModel(tree);
 
-    public static SyntaxTree Rewrite(CSharpCompilation compilation, SyntaxTree tree)
+    public static new SyntaxTree Rewrite(CSharpCompilation compilation, SyntaxTree tree)
     {
         SyntaxNode syntaxNode = new MissingUsingRewriter(compilation, tree).Visit(tree.GetRoot());
         return tree.WithRootAndOptions(syntaxNode, tree.Options);

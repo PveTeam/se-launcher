@@ -10,7 +10,7 @@ namespace CringePlugins.Config;
 public sealed class ConfigHandler
 {
     private static readonly Logger Log = LogManager.GetCurrentClassLogger();
-    
+
     private readonly DirectoryInfo _configDirectory;
     private readonly JsonSerializerOptions _serializerOptions = new(NuGetClient.SerializerOptions)
     {
@@ -35,7 +35,7 @@ public sealed class ConfigHandler
     public ConfigReference<T> RegisterConfig<T>(string name, T? defaultInstance = null) where T : class
     {
         var spec = IConfigurationSpecProvider.FromType(typeof(T));
-        
+
         var path = Path.Join(_configDirectory.FullName, $"{name}.json");
         var backupPath = path + $".bak.{DateTimeOffset.Now.ToUnixTimeSeconds()}";
 
@@ -63,10 +63,20 @@ public sealed class ConfigHandler
             RegisterChange(name, defaultInstance);
             return reference;
         }
-        
-        var instance = jsonNode.Deserialize<T>(_serializerOptions)!;
+
+        T instance;
+        try
+        {
+            instance = jsonNode.Deserialize<T>(_serializerOptions)!;
+        }
+        catch (JsonException e)
+        {
+            Log.Warn(e, "Failed to load config {Name}", name);
+
+            instance = defaultInstance ?? Activator.CreateInstance<T>();
+        }
         ConfigReloaded?.Invoke(this, new ConfigValue<T>(name, instance));
-        
+
         return reference;
     }
 
@@ -78,16 +88,16 @@ public sealed class ConfigHandler
 
         if (spec != null && !TryValidate(name, spec, jsonNode))
             throw new JsonException($"Supplied config value for {name} is invalid");
-        
+
         var path = Path.Join(_configDirectory.FullName, $"{name}.json");
-        
+
         using var stream = File.Create(path);
         using var writer = new Utf8JsonWriter(stream, new()
         {
             Indented = true
         });
         jsonNode.WriteTo(writer, _serializerOptions);
-        
+
         ConfigReloaded?.Invoke(this, new ConfigValue<T>(name, newValue));
     }
 
@@ -97,7 +107,7 @@ public sealed class ConfigHandler
 
         if (results.IsValid)
             return true;
-        
+
         Log.Error("Config {Name} is invalid:", name);
         foreach (var detail in results.Details)
         {
@@ -107,7 +117,7 @@ public sealed class ConfigHandler
                 Log.Error("\t- {Error}", error);
             }
         }
-        
+
         return false;
     }
 
@@ -145,6 +155,6 @@ public sealed class ConfigReference<T> : IDisposable
     {
         _instance.ConfigReloaded -= InstanceOnConfigReloaded;
     }
-    
+
     public static implicit operator T(ConfigReference<T> reference) => reference.Value;
 }

@@ -43,7 +43,7 @@ public class PluginLoaderConfig
                 pluginsBuilder.Add(package);
         }
 
-        var profiles = new Dictionary<string, ImmutableArray<PackageReference>>();
+        var profiles = ImmutableArray.CreateBuilder<Profile>();
         foreach (var profile in Profiles)
         {
             var builder = ImmutableArray.CreateBuilder<PackageReference>();
@@ -62,13 +62,13 @@ public class PluginLoaderConfig
                     builder.Add(package);
             }
 
-            profiles[profile.Name] = builder.ToImmutable();
+            profiles.Add(new(profile.Name, builder.ToImmutable()));
         }
 
         return old with
         {
             Packages = pluginsBuilder.ToImmutable(),
-            Profiles = profiles,
+            Profiles = profiles.ToImmutable(),
             Sources = sources.ToImmutable()
         };
     }

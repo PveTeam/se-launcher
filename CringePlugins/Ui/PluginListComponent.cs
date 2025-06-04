@@ -1,8 +1,4 @@
-﻿using System.Collections.Immutable;
-using System.Diagnostics;
-using System.Text.Json;
-using System.Xml.Serialization;
-using CringePlugins.Abstractions;
+﻿using CringePlugins.Abstractions;
 using CringePlugins.Compatability;
 using CringePlugins.Config;
 using CringePlugins.Loader;
@@ -18,6 +14,11 @@ using NuGet.Versioning;
 using Sandbox.Game.Gui;
 using Sandbox.Graphics.GUI;
 using SpaceEngineers.Game.GUI;
+using System.Collections.Immutable;
+using System.Diagnostics;
+using System.Numerics;
+using System.Text.Json;
+using System.Xml.Serialization;
 using static ImGuiNET.ImGui;
 
 namespace CringePlugins.Ui;
@@ -31,6 +32,12 @@ internal class PluginListComponent : IRenderComponent
     private bool _searchResultsDirty;
     private string _searchQuery = "";
     private Task? _searchTask;
+
+    private string _profileSearch = "";
+    private string _newProfileName = "";
+    private int _selectedProfile = -1;
+    private ImmutableArray<Profile> _profiles;
+
 
     private bool _changed;
     private bool _open = true;
@@ -53,6 +60,7 @@ internal class PluginListComponent : IRenderComponent
         _plugins = plugins;
         _packages = packagesConfig.Value.Packages.ToImmutableDictionary(b => b.Id, b => b.Range,
             StringComparer.OrdinalIgnoreCase);
+        _profiles = packagesConfig.Value.Profiles;
 
         MyScreenManager.ScreenAdded += ScreenChanged;
         MyScreenManager.ScreenRemoved += ScreenChanged;
@@ -92,9 +100,9 @@ internal class PluginListComponent : IRenderComponent
             {
                 if (BeginTable("InstalledTable", 3, ImGuiTableFlags.ScrollY | ImGuiTableFlags.Resizable | ImGuiTableFlags.Sortable))
                 {
-                    TableSetupColumn("Id", ImGuiTableColumnFlags.None, .5f, (uint)Columns.Id);
-                    TableSetupColumn("Version", ImGuiTableColumnFlags.None, .25f, (uint)Columns.Version);
-                    TableSetupColumn("Source", ImGuiTableColumnFlags.None, .25f, (uint)Columns.Source);
+                    TableSetupColumn("Id", ImGuiTableColumnFlags.WidthStretch, .5f, (uint)Columns.Id);
+                    TableSetupColumn("Version", ImGuiTableColumnFlags.WidthStretch, .25f, (uint)Columns.Version);
+                    TableSetupColumn("Source", ImGuiTableColumnFlags.WidthStretch, .25f, (uint)Columns.Source);
                     TableHeadersRow();
 
                     var sortSpecs = TableGetSortSpecs();
@@ -143,6 +151,12 @@ internal class PluginListComponent : IRenderComponent
                 EndTabItem();
             }
 
+            if (BeginTabItem("Profiles"))
+            {
+                ProfilesTab();
+                EndTabItem();
+            }
+
             if (BeginTabItem("Sources Configuration"))
             {
                 BeginChild("Sources List", new(400, 0), ImGuiChildFlags.Border | ImGuiChildFlags.ResizeX);
@@ -150,8 +164,8 @@ internal class PluginListComponent : IRenderComponent
                     if (BeginTable("Sources Table", 2,
                             ImGuiTableFlags.ScrollY | ImGuiTableFlags.Resizable | ImGuiTableFlags.SizingStretchProp))
                     {
-                        TableSetupColumn("Name", ImGuiTableColumnFlags.None, .2f);
-                        TableSetupColumn("Url", ImGuiTableColumnFlags.None, .8f);
+                        TableSetupColumn("Name", ImGuiTableColumnFlags.WidthStretch, .2f);
+                        TableSetupColumn("Url", ImGuiTableColumnFlags.WidthStretch, .8f);
                         TableHeadersRow();
 
                         for (var index = 0; index < _packagesConfig.Value.Sources.Length; index++)
@@ -321,6 +335,173 @@ internal class PluginListComponent : IRenderComponent
         End();
     }
 
+    private unsafe void ProfilesTab()
+    {
+        InputText("##searchbox", ref _profileSearch, 256);
+
+        SameLine();
+
+        if (Button("Create New Profile"))
+            OpenPopup("New Profile");
+
+
+        if (IsItemHovered(ImGuiHoveredFlags.ForTooltip))
+        {
+            SetTooltip("Create a new profile from enabled plugins");
+        }
+
+        if (BeginPopupModal("New Profile", ImGuiWindowFlags.AlwaysAutoResize))
+        {
+            InputText("Name", ref _newProfileName, 50);
+            Separator();
+
+            if (Button("Ok##newProfileOk", new Vector2(120, 0)))
+            {
+                var len = _profiles.Length;
+                _profiles = _profiles.Add(new(_newProfileName, [.. _packages.Select(x => new PackageReference(x.Key, x.Value))]));
+                _selectedProfile = len;
+
+                _packagesConfig.Value = _packagesConfig.Value with
+                {
+                    Profiles = _profiles
+                };
+
+                CloseCurrentPopup();
+            }
+            SetItemDefaultFocus();
+            SameLine();
+            if (Button("Cancel##newProfileCancel", new Vector2(120, 0)))
+            {
+                CloseCurrentPopup();
+            }
+
+            EndPopup();
+        }
+
+        Spacing();
+
+        if (_profiles.IsEmpty)
+        {
+            TextDisabled("No Profiles");
+            return;
+        }
+
+        BeginChild("Profile List", new(400, 0), ImGuiChildFlags.Border | ImGuiChildFlags.ResizeX);
+
+        if (BeginTable("ProfilesTable", 2,
+                    ImGuiTableFlags.ScrollY | ImGuiTableFlags.Resizable | ImGuiTableFlags.SizingStretchProp))
+        {
+            TableSetupColumn("Id##ProfilesTable", ImGuiTableColumnFlags.WidthStretch, .5f, (uint)Columns.Id);
+            TableSetupColumn("Plugins", ImGuiTableColumnFlags.WidthStretch, .25f, (uint)Columns.Count);
+            TableHeadersRow();
+
+            for (var i = 0; i < _profiles.Length; i++)
+            {
+                var(id, plugins) = _profiles[i];
+
+                if (!id.Contains(_profileSearch, StringComparison.OrdinalIgnoreCase))
+                    continue;
+
+                TableNextRow();
+
+                TableNextColumn();
+
+                var selected = _selectedProfile == i;
+
+                if (Selectable($"{id}##profiles{i}", ref selected, ImGuiSelectableFlags.SpanAllColumns))
+                {
+                    _selectedProfile = selected ? i : -1;
+                }
+
+                TableNextColumn();
+                Text(plugins.Length.ToString());
+            }
+
+            EndTable();
+        }
+
+        EndChild();
+
+        SameLine();
+
+        BeginGroup();
+
+        BeginChild("Profile View", new(0, -GetFrameHeightWithSpacing())); // Leave room for 1 line below us
+
+        if (_selectedProfile >= 0)
+        {
+            var (id, plugins) = _profiles[_selectedProfile];
+
+            Text(id);
+            Separator();
+
+            if (BeginTable("ProfilePluginsTable", 2, ImGuiTableFlags.ScrollY | ImGuiTableFlags.Resizable | ImGuiTableFlags.SizingStretchProp))
+            {
+                TableSetupColumn("Id##pluginProfilesId", ImGuiTableColumnFlags.WidthStretch, .5f, (uint)Columns.Id);
+                TableSetupColumn("Version##pluginProfilesVersion", ImGuiTableColumnFlags.WidthStretch, .25f, (uint)Columns.Version);
+
+                foreach (var plugin in plugins)
+                {
+                    TableNextRow();
+
+                    TableNextColumn();
+
+                    Text(plugin.Id);
+
+                    TableNextColumn();
+                    Text(plugin.Range.ToShortString());
+                }
+
+                EndTable();
+            }
+        }
+        EndChild();
+
+        if (_selectedProfile >= 0)
+        {
+            if (Button("Activate"))
+            {
+                _packages = _profiles[_selectedProfile].Plugins.ToImmutableDictionary(b => b.Id, b => b.Range);
+
+                Save();
+            }
+
+            SameLine();
+            if (Button("Delete"))
+                OpenPopup("Delete?##ProfileDeletePopup");
+
+            if (BeginPopupModal("Delete?##ProfileDeletePopup", ImGuiWindowFlags.AlwaysAutoResize))
+            {
+                Text("Are you sure you want to delete this profile?");
+                Separator();
+
+                if (Button("Yes", new Vector2(120, 0)))
+                {
+                    _profiles = _profiles.RemoveAt(_selectedProfile);
+
+                    _packagesConfig.Value = _packagesConfig.Value with
+                    {
+                        Profiles = _profiles
+                    };
+
+                    _selectedProfile = -1;
+
+                    CloseCurrentPopup();
+                }
+                SetItemDefaultFocus();
+                SameLine();
+                if (Button("No", new Vector2(120, 0)))
+                {
+                    CloseCurrentPopup();
+                }
+
+                EndPopup();
+            }
+        }
+
+        EndGroup();
+    }
+
     // TODO sources editor
     // TODO combobox with active sources (to limit search results to specific list of sources)
     private unsafe void AvailablePluginsTab()
@@ -357,6 +538,7 @@ internal class PluginListComponent : IRenderComponent
                         : (_selectedSources ?? _packagesConfig.Value.Sources.ToImmutableHashSet()).Remove(source);
 
                     _searchTask = RefreshAsync();
+                    EndCombo();
                     return;
                 }
             }
@@ -398,9 +580,9 @@ internal class PluginListComponent : IRenderComponent
             if (BeginTable("AvailableTable", 3,
                     ImGuiTableFlags.ScrollY | ImGuiTableFlags.Resizable | ImGuiTableFlags.SizingStretchProp | ImGuiTableFlags.Sortable))
             {
-                TableSetupColumn("Id", ImGuiTableColumnFlags.None, .5f, (uint)Columns.Id);
-                TableSetupColumn("Version", ImGuiTableColumnFlags.None, .25f, (uint)Columns.Version);
-                TableSetupColumn("Installed", ImGuiTableColumnFlags.None, .25f, (uint)Columns.Installed);
+                TableSetupColumn("Id", ImGuiTableColumnFlags.WidthStretch, .5f, (uint)Columns.Id);
+                TableSetupColumn("Version", ImGuiTableColumnFlags.WidthStretch, .25f, (uint)Columns.Version);
+                TableSetupColumn("Installed", ImGuiTableColumnFlags.WidthStretch, .25f, (uint)Columns.Installed);
                 TableHeadersRow();
 
                 var sortSpecs = TableGetSortSpecs();
@@ -569,9 +751,9 @@ internal class PluginListComponent : IRenderComponent
         _searchResults = builder.ToImmutable();
     }
 
-    private void Save(bool keepPackages = true)
+    private void Save(bool keepChanges = true)
     {
-        _packagesConfig.Value = keepPackages ? _packagesConfig.Value with
+        _packagesConfig.Value = keepChanges ? _packagesConfig.Value with
         {
             Packages = [.. _packages.Select(b => new PackageReference(b.Key, b.Value))]
         } : _packagesConfig;
@@ -649,6 +831,7 @@ internal class PluginListComponent : IRenderComponent
         Id,
         Version,
         Source,
-        Installed
+        Installed,
+        Count
     }
 }

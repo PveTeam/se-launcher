@@ -4,7 +4,7 @@ using NuGet;
 
 namespace CringePlugins.Config;
 
-public record PackagesConfig(ImmutableArray<PackageSource> Sources, ImmutableArray<PackageReference> Packages, Dictionary<string, ImmutableArray<PackageReference>> Profiles)
+public record PackagesConfig(ImmutableArray<PackageSource> Sources, ImmutableArray<PackageReference> Packages, ImmutableArray<Profile> Profiles)
 {
     public static PackagesConfig Default { get; } = new([
         new("zznty", @"^SpaceEngineersDedicated\.ReferenceAssemblies$|^ImGui\.NET\.DirectX$|^NuGet$|^Cringe.+$|^SharedCringe$|^Plugin.+$", "https://ng.zznty.ru/v3/index.json"),
@@ -13,5 +13,6 @@ public record PackagesConfig(ImmutableArray<PackageSource> Sources, ImmutableArr
         [
         new PackageReference("Plugin.ClientModLoader", new(new(0,0,0)))
         ],
-        []); //todo: default profile with recommended plugins?
+        []);
 }
+public record Profile(string Id, ImmutableArray<PackageReference> Plugins);
