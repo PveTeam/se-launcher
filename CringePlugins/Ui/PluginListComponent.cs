@@ -7,8 +7,10 @@ using CringePlugins.Compatability;
 using CringePlugins.Config;
 using CringePlugins.Loader;
 using CringePlugins.Resolver;
+using CringePlugins.Services;
 using CringePlugins.Utils;
 using ImGuiNET;
+using Microsoft.Extensions.DependencyInjection;
 using NLog;
 using NuGet;
 using NuGet.Models;
@@ -40,6 +42,7 @@ internal class PluginListComponent : IRenderComponent
     private ImmutableArray<PluginInstance> _plugins;
     private (SearchResultEntry entry, NuGetClient client)? _selected;
     private (PackageSource source, int index)? _selectedSource;
+    private readonly IImGuiImageService _imageService = GameServicesExtension.GameServices.GetRequiredService<IImGuiImageService>();
 
     public PluginListComponent(ConfigReference<PackagesConfig> packagesConfig, PackageSourceMapping sourceMapping, string gameFolder,
         ImmutableArray<PluginInstance> plugins)
@@ -468,6 +471,13 @@ internal class PluginListComponent : IRenderComponent
         if (_selected is not null)
         {
             var selected = _selected.Value.entry;
+
+            if (!string.IsNullOrEmpty(selected.IconUrl))
+            {
+                var image = _imageService.GetFromUrl(new Uri(selected.IconUrl));
+                Image(image, new(64, 64));
+                SameLine();
+            }
 
             Text(selected.Title ?? selected.Id);
             SameLine();

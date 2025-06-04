@@ -23,11 +23,11 @@ public record SearchResultEntry(
     [property: JsonConverter(typeof(StringOrStringArrayConverter))]
     ImmutableArray<string>? Tags,
     string? Title,
-    int? TotalDownloads,
+    ulong? TotalDownloads,
     ImmutableArray<PackageType> PackageTypes,
     bool Verified = false);
 
 public record SearchResultPackageVersion(
     NuGetVersion Version,
-    int Downloads,
+    ulong Downloads,
     [property: JsonPropertyName("@id")] Uri Registration);

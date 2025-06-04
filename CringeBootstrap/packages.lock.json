@@ -434,6 +434,7 @@
           "ImGui.NET.DirectX": "[1.91.0.1, )",
           "JsonSchema.Net.Generation": "[5.0.2, )",
           "Lib.Harmony.Thin": "[2.3.4-torch, )",
+          "Microsoft.Extensions.DependencyInjection.Abstractions": "[9.0.5, )",
           "NLog": "[5.4.0, )",
           "NuGet": "[1.0.0, )",
           "SharedCringe": "[1.0.0, )",

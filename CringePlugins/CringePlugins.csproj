@@ -20,11 +20,13 @@
         <Publicize Include="VRage:VRage.Plugins.MyPlugins.m_plugins" />
         <Publicize Include="VRage:VRage.Plugins.MyPlugins.m_handleInputPlugins" />
 		<Publicize Include="VRage.Render11:VRageRender.MyCommon" />
+		<Publicize Include="VRage.Render11:VRageRender.MyRender11.DeviceInstance" />
     </ItemGroup>
     
     <ItemGroup>
         <PackageReference Include="Basic.Reference.Assemblies.Net90" Version="1.8.0" PrivateAssets="all" />
         <PackageReference Include="JsonSchema.Net.Generation" Version="5.0.2" />
+        <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="9.0.5" />
         <PackageReference Include="NLog" Version="5.4.0" />
         <PackageReference Include="Lib.Harmony.Thin" Version="2.3.4-torch" />
         <PackageReference Include="ImGui.NET.DirectX" Version="1.91.0.1" />

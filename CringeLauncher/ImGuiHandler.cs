@@ -7,7 +7,9 @@ using Windows.Win32.Foundation;
 using Windows.Win32.UI.WindowsAndMessaging;
 using CringePlugins.Abstractions;
 using CringePlugins.Render;
+using CringePlugins.Services;
 using ImGuiNET;
+using Microsoft.Extensions.DependencyInjection;
 using SharpDX.Direct3D11;
 using static ImGuiNET.ImGui;
 using VRage;
@@ -36,12 +38,14 @@ internal sealed class ImGuiHandler : IGuiHandler, IDisposable
     public static RenderTargetView? Rtv;
 
     private readonly IRootRenderComponent _renderHandler;
+    private readonly ImGuiImageService _imageService;
     private static bool _init;
 
     public ImGuiHandler(DirectoryInfo configDir)
     {
         _configDir = configDir;
         _renderHandler = new RenderHandler(this);
+        _imageService = (ImGuiImageService)GameServicesExtension.GameServices.GetRequiredService<IImGuiImageService>();
     }
 
     public unsafe void Init(nint windowHandle, Device1 device, DeviceContext deviceContext)
@@ -62,6 +66,8 @@ internal sealed class ImGuiHandler : IGuiHandler, IDisposable
         ImGui_ImplWin32_Init(windowHandle);
         ImGui_ImplDX11_Init(device.NativePointer, deviceContext.NativePointer);
         _init = true;
+        
+        _imageService.Initialize();
     }
 
     public static void HookWindow(HWND windowHandle)
@@ -117,6 +123,8 @@ internal sealed class ImGuiHandler : IGuiHandler, IDisposable
 
         UpdatePlatformWindows();
         RenderPlatformWindowsDefault();
+        
+        _imageService.Update();
     }
 
     [UnmanagedCallersOnly(CallConvs = [typeof(CallConvStdcall)])]

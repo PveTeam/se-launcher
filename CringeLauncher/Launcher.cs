@@ -1,4 +1,5 @@
-﻿using System.Reflection;
+﻿using System.Net;
+using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Runtime.Loader;
@@ -161,15 +162,26 @@ public class Launcher : ICorePlugin
     {
         var services = new ServiceCollection();
 
+        var retryPolicy = HttpPolicyExtensions.HandleTransientHttpError()
+            .WaitAndRetryAsync(5, _ => TimeSpan.FromSeconds(1));
+        
         services.AddHttpClient<PluginsLifetime>()
             .ConfigurePrimaryHttpMessageHandler(() => new HttpClientHandler
             {
-                AutomaticDecompression = System.Net.DecompressionMethods.All
+                AutomaticDecompression = DecompressionMethods.All
             })
-            .AddPolicyHandler(HttpPolicyExtensions.HandleTransientHttpError().WaitAndRetryAsync(5, _ => TimeSpan.FromSeconds(1)));
+            .AddPolicyHandler(retryPolicy);
+        
+        services.AddHttpClient<ImGuiImageService>()
+            .ConfigurePrimaryHttpMessageHandler(() => new HttpClientHandler
+            {
+                AutomaticDecompression = DecompressionMethods.All
+            })
+            .AddPolicyHandler(retryPolicy);
 
         services.AddSingleton(_ => RenderHandler.Current)
             .AddSingleton<IPluginsLifetime>(s => s.GetRequiredService<PluginsLifetime>())
+            .AddSingleton<IImGuiImageService>(s => s.GetRequiredService<ImGuiImageService>())
             .AddSingleton(_ => new ConfigHandler(_configDir));
 
         return GameServicesExtension.GameServices = services.BuildServiceProvider();
