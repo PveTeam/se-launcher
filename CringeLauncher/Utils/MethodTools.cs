@@ -8,7 +8,7 @@ public static class MethodTools
     public static MethodInfo AsyncMethodBody(MethodInfo method)
     {
         var (_, operand) = PatchProcessor.ReadMethodBody(method).First();
-        
+
         if (operand is not LocalVariableInfo localVar)
             throw new InvalidOperationException($"Method {method.FullDescription()} does not contain a valid async state machine");
 

@@ -2,5 +2,5 @@
 
 namespace NuGet.Models;
 
-public record Registration([property: JsonPropertyName("catalogEntry")] string CatalogEntryUrl, 
+public record Registration([property: JsonPropertyName("catalogEntry")] string CatalogEntryUrl,
     [property: JsonPropertyName("sleet:catalogEntry")] CatalogEntry? SleetEntry);

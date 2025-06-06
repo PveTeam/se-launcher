@@ -10,7 +10,7 @@ public class ResourceTypeJsonConverter : JsonConverter<ResourceType>
     {
         if (reader.TokenType != JsonTokenType.String)
             throw new JsonException("Invalid resource type");
-        
+
         return ResourceType.Parse(reader.GetString()!);
     }
 

@@ -7,7 +7,7 @@ using NuGet.Versioning;
 
 namespace NuGet;
 
-public class NuGetClient
+public sealed class NuGetClient
 {
     private readonly Uri _index;
     private readonly HttpClient _client;
@@ -69,7 +69,7 @@ public class NuGetClient
         bool? includePrerelease = null, NuGetVersion? minVersion = null, string? packageType = null)
     {
         var queryParameters = HttpUtility.ParseQueryString(string.Empty);
-        
+
         if (!string.IsNullOrEmpty(query))
             queryParameters.Add("q", query);
 
@@ -78,13 +78,13 @@ public class NuGetClient
 
         if (take.HasValue)
             queryParameters.Add("take", take.Value.ToString());
-        
+
         if (includePrerelease.HasValue)
             queryParameters.Add("prerelease", includePrerelease.Value.ToString());
 
         if (minVersion is not null)
             queryParameters.Add("semVerLevel", minVersion.ToString());
-        
+
         if (!string.IsNullOrEmpty(packageType))
             queryParameters.Add("packageType", packageType);
 

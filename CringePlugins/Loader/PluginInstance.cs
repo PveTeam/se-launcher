@@ -29,14 +29,14 @@ internal sealed class PluginInstance(PluginMetadata metadata, string entrypointP
     {
         if (AssemblyLoadContext.GetLoadContext(typeof(PluginInstance).Assembly) is not ICoreLoadContext parentContext)
             throw new NotSupportedException("Plugin instantiation is not supported in this context");
-        
+
         _context = new PluginAssemblyLoadContext(parentContext, entrypointPath);
         contextBuilder.Add(_context);
-        
+
         var entrypoint = _context.LoadEntrypoint();
 
         var plugins = IntrospectionContext.Global.CollectDerivedTypes<IPlugin>(entrypoint.GetMainModule()).ToArray();
-        
+
         if (plugins.Length == 0)
             throw new InvalidOperationException("Entrypoint does not contain any plugins");
         if (plugins.Length > 1)
@@ -66,7 +66,7 @@ internal sealed class PluginInstance(PluginMetadata metadata, string entrypointP
     {
         if (_instance is null)
             throw new InvalidOperationException("Must call Instantiate first");
-        
+
         MyPlugins.m_plugins.Add(WrappedInstance);
         if (_instance is IHandleInputPlugin)
             MyPlugins.m_handleInputPlugins.Add(WrappedInstance);

@@ -1,17 +1,17 @@
-﻿using System.Collections.Immutable;
-using System.IO.Compression;
-using NLog;
+﻿using NLog;
 using NuGet;
 using NuGet.Frameworks;
 using NuGet.Models;
 using NuGet.Versioning;
+using System.Collections.Immutable;
+using System.IO.Compression;
 
 namespace CringePlugins.Resolver;
 
 public class PackageResolver(NuGetFramework runtimeFramework, ImmutableArray<PackageReference> references, PackageSourceMapping packageSources)
 {
     private static readonly ILogger Log = LogManager.GetCurrentClassLogger();
-    public async Task<ImmutableSortedSet<ResolvedPackage>> ResolveAsync()
+    public async Task<ImmutableSortedSet<ResolvedPackage>> ResolveAsync(DirectoryInfo baseDir, bool disableUpdates)
     {
         var order = 0;
         var packages = new Dictionary<Package, CatalogEntry>();
@@ -39,26 +39,43 @@ public class PackageResolver(NuGetFramework runtimeFramework, ImmutableArray<Pac
                 page.Items!.Where(b => b.CatalogEntry.PackageTypes is ["CringePlugin"]))
                     .ToImmutableDictionary(b => b.CatalogEntry.Version);
 
-            var version = items.Values.Select(b => b.CatalogEntry.Version).OrderDescending().First(b => reference.Range.Satisfies(b));
-            
+            var version = items.Values.Select(b => b.CatalogEntry.Version).OrderDescending().First(reference.Range.Satisfies);
+
+            if (disableUpdates)
+            {
+                if (GetLatestInstalledVersion(baseDir, reference.Id, reference.Range) is { } installedVersion && items.ContainsKey(installedVersion))
+                {
+                    if (installedVersion < version)
+                    {
+                        Log.Warn("Using outdated version of package {Package} {InstalledVersion} instead of {AvailableVersion} due to updates being disabled",
+                            reference.Id, installedVersion, version);
+                    }
+                    version = installedVersion;
+                }
+                else
+                {
+                    Log.Warn("No valid installed version found for package {Package}", reference.Id);
+                }
+            }
+
             if (version is null)
                 throw new NotSupportedException($"Unable to find version for package {reference.Id}");
 
             var catalogEntry = items[version].CatalogEntry;
-            
+
             var package = new Package(order, reference.Id, version);
 
             if (packages.TryAdd(package, catalogEntry))
                 continue;
-            
+
             if (!packages.TryGetValue(package, out var existingEntry))
                 throw new InvalidOperationException($"Duplicate package error {package.Id}");
+
             
-            
-            
+
             if (package.Version < existingEntry.Version)
                 throw new NotSupportedException($"Package reference {package.Id} has lower version {package.Version} than already resolved {existingEntry.Version}");
-            
+
             if (package.Version == existingEntry.Version)
                 continue;
 
@@ -69,13 +86,13 @@ public class PackageResolver(NuGetFramework runtimeFramework, ImmutableArray<Pac
         foreach (var (package, catalogEntry) in packages)
         {
             var client = await packageSources.GetClientAsync(package.Id);
-            
+
             if (client == null || !catalogEntry.DependencyGroups.HasValue)
                 continue;
 
             var nearestGroup = NuGetFrameworkUtility.GetNearest(catalogEntry.DependencyGroups.Value, runtimeFramework,
                 g => g.TargetFramework);
-            
+
             if (nearestGroup is null)
                 throw new NotSupportedException($"Unable to find compatible dependency group for package {package.Id}");
 
@@ -91,14 +108,14 @@ public class PackageResolver(NuGetFramework runtimeFramework, ImmutableArray<Pac
             var dependencies = package.Entry.DependencyGroups
                                    ?.Single(b => b.TargetFramework == package.ResolvedFramework)?.Dependencies ??
                                [];
-            
+
             foreach (var (id, versionRange) in dependencies)
             {
                 var client = await packageSources.GetClientAsync(id);
 
                 if (client == null)
                     continue;
-                
+
                 RegistrationRoot? registrationRoot;
 
                 try
@@ -109,15 +126,29 @@ public class PackageResolver(NuGetFramework runtimeFramework, ImmutableArray<Pac
                 {
                     throw new InvalidOperationException($"Failed to resolve dependency {id} for {package.Package}", ex);
                 }
-                
+
                 var items = registrationRoot.Items.SelectMany(page => page.Items!)
                     .ToImmutableDictionary(b => b.CatalogEntry.Version);
 
                 var version = items.Values.Select(b => b.CatalogEntry.Version).OrderDescending().FirstOrDefault(versionRange.Satisfies);
-            
+
                 if (version is null)
                     throw new NotSupportedException($"Unable to find version for package {id} as dependency of {package.Package}");
-                
+
+                if (disableUpdates)
+                {
+                    if (GetLatestInstalledVersion(baseDir, id, versionRange) is { } installedVersion && items.ContainsKey(installedVersion))
+                    {
+                        if (installedVersion < version)
+                        {
+                            Log.Warn("Using outdated version of dependency package {Package} {InstalledVersion} instead of {AvailableVersion} due to updates being disabled",
+                                id, installedVersion, version);
+                        }
+                        version = installedVersion;
+                    }
+                    //todo: warnings here? we'd need to check against builtin packages
+                }
+
                 var catalogEntry = items[version].CatalogEntry;
 
                 var dependencyPackage = new Package(i, id, version);
@@ -165,10 +196,10 @@ public class PackageResolver(NuGetFramework runtimeFramework, ImmutableArray<Pac
 
                     continue;
                 }
-                
+
                 if (!packages.TryAdd(dependencyPackage, catalogEntry) || !dependencyVersions.TryAdd(dependencyPackage, versionRange))
                     throw new InvalidOperationException($"Duplicate package {dependencyPackage.Id}");
-                
+
                 var nearestGroup = NuGetFrameworkUtility.GetNearest(catalogEntry.DependencyGroups ?? [], runtimeFramework,
                     g => g.TargetFramework) ?? throw new NotSupportedException($"Unable to find compatible dependency group for {dependencyPackage} as dependency of {package.Package}");
 
@@ -182,11 +213,30 @@ public class PackageResolver(NuGetFramework runtimeFramework, ImmutableArray<Pac
         return set.ToImmutable();
     }
 
-    public async Task<ImmutableHashSet<CachedPackage>> DownloadPackagesAsync(DirectoryInfo baseDirectory,
+    private static NuGetVersion? GetLatestInstalledVersion(DirectoryInfo baseDirectory, string id, VersionRange range)
+    {
+        var dir = new DirectoryInfo(Path.Join(baseDirectory.FullName, id));
+
+        if (!dir.Exists)
+            return null;
+
+        NuGetVersion? maxVersion = null;
+        foreach (var subdir in dir.GetDirectories())
+        {
+            if (NuGetVersion.TryParse(subdir.Name, out var version) && range.Satisfies(version) && (maxVersion == null || version > maxVersion))
+            {
+                maxVersion = version;
+            }
+        }
+
+        return maxVersion;
+    }
+
+    public static async Task<ImmutableHashSet<CachedPackage>> DownloadPackagesAsync(DirectoryInfo baseDirectory,
         IReadOnlySet<ResolvedPackage> resolvedPackages, IReadOnlySet<string>? ignorePackages = null, IProgress<float>? progress = null)
     {
         var packages = ImmutableHashSet<CachedPackage>.Empty.ToBuilder();
-        
+
         var i = 0f;
         foreach (var package in resolvedPackages)
         {
@@ -206,26 +256,26 @@ public class PackageResolver(NuGetFramework runtimeFramework, ImmutableArray<Pac
                         var client = (package as RemoteDependencyPackage)?.Client ?? ((RemotePackage)package).Client;
 
                         await using var stream = await client.GetPackageContentStreamAsync(package.Package.Id, package.Package.Version);
-                        using var memStream = new MemoryStream();
+                        await using var memStream = new MemoryStream();
                         await stream.CopyToAsync(memStream);
                         memStream.Position = 0;
                         using var archive = new ZipArchive(memStream, ZipArchiveMode.Read);
                         archive.ExtractToDirectory(dir.FullName);
                     }
-                
+
                     packages.Add(new CachedPackage(package.Package, package.ResolvedFramework, dir, package.Entry));
                     break;
                 }
                 case CachedPackage cachedPackage:
                     packages.Add(cachedPackage);
                     break;
-                    
+
                     
             }
 
             progress?.Report(i++ / resolvedPackages.Count);
         }
-        
+
         return packages.ToImmutable();
     }
 }

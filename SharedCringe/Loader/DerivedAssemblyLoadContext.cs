@@ -8,7 +8,7 @@ public abstract class DerivedAssemblyLoadContext(ICoreLoadContext parentContext,
     : AssemblyLoadContext(name, true)
 {
     protected readonly ICoreLoadContext ParentContext = parentContext;
-    
+
     protected override Assembly? Load(AssemblyName assemblyName) => ParentContext.ResolveFromAssemblyName(assemblyName);
     protected override nint LoadUnmanagedDll(string unmanagedDllName) => ParentContext.ResolveUnmanagedDll(unmanagedDllName);
 }

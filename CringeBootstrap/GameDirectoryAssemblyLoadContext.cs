@@ -42,7 +42,7 @@ public class GameDirectoryAssemblyLoadContext : AssemblyLoadContext, ICoreLoadCo
 
         if (key.StartsWith("System.") || ReferenceAssemblies.Contains(key))
             return;
-        
+
         _assemblyNames.TryAdd(key, file);
     }
 
@@ -51,9 +51,9 @@ public class GameDirectoryAssemblyLoadContext : AssemblyLoadContext, ICoreLoadCo
         AddOverride(new(name), Path.Join(AppContext.BaseDirectory, name + ".dll"));
     }
 
-    protected override Assembly? Load(AssemblyName name)
+    protected override Assembly? Load(AssemblyName assemblyName)
     {
-        var key = name.Name ?? name.FullName[..','];
+        var key = assemblyName.Name ?? assemblyName.FullName[..','];
 
         try
         {
@@ -79,11 +79,11 @@ public class GameDirectoryAssemblyLoadContext : AssemblyLoadContext, ICoreLoadCo
             var path = Path.Join(dir, unmanagedDllName);
             if (!Path.HasExtension(path))
                 path += ".dll";
-            
+
             if (File.Exists(path))
                 return LoadUnmanagedDllFromPath(path);
         }
-        
+
         throw new DllNotFoundException($"Unable to load {unmanagedDllName}, module not found in valid locations");
     }
 

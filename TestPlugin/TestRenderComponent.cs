@@ -10,7 +10,7 @@ public class TestRenderComponent : IRenderComponent
         if (ImGui.Begin("Test Window"))
         {
             ImGui.Button("Test");
-            
+
             ImGui.End();
         }
     }

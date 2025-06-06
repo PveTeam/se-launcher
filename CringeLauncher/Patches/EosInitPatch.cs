@@ -16,15 +16,15 @@ public static class EosInitPatch
         var ins = instructions.ToList();
 
         var stIndex = ins.FindIndex(b => b.opcode == OpCodes.Stloc_1);
-        
-        ins.InsertRange(stIndex, new []
-        {
+
+        ins.InsertRange(stIndex,
+        [
             new CodeInstruction(OpCodes.Dup),
             new(OpCodes.Ldc_I4_2), // PlatformFlags.DisableOverlay
             new(OpCodes.Conv_I8),
-            CodeInstruction.Call("Epic.OnlineServices.Platform.Options:set_Flags"), 
-        });
-        
+            CodeInstruction.Call("Epic.OnlineServices.Platform.Options:set_Flags"),
+        ]);
+
         return ins;
     }
 }

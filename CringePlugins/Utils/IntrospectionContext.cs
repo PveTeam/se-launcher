@@ -13,17 +13,17 @@ public class IntrospectionContext
     public IntrospectionContext()
     {
         var assemblyResolver = new AssemblyResolver();
-        
+
         assemblyResolver.PreSearchPaths.Add(AppContext.BaseDirectory);
         assemblyResolver.PreSearchPaths.Add(MyFileSystem.ExePath);
-        
+
         Context = new(assemblyResolver);
     }
 
     public IEnumerable<Type> CollectAttributedTypes<TAttribute>(Module module, bool allowAbstract = false) where TAttribute : Attribute
     {
         var moduleDef = ModuleDefMD.Load(module, Context);
-        
+
         var token =  moduleDef.ImportAsTypeSig(typeof(TAttribute));
 
         return moduleDef.GetTypes()
@@ -53,7 +53,7 @@ public class IntrospectionContext
             if (defOrRef.FullName == token.FullName)
                 return true;
         }
-        
+
         return false;
     }
 }

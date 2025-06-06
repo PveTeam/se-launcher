@@ -10,7 +10,7 @@ public class VersionJsonConverter : JsonConverter<NuGetVersion>
     {
         if (reader.TokenType != JsonTokenType.String)
             throw new JsonException("Invalid version string");
-        
+
         return NuGetVersion.Parse(reader.GetString()!);
     }
 

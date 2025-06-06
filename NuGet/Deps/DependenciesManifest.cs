@@ -52,10 +52,10 @@ public record ManifestPackageKey(string Id, NuGetVersion Version)
         var index = str.IndexOf('/');
         if (index < 0)
             throw new FormatException("Invalid package key: " + str);
-        
+
         return new ManifestPackageKey(str[..index], NuGetVersion.Parse(str[(index + 1)..]));
     }
-    
+
     public override string ToString() => $"{Id}/{Version}";
 }
 
@@ -71,9 +71,9 @@ public static class DependencyManifestSerializer
             new VersionJsonConverter()
         }
     };
-    
+
     public static Task SerializeAsync(Stream stream, DependenciesManifest manifest) => JsonSerializer.SerializeAsync(stream, manifest, SerializerOptions);
-    
+
     public static ValueTask<DependenciesManifest> DeserializeAsync(Stream stream) => JsonSerializer.DeserializeAsync<DependenciesManifest>(stream, SerializerOptions)!;
 }
 
@@ -86,12 +86,12 @@ public class DependencyManifestBuilder(DirectoryInfo cacheDirectory, PackageSour
         var targets = ImmutableDictionary<ManifestPackageKey, DependencyTarget>.Empty.ToBuilder();
 
         await MapCatalogEntryAsync(catalogEntry, targetFramework, targets);
-        
+
         var manifest = new DependenciesManifest(runtimeTarget, ImmutableDictionary<NuGetRuntimeFramework, string>.Empty,
             ImmutableDictionary<NuGetRuntimeFramework, ImmutableDictionary<ManifestPackageKey, DependencyTarget>>.Empty
-                .Add(targetFramework, targets.ToImmutable()), 
+                .Add(targetFramework, targets.ToImmutable()),
             ImmutableDictionary<ManifestPackageKey, DependencyLibrary>.Empty);
-        
+
         await DependencyManifestSerializer.SerializeAsync(stream, manifest);
     }
 
@@ -100,14 +100,14 @@ public class DependencyManifestBuilder(DirectoryInfo cacheDirectory, PackageSour
     {
         if (targets.ContainsKey(new(catalogEntry.Id, catalogEntry.Version)) || !catalogEntry.DependencyGroups.HasValue)
             return;
-        
+
         // TODO take into account the target framework runtime identifier
         var nearest = NuGetFrameworkUtility.GetNearest(catalogEntry.DependencyGroups.Value, targetFramework.Framework,
             group => group.TargetFramework);
 
         if (nearest is null)
             return;
-        
+
         targets.Add(new(catalogEntry.Id, catalogEntry.Version),
             await MapEntryAsync(catalogEntry, nearest));
 
@@ -115,7 +115,7 @@ public class DependencyManifestBuilder(DirectoryInfo cacheDirectory, PackageSour
         {
             if (entry is null)
                 continue;
-            
+
             await MapCatalogEntryAsync(entry, targetFramework, targets);
         }
     }
@@ -156,7 +156,7 @@ public class DependencyManifestBuilder(DirectoryInfo cacheDirectory, PackageSour
 
             {
                 await using var stream = await client.GetPackageContentStreamAsync(entry.Id, entry.Version);
-                using var memStream = new MemoryStream();
+                await using var memStream = new MemoryStream();
                 await stream.CopyToAsync(memStream);
                 memStream.Position = 0;
                 using var archive = new ZipArchive(memStream, ZipArchiveMode.Read);

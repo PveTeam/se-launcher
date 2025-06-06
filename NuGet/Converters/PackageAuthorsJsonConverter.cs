@@ -19,12 +19,12 @@ public class PackageAuthorsJsonConverter : JsonConverter<PackageAuthors>
             case JsonTokenType.StartArray:
             {
                 var builder = ImmutableArray.CreateBuilder<string>();
-            
+
                 while (reader.Read() && reader.TokenType != JsonTokenType.EndArray)
                 {
                     builder.Add(reader.GetString()!);
                 }
-            
+
                 return new PackageAuthors(string.Join(", ", builder), builder.ToImmutable());
             }
             case JsonTokenType.Null:
@@ -41,14 +41,14 @@ public class PackageAuthorsJsonConverter : JsonConverter<PackageAuthors>
             writer.WriteStringValue(value.Author);
             return;
         }
-        
+
         writer.WriteStartArray();
-        
+
         foreach (var author in value.Authors)
         {
             writer.WriteStringValue(author);
         }
-        
+
         writer.WriteEndArray();
     }
 }

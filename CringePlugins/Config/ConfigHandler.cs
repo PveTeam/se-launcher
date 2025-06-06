@@ -9,15 +9,17 @@ namespace CringePlugins.Config;
 
 public sealed class ConfigHandler
 {
-    private static readonly Logger Log = LogManager.GetCurrentClassLogger();
-
-    private readonly DirectoryInfo _configDirectory;
-    private readonly JsonSerializerOptions _serializerOptions = new(NuGetClient.SerializerOptions)
+    public static readonly JsonSerializerOptions SerializerOptions = new(NuGetClient.SerializerOptions)
     {
         WriteIndented = true,
         AllowTrailingCommas = true,
         ReadCommentHandling = JsonCommentHandling.Skip
     };
+
+    private static readonly Logger Log = LogManager.GetCurrentClassLogger();
+
+    private readonly DirectoryInfo _configDirectory;
+    
 
     private readonly EvaluationOptions _evaluationOptions = new()
     {
@@ -67,7 +69,7 @@ public sealed class ConfigHandler
         T instance;
         try
         {
-            instance = jsonNode.Deserialize<T>(_serializerOptions)!;
+            instance = jsonNode.Deserialize<T>(SerializerOptions)!;
         }
         catch (JsonException e)
         {
@@ -84,7 +86,7 @@ public sealed class ConfigHandler
     {
         var spec = IConfigurationSpecProvider.FromType(typeof(T));
 
-        var jsonNode = JsonSerializer.SerializeToNode(newValue, _serializerOptions)!;
+        var jsonNode = JsonSerializer.SerializeToNode(newValue, SerializerOptions)!;
 
         if (spec != null && !TryValidate(name, spec, jsonNode))
             throw new JsonException($"Supplied config value for {name} is invalid");
@@ -96,7 +98,7 @@ public sealed class ConfigHandler
         {
             Indented = true
         });
-        jsonNode.WriteTo(writer, _serializerOptions);
+        jsonNode.WriteTo(writer, SerializerOptions);
 
         ConfigReloaded?.Invoke(this, new ConfigValue<T>(name, newValue));
     }

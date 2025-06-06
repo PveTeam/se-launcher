@@ -19,7 +19,7 @@ public record PluginMetadata(string Name, NuGetVersion Version, string Source)
                 (versionAttribute ?? fileVersionAttribute)?.ConstructorArguments[0].Value as UTF8String ?? "0.0.0.0",
                 out var version))
             version = new(0, 0, 0, 0);
-        
+
         return new(name, version, "Local");
     }
 }

@@ -14,7 +14,7 @@ public static class ScriptCompilerInitializationPatch
         return AccessTools.Method(Type.GetType("VRage.Scripting.MyVRageScriptingInternal, VRage.Scripting", true),
                                   "Initialize");
     }
-    
+
     private static bool Prefix(Thread updateThread, Type[] referencedTypes, string[] symbols)
     {
         MyModWatchdog.Init(updateThread);

@@ -16,7 +16,7 @@ if (args.Length == 0)
 {
     var path = Path.Join(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "CringeLauncher",
         "current", "CringeBootstrap.exe");
-    
+
     Console.Write("Set your Launch Options under ");
     Console.ForegroundColor = ConsoleColor.Cyan;
     Console.Write("Space Engineers -> Properties -> Launch Options");
@@ -38,7 +38,7 @@ AssemblyLoadContext.Default.Resolving += (loadContext, name) =>
     return null;
 };
 #endif
-    
+
 var dir = Path.GetDirectoryName(args[0])!;
 var context = new GameDirectoryAssemblyLoadContext(dir);
 

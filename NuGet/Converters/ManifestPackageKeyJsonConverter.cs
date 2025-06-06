@@ -10,7 +10,7 @@ public class ManifestPackageKeyJsonConverter : JsonConverter<ManifestPackageKey>
     {
         if (reader.TokenType is not (JsonTokenType.String or JsonTokenType.PropertyName))
             throw new JsonException("Invalid package key string");
-        
+
         return ManifestPackageKey.Parse(reader.GetString()!);
     }
 

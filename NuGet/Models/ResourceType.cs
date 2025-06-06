@@ -10,10 +10,10 @@ public record ResourceType(string Id, NuGetVersion? Version)
     public static ResourceType Parse(string typeString)
     {
         var slash = typeString.IndexOf('/');
-        
+
         if (slash < 0)
             return new ResourceType(typeString, null);
-        
+
         var id = typeString[..slash];
         var versionStr = typeString[(slash + 1)..];
 

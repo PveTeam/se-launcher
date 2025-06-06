@@ -14,7 +14,7 @@ internal sealed class PluginWrapper(PluginMetadata metadata, IPlugin plugin) : I
     public Type InstanceType => plugin.GetType();
 
     private static readonly ILogger Log = LogManager.GetCurrentClassLogger();
-    
+
     private readonly IHandleInputPlugin? _handleInputPlugin = plugin as IHandleInputPlugin;
 
     private const float ErrorShowTime = 10f;

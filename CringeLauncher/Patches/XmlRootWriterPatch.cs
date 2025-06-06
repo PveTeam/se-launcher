@@ -11,26 +11,26 @@ public static class XmlRootWriterPatch
     private static IEnumerable<CodeInstruction> Transpiler(IEnumerable<CodeInstruction> instructions)
     {
         var ins = instructions.ToList();
-        
+
         var index = ins.FindIndex(b =>
                                       b.opcode == OpCodes.Ldstr && b.operand is "xsi:type");
         ins[index].operand = "xsi";
-        
-        ins.InsertRange(index + 1, new[]
-        {
+
+        ins.InsertRange(index + 1,
+        [
             new CodeInstruction(OpCodes.Ldstr, "type"),
             new CodeInstruction(OpCodes.Ldstr, "http://www.w3.org/2001/XMLSchema-instance")
-        });
-        
+        ]);
+
         var instruction = ins[ins.FindIndex(b => b.opcode == OpCodes.Callvirt)];
-        instruction.operand = AccessTools.Method(typeof(XmlWriter), "WriteAttributeString", new[]
-        {
+        instruction.operand = AccessTools.Method(typeof(XmlWriter), "WriteAttributeString",
+        [
             typeof(string),
             typeof(string),
             typeof(string),
             typeof(string)
-        });
-        
+        ]);
+
         return ins;
     }
 }

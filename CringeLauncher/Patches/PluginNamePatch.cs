@@ -13,7 +13,7 @@ public static class PluginNamePatch
         // to be just $"Plugin Init: {plugin}"
         // so you could override .ToString
         // doesn't change default behavior since base .ToString is .GetType().ToString()
-        
+
         return new CodeMatcher(instructions)
             .SearchForward(b => b.Is(OpCodes.Ldstr, "Plugin Init: "))
             .Advance(2)

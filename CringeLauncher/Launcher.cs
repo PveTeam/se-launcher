@@ -1,9 +1,4 @@
-﻿using System.Net;
-using System.Reflection;
-using System.Runtime.CompilerServices;
-using System.Runtime.InteropServices;
-using System.Runtime.Loader;
-using CringeBootstrap.Abstractions;
+﻿using CringeBootstrap.Abstractions;
 using CringeLauncher.Utils;
 using CringePlugins.Config;
 using CringePlugins.Loader;
@@ -25,6 +20,12 @@ using Sandbox.Game;
 using SpaceEngineers.Game;
 using SpaceEngineers.Game.Achievements;
 using SpaceEngineers.Game.GUI;
+using System.Net;
+using System.Reflection;
+using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
+using System.Runtime.Loader;
+using System.Text.Json;
 using Velopack;
 using VRage;
 using VRage.Audio;
@@ -58,7 +59,7 @@ public class Launcher : ICorePlugin
     {
         if (Type.GetType("GameAnalyticsSDK.Net.Logging.GALogger, GameAnalytics.Mono") is { } gaLoggerType)
             RuntimeHelpers.RunClassConstructor(gaLoggerType.TypeHandle);
-        
+
         LogManager.Setup()
             .LoadConfigurationFromFile()
             .SetupExtensions(s =>
@@ -75,19 +76,21 @@ public class Launcher : ICorePlugin
 
         var logger = LogManager.GetLogger("CringeBootstrap");
         logger.Info("Bootstrapping");
-        
+
         //environment variable for viktor's plugins
         Environment.SetEnvironmentVariable("SE_PLUGIN_DISABLE_METHOD_VERIFICATION", "True");
-        
+
 #if !DEBUG
         CheckUpdates(args, logger).GetAwaiter().GetResult();
+#else
+        logger.Info("Updates disabled: {Flag}", CheckUpdatesDisabledAsync(logger).GetAwaiter().GetResult());
 #endif
-        
+
         // hook up steam as we ship it inside base context as an override
         if (AssemblyLoadContext.GetLoadContext(typeof(Launcher).Assembly) is ICoreLoadContext coreLoadContext)
             NativeLibrary.SetDllImportResolver(typeof(Steamworks.Constants).Assembly, (name, _, _) => coreLoadContext.ResolveUnmanagedDll(name));
         NativeLibrary.SetDllImportResolver(typeof(EosService).Assembly, (name, _, _) => NativeLibrary.Load(Path.Join(AppContext.BaseDirectory, name)));
-        
+
         _harmony.PatchAll(typeof(Launcher).Assembly);
 
         MyFileSystem.ExePath = Path.GetDirectoryName(args.ElementAtOrDefault(0) ?? Assembly.GetExecutingAssembly().Location)!;
@@ -105,12 +108,12 @@ public class Launcher : ICorePlugin
         MyShaderCompiler.Init(MyShaderCompiler.TargetPlatform.PC, false);
         MyVRageWindows.Init(MyPerGameSettings.BasicGameInfo.ApplicationName, MySandboxGame.Log,
                             Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
-                                         MyPerGameSettings.BasicGameInfo.ApplicationName), 
+                                         MyPerGameSettings.BasicGameInfo.ApplicationName),
                             false, false);
-        
+
         MyPlatformGameSettings.SAVE_TO_CLOUD_OPTION_AVAILABLE = true;
         MyXAudio2.DEVICE_DETAILS_SUPPORTED = false;
-        
+
         if (MyVRage.Platform.System.SimulationQuality == SimulationQuality.Normal)
         {
             MyPlatformGameSettings.SIMPLIFIED_SIMULATION_OVERRIDE = false;
@@ -133,17 +136,17 @@ public class Launcher : ICorePlugin
         _renderComponent = new();
         _renderComponent.Start(new(), () => InitEarlyWindow(splash), MyVideoSettingsManager.Initialize(), MyPerGameSettings.MaxFrameRate);
         _renderComponent.RenderThread.BeforeDraw += MyFpsManager.Update;
-        
+
         // this technically should wait for render thread init, but who cares
         splash.ExecuteLoadingStages();
-        
+
         InitUgc();
         MyFileSystem.InitUserSpecific(MyGameService.UserId.ToString());
-        
+
         _lifetime.RegisterLifetime();
-        
+
         WaitForDevice();
-        
+
         _game = new(args)
         {
             GameRenderComponent = _renderComponent,
@@ -164,14 +167,14 @@ public class Launcher : ICorePlugin
 
         var retryPolicy = HttpPolicyExtensions.HandleTransientHttpError()
             .WaitAndRetryAsync(5, _ => TimeSpan.FromSeconds(1));
-        
+
         services.AddHttpClient<PluginsLifetime>()
             .ConfigurePrimaryHttpMessageHandler(() => new HttpClientHandler
             {
                 AutomaticDecompression = DecompressionMethods.All
             })
             .AddPolicyHandler(retryPolicy);
-        
+
         services.AddHttpClient<ImGuiImageService>()
             .ConfigurePrimaryHttpMessageHandler(() => new HttpClientHandler
             {
@@ -208,25 +211,55 @@ public class Launcher : ICorePlugin
     private IVRageWindow InitEarlyWindow(Splash splash)
     {
         ImGuiHandler.Instance = new(_configDir);
-        
+
         RenderHandler.Current.RegisterComponent(splash);
-        
+
         MyVRage.Platform.Windows.CreateWindow("Cringe Launcher", MyPerGameSettings.GameIcon, null);
 
         MyVRage.Platform.Windows.Window.OnExit += MySandboxGame.ExitThreadSafe;
-        
+
         MyRenderProxy.RenderThread = _renderComponent!.RenderThread;
-        
+
         MyVRage.Platform.Windows.Window.ShowAndFocus();
 
         return MyVRage.Platform.Windows.Window;
     }
 
+    private async Task<bool> CheckUpdatesDisabledAsync(Logger logger)
+    {
+        var path = Path.Join(_configDir.FullName, "launcher.json");
+
+        if (!File.Exists(path))
+            return false;
+
+        try
+        {
+            await using var stream = File.OpenRead(path);
+
+            var conf = await JsonSerializer.DeserializeAsync<LauncherConfig>(stream, ConfigHandler.SerializerOptions);
+
+            return conf?.DisableLauncherUpdates ?? false;
+        }
+        catch (Exception ex)
+        {
+            logger.Error(ex, "Error reading launcher config");
+        }
+
+        return false;
+    }
+
     private async Task CheckUpdates(string[] args, Logger logger)
     {
+        if (await CheckUpdatesDisabledAsync(logger))
+        {
+            logger.Warn("Updates Disabled (may break from keen update)");
+            return;
+        }
+
         logger.Info("Checking for updates...");
+
         var mgr = new UpdateManager("https://dl.zznty.ru/CringeLauncher/");
-        
+
         // check for new version
         var newVersion = await mgr.CheckForUpdatesAsync();
         if (newVersion == null)
@@ -234,7 +267,7 @@ public class Launcher : ICorePlugin
             logger.Info("Up to date");
             return; // no update available
         }
-        
+
         // print update info
         Console.ForegroundColor = ConsoleColor.Cyan;
         Console.WriteLine($"New version available: {mgr.CurrentVersion} -> {newVersion.TargetFullRelease.Version}");
@@ -250,7 +283,7 @@ public class Launcher : ICorePlugin
 
         // download new version
         await mgr.DownloadUpdatesAsync(newVersion);
-        
+
         logger.Info("Done! Restarting...");
 
         // install new version and restart app
@@ -278,11 +311,11 @@ public class Launcher : ICorePlugin
         var textsPath = Path.Combine(MyFileSystem.RootPath, @"Content\Data\Localization\CoreTexts");
         var hashSet = new HashSet<MyLanguagesEnum>();
         MyTexts.LoadSupportedLanguages(textsPath, hashSet);
-    
+
         if (!MyTexts.Languages.TryGetValue(MyLanguage.Instance.GetOsLanguageCurrentOfficial(), out var description) &&
             !MyTexts.Languages.TryGetValue(MyLanguagesEnum.English, out description))
             return;
-    
+
         MyTexts.LoadTexts(textsPath, description.CultureName, description.SubcultureName);
     }
 
@@ -290,20 +323,20 @@ public class Launcher : ICorePlugin
     {
         var steamGameService = MySteamGameService.Create(false, AppId);
         MyServiceManager.Instance.AddService(steamGameService);
-    
+
         var aggregator = new MyServerDiscoveryAggregator();
         MySteamGameService.InitNetworking(false, steamGameService, MyPerGameSettings.GameName, aggregator);
         EosService.InitNetworking(false, false, MyPerGameSettings.GameName, steamGameService, "xyza7891964JhtVD93nm3nZp8t1MbnhC",
                                     "AKGM16qoFtct0IIIA8RCqEIYG4d4gXPPDNpzGuvlhLA", "24b1cd652a18461fa9b3d533ac8d6b5b",
                                     "1958fe26c66d4151a327ec162e4d49c8", "07c169b3b641401496d352cad1c905d6",
                                     "https://retail.epicgames.com/", EosService.CreatePlatform(),
-                                    MyPlatformGameSettings.VERBOSE_NETWORK_LOGGING, ArraySegment<string>.Empty, aggregator,
+                                    MyPlatformGameSettings.VERBOSE_NETWORK_LOGGING, [], aggregator,
                                     MyMultiplayer.Channels);
-        
+
         MyServiceManager.Instance.AddService<IMyServerDiscovery>(aggregator);
-    
+
         MyServiceManager.Instance.AddService(MySteamGameService.CreateMicrophone());
-    
+
         MyGameService.WorkshopService.AddAggregate(MySteamUgcService.Create(AppId, steamGameService));
 
         var modUgc = MyModIoService.Create(MyServiceManager.Instance.GetService<IMyGameService>(), "spaceengineers",
@@ -313,7 +346,7 @@ public class Launcher : ICorePlugin
             MyPlatformGameSettings.MODIO_PORTAL);
         modUgc.IsConsentGiven = MySandboxGame.Config.ModIoConsent;
         MyGameService.WorkshopService.AddAggregate(modUgc);
-    
+
         MySpaceEngineersAchievements.Initialize();
     }
 
@@ -321,13 +354,13 @@ public class Launcher : ICorePlugin
     {
         var renderQualityHint = MyVRage.Platform.Render.GetRenderQualityHint();
         var preset = MyGuiScreenOptionsGraphics.GetPreset(renderQualityHint);
-    
+
         MyRenderProxy.Settings.User = MyVideoSettingsManager
                                       .GetGraphicsSettingsFromConfig(ref preset, renderQualityHint > MyRenderPresetEnum.CUSTOM)
                                       .PerformanceSettings.RenderSettings;
         MyRenderProxy.Settings.EnableAnsel = MyPlatformGameSettings.ENABLE_ANSEL;
         MyRenderProxy.Settings.EnableAnselWithSprites = MyPlatformGameSettings.ENABLE_ANSEL_WITH_SPRITES;
-    
+
         var graphicsRenderer = MySandboxGame.Config.GraphicsRenderer;
         MySandboxGame.Config.GraphicsRenderer = graphicsRenderer;
 

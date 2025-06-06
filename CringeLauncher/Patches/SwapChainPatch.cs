@@ -18,10 +18,10 @@ public static class SwapChainPatch
         WindowHandle = windowHandle;
         MyPlatformRender.DisposeSwapChain();
         MyPlatformRender.Log.WriteLine("CreateDeviceInternal create swapchain");
-        
+
         if (MyPlatformRender.m_swapchain != null)
             return false;
-        
+
         var chainDescription = new SwapChainDescription
         {
             BufferCount = 2,
@@ -39,7 +39,7 @@ public static class SwapChainPatch
             Usage = Usage.ShaderInput | Usage.RenderTargetOutput,
             SwapEffect = SwapEffect.Discard
         };
-        
+
         var factory = MyPlatformRender.GetFactory();
         try
         {
@@ -62,7 +62,7 @@ public static class SwapChainPatch
     {
         ImGuiHandler.Instance?.Init(WindowHandle, MyRender11.DeviceInstance, MyRender11.RC.DeviceContext);
     }
-    
+
     [HarmonyPrefix, HarmonyPatch(typeof(MyBackbuffer), MethodType.Constructor, typeof(SharpDX.Direct3D11.Resource))]
     private static bool SwapChainBBPrefix(MyBackbuffer __instance, SharpDX.Direct3D11.Resource swapChainBB)
     {
@@ -73,13 +73,13 @@ public static class SwapChainPatch
             Dimension = RenderTargetViewDimension.Texture2D,
         });
         __instance.m_srv = new ShaderResourceView(MyRender11.DeviceInstance, swapChainBB);
-            
+
         ImGuiHandler.Rtv = new RenderTargetView(MyRender11.DeviceInstance, swapChainBB, new()
         {
             Format = Format.R8G8B8A8_UNorm,
             Dimension = RenderTargetViewDimension.Texture2D,
         });
-            
+
         return false;
     }
 
@@ -87,7 +87,7 @@ public static class SwapChainPatch
     private static void SwapChainBBReleasePrefix(MyBackbuffer __instance)
     {
         if (ImGuiHandler.Rtv is null) return;
-        
+
         ImGuiHandler.Rtv.Dispose();
         ImGuiHandler.Rtv = null;
     }

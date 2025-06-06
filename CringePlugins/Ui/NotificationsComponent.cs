@@ -25,7 +25,6 @@ public sealed class NotificationsComponent : IRenderComponent
         var lastY = _notificationSize.Y;
         var viewportPos = ImGui.GetMainViewport().Pos;
 
-        
         //todo: consider adding a limit to the number of messages that can be displayed at once
         for (var i = Notifications.Count; i-- > 0;)
         {
@@ -76,7 +75,7 @@ public sealed class NotificationsComponent : IRenderComponent
 
 
         Notifications.RemoveAll(x => x.IsGarbage);
-        
+
         _time += MyCommon.GetLastFrameDelta();
     }
     public static void SpawnNotification(float showTime, Action renderCallback)

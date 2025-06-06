@@ -10,7 +10,7 @@ namespace CringeLauncher.Patches;
 public static class ScriptCompilationSettingsPatch
 {
     private static readonly CSharpParseOptions Options = new(LanguageVersion.Latest, DocumentationMode.None);
-    
+
     private static IEnumerable<CodeInstruction> Transpiler(IEnumerable<CodeInstruction> instructions)
     {
         var field = AccessTools.Field(typeof(MyScriptCompiler), nameof(MyScriptCompiler.m_conditionalParseOptions));

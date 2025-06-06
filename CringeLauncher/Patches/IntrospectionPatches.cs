@@ -42,23 +42,26 @@ public static class IntrospectionPatches
             //mods need to look for specific derived types
             Debug.WriteLine($"Getting special types for {__instance.FullName}");
             var module = __instance.GetMainModule();
-            __result = IntrospectionContext.Global.CollectDerivedTypes<MyObjectBuilder_Base>(module)
-                .Concat(IntrospectionContext.Global.CollectDerivedTypes<MyStatLogic>(module))
-                .Concat(IntrospectionContext.Global.CollectAttributedTypes<MyObjectBuilderDefinitionAttribute>(module))
-                .Concat(IntrospectionContext.Global.CollectDerivedTypes<MyComponentBase>(module))
-                .Concat(IntrospectionContext.Global.CollectAttributedTypes<MyComponentBuilderAttribute>(module))
-                .Concat(IntrospectionContext.Global.CollectDerivedTypes<IMyTextSurfaceScript>(module))
-                .Concat(IntrospectionContext.Global.CollectDerivedTypes<IMyUseObject>(module))
-                .Concat(IntrospectionContext.Global.CollectDerivedTypes<IMyHudStat>(module))
-                .Concat(IntrospectionContext.Global.CollectAttributedTypes<MySessionComponentDescriptor>(module))
-                .ToArray();
+            __result =
+            [
+                .. IntrospectionContext.Global.CollectDerivedTypes<MyObjectBuilder_Base>(module)
+,
+                .. IntrospectionContext.Global.CollectDerivedTypes<MyStatLogic>(module),
+                .. IntrospectionContext.Global.CollectAttributedTypes<MyObjectBuilderDefinitionAttribute>(module),
+                .. IntrospectionContext.Global.CollectDerivedTypes<MyComponentBase>(module),
+                .. IntrospectionContext.Global.CollectAttributedTypes<MyComponentBuilderAttribute>(module),
+                .. IntrospectionContext.Global.CollectDerivedTypes<IMyTextSurfaceScript>(module),
+                .. IntrospectionContext.Global.CollectDerivedTypes<IMyUseObject>(module),
+                .. IntrospectionContext.Global.CollectDerivedTypes<IMyHudStat>(module),
+                .. IntrospectionContext.Global.CollectAttributedTypes<MySessionComponentDescriptor>(module),
+            ];
 
 
             return false;
         }
 
         Debug.WriteLine($"Blocking GetTypes for {__instance.FullName}");
-        
+
         __result = [];
         return false;
     }
@@ -74,10 +77,9 @@ public static class IntrospectionPatches
             __result = [];
             return false;
         }
-        
+
         // static classes are abstract
-        __result = IntrospectionContext.Global.CollectAttributedTypes<HarmonyAttribute>(assembly.GetMainModule(), true)
-            .ToArray();
+        __result = [.. IntrospectionContext.Global.CollectAttributedTypes<HarmonyAttribute>(assembly.GetMainModule(), true)];
         return false;
     }
 
@@ -101,13 +103,13 @@ public static class IntrospectionPatches
             .Concat(PluginsLifetime.Contexts.SelectMany(x => x.Assemblies)) ?? [];
         return false;
     }
-    
+
     [HarmonyPrefix, HarmonyPatch(typeof(MySession), "PrepareBaseSession", typeof(MyObjectBuilder_Checkpoint), typeof(MyObjectBuilder_Sector))]
     private static void PrepareSessionPrefix()
     {
         // i hate keen for that in MyUseObjectFactory..cctor
         // MyUseObjectFactory.RegisterAssemblyTypes(Assembly.LoadFrom(Path.Combine(MyFileSystem.ExePath, "Sandbox.Game.dll")));
-        
+
         MyUseObjectFactory.RegisterAssemblyTypes(MyPlugins.SandboxGameAssembly);
     }
 
@@ -117,10 +119,10 @@ public static class IntrospectionPatches
         foreach (var type in assemblies.SelectMany(b => IntrospectionContext.Global.CollectDerivedTypes<IPlugin>(b.GetMainModule())))
         {
             var instance = Activator.CreateInstance(type);
-            
+
             if (instance is IPlugin plugin)
                 ___m_plugins.Add(plugin);
-            
+
             if (instance is IHandleInputPlugin handleInputPlugin)
                 ___m_handleInputPlugins.Add(handleInputPlugin);
         }
@@ -138,22 +140,22 @@ public static class IntrospectionPatches
 
         if (assembly?.GetType($"Microsoft.Xml.Serialization.GeneratedAssembly.{typeName}Serializer") is not { } type)
             return false;
-        
+
         __result = Activator.CreateInstance(type) as XmlSerializer;
-        
+
         return false;
     }
 
     [HarmonyPrefix, HarmonyPatch(typeof(MyXmlSerializerManager), nameof(MyXmlSerializerManager.RegisterFromAssembly))]
     private static bool XmlManagerRegisterPrefix(Assembly assembly) => AssemblyLoadContext.GetLoadContext(assembly) is ICoreLoadContext;
-    
+
     [HarmonyPatch]
     private static class GameAssembliesPatch
     {
         private static IEnumerable<MethodInfo> TargetMethods()
         {
             return AccessTools.GetDeclaredMethods(typeof(MyPlugins))
-                .Where(b => b.Name.StartsWith("Register") && 
+                .Where(b => b.Name.StartsWith("Register") &&
                             b.GetParameters() is [var param] && param.ParameterType == typeof(string));
         }
 

@@ -51,7 +51,7 @@ internal class PluginAssemblyLoadContext : DerivedAssemblyLoadContext
     {
         if (_dependencyResolver.ResolveAssemblyToPath(assemblyName) is { } path)
             return LoadFromAssemblyPath(path);
-        
+
         return base.Load(assemblyName);
     }
 
@@ -59,7 +59,7 @@ internal class PluginAssemblyLoadContext : DerivedAssemblyLoadContext
     {
         if (_dependencyResolver.ResolveUnmanagedDllToPath(unmanagedDllName) is { } path)
             return LoadUnmanagedDllFromPath(path);
-        
+
         return base.LoadUnmanagedDll(unmanagedDllName);
     }
 

@@ -66,7 +66,7 @@ internal sealed class ImGuiHandler : IGuiHandler, IDisposable
         ImGui_ImplWin32_Init(windowHandle);
         ImGui_ImplDX11_Init(device.NativePointer, deviceContext.NativePointer);
         _init = true;
-        
+
         _imageService.Initialize();
     }
 
@@ -123,7 +123,7 @@ internal sealed class ImGuiHandler : IGuiHandler, IDisposable
 
         UpdatePlatformWindows();
         RenderPlatformWindowsDefault();
-        
+
         _imageService.Update();
     }
 

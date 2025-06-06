@@ -38,10 +38,13 @@ internal class PluginListComponent : IRenderComponent
     private int _selectedProfile = -1;
     private ImmutableArray<Profile> _profiles;
 
+    private bool _disableUpdates;
+    private bool _disablePluginUpdates;
 
-    private bool _changed;
+    private bool _restartRequired;
     private bool _open = true;
     private readonly ConfigReference<PackagesConfig> _packagesConfig;
+    private readonly ConfigReference<LauncherConfig> _launcherConfig;
     private readonly PackageSourceMapping _sourceMapping;
     private readonly JsonSerializerOptions _serializerOptions = new(JsonSerializerDefaults.Web);
     private ImmutableHashSet<PackageSource>? _selectedSources;
@@ -51,16 +54,20 @@ internal class PluginListComponent : IRenderComponent
     private (PackageSource source, int index)? _selectedSource;
     private readonly IImGuiImageService _imageService = GameServicesExtension.GameServices.GetRequiredService<IImGuiImageService>();
 
-    public PluginListComponent(ConfigReference<PackagesConfig> packagesConfig, PackageSourceMapping sourceMapping, string gameFolder,
-        ImmutableArray<PluginInstance> plugins)
+    public PluginListComponent(ConfigReference<PackagesConfig> packagesConfig, ConfigReference<LauncherConfig> launcherConfig,
+        PackageSourceMapping sourceMapping, string gameFolder, ImmutableArray<PluginInstance> plugins)
     {
         _packagesConfig = packagesConfig;
+        _launcherConfig = launcherConfig;
         _sourceMapping = sourceMapping;
         _gameFolder = gameFolder;
         _plugins = plugins;
         _packages = packagesConfig.Value.Packages.ToImmutableDictionary(b => b.Id, b => b.Range,
             StringComparer.OrdinalIgnoreCase);
         _profiles = packagesConfig.Value.Profiles;
+
+        _disablePluginUpdates = _launcherConfig.Value.DisablePluginUpdates;
+        _disableUpdates = _launcherConfig.Value.DisableLauncherUpdates;
 
         MyScreenManager.ScreenAdded += ScreenChanged;
         MyScreenManager.ScreenRemoved += ScreenChanged;
@@ -83,9 +90,9 @@ internal class PluginListComponent : IRenderComponent
             return;
         }
 
-        if (_changed)
+        if (_restartRequired)
         {
-            TextDisabled("Changes would be applied on the next restart");
+            TextDisabled("Changes will be applied on the next restart");
             SameLine();
             if (Button("Restart Now"))
             {
@@ -172,7 +179,7 @@ internal class PluginListComponent : IRenderComponent
                         {
                             var source = _packagesConfig.Value.Sources[index];
                             TableNextRow();
-                            
+
                             TableNextColumn();
 
                             if (Selectable(source.Name, index == _selectedSource?.index, ImGuiSelectableFlags.SpanAllColumns))
@@ -187,12 +194,12 @@ internal class PluginListComponent : IRenderComponent
 
                         EndTable();
                     }
-                    
+
                     EndChild();
                 }
-                
+
                 SameLine();
-                
+
                 BeginGroup();
 
                 BeginChild("Source View", new(0, -GetFrameHeightWithSpacing())); // Leave room for 1 line below us
@@ -200,7 +207,7 @@ internal class PluginListComponent : IRenderComponent
                     if (_selectedSource is not null)
                     {
                         var (selectedSource, index) = _selectedSource.Value;
-                        
+
                         var name = selectedSource.Name;
                         if (InputText("Name", ref name, 256))
                             selectedSource = selectedSource with
@@ -214,7 +221,7 @@ internal class PluginListComponent : IRenderComponent
                             {
                                 Url = url
                             };
-                        
+
                         var pattern = selectedSource.Pattern;
                         if (InputText("Pattern", ref pattern, 1024))
                             selectedSource = selectedSource with
@@ -237,7 +244,7 @@ internal class PluginListComponent : IRenderComponent
 
                             Save();
                         }
-                        
+
                         SameLine();
 
                         if (Button("Delete"))
@@ -254,7 +261,7 @@ internal class PluginListComponent : IRenderComponent
                             Save();
                         }
                     }
-                    
+
                     EndChild();
                 }
 
@@ -271,14 +278,22 @@ internal class PluginListComponent : IRenderComponent
 
                     _selectedSource = (source, array.Length - 1);
                 }
-                
+
                 EndGroup();
-                
+
                 EndTabItem();
             }
 
             if (BeginTabItem("Settings"))
             {
+                if (Checkbox("Disable Plugin Updates", ref _disablePluginUpdates))
+                {
+                    _launcherConfig.Value = _launcherConfig.Value with { DisablePluginUpdates = _disablePluginUpdates };
+                }
+                if (Checkbox("Disable Launcher Updates", ref _disableUpdates))
+                {
+                    _launcherConfig.Value = _launcherConfig.Value with { DisableLauncherUpdates = _disableUpdates };
+                }
                 var oldConfigPath = Path.Join(_gameFolder, "Plugins", "config.xml");
                 if (File.Exists(oldConfigPath))
                 {
@@ -299,6 +314,8 @@ internal class PluginListComponent : IRenderComponent
 
                     var hasModLodaer = _packages.ContainsKey("Plugin.ClientModLoader");
 
+                    SameLine();
+
                     if (!hasModLodaer)
                         BeginDisabled();
 
@@ -310,11 +327,12 @@ internal class PluginListComponent : IRenderComponent
                         if (configSerializer.Deserialize(fs) is PluginLoaderConfig plConfig)
                         {
                             var dir = new DirectoryInfo(Path.Join(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
-                                "CringeLauncher"));
+                                "config", "CringeLauncher"));
                             var file = Path.Join(dir.FullName, "mods.json");
 
                             using var modsFile = File.Create(file);
                             JsonSerializer.Serialize(modsFile, plConfig.GetMods(), _serializerOptions);
+                            _restartRequired = true;
                         }
                     }
 
@@ -535,7 +553,7 @@ internal class PluginListComponent : IRenderComponent
                 {
                     _selectedSources = selected
                         ? (_selectedSources?.Count ?? 0) + 1 == _packagesConfig.Value.Sources.Length ? null : _selectedSources?.Add(source)
-                        : (_selectedSources ?? _packagesConfig.Value.Sources.ToImmutableHashSet()).Remove(source);
+                        : (_selectedSources ?? [.. _packagesConfig.Value.Sources]).Remove(source);
 
                     _searchTask = RefreshAsync();
                     EndCombo();
@@ -545,9 +563,9 @@ internal class PluginListComponent : IRenderComponent
 
             EndCombo();
         }
-        
+
         Spacing();
-        
+
         switch (_searchTask)
         {
             case { IsCompleted: false }:
@@ -733,9 +751,9 @@ internal class PluginListComponent : IRenderComponent
 
         await foreach (var source in _sourceMapping)
         {
-            if (source == null || _selectedSources is not null && _selectedSources.All(b => b.Url != source.ToString()))
+            if (source == null || _selectedSources?.All(b => b.Url != source.ToString()) == true)
                 continue;
-            
+
             try
             {
                 var result = await source.SearchPackagesAsync(_searchQuery, take: 1000, packageType: "CringePlugin");
@@ -758,7 +776,7 @@ internal class PluginListComponent : IRenderComponent
             Packages = [.. _packages.Select(b => new PackageReference(b.Key, b.Value))]
         } : _packagesConfig;
 
-        _changed = true;
+        _restartRequired = true;
     }
 
     private static unsafe int ComparePlugins(PluginInstance x, PluginInstance y, ImGuiTableSortSpecsPtr specs)

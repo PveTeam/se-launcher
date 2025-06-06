@@ -10,16 +10,16 @@ namespace CringePlugins.Splash;
 public class Splash : ISplashProgress, IRenderComponent
 {
     private static readonly Logger Logger = LogManager.GetCurrentClassLogger();
-    
+
     private readonly List<ILoadingStage> _loadingStages = [];
 
     private ProgressInfo? _lastInfo;
     private bool _done;
-    
+
     public void Report(ProgressInfo value)
     {
         _lastInfo = value;
-        
+
         if (value is PercentProgressInfo percentProgressInfo)
             Logger.Info("{Text} {Percent:P0}", percentProgressInfo.Text, percentProgressInfo.Percent);
         else
@@ -58,7 +58,7 @@ public class Splash : ISplashProgress, IRenderComponent
     public void OnFrame()
     {
         if (_done) return;
-        
+
         SetNextWindowPos(GetMainViewport().GetCenter(), ImGuiCond.Always, new(.5f, .5f));
         SetNextWindowSize(new(400, GetFrameHeightWithSpacing()), ImGuiCond.Always);
         Begin("Splash", ImGuiWindowFlags.NoDecoration | ImGuiWindowFlags.NoInputs);
@@ -68,13 +68,13 @@ public class Splash : ISplashProgress, IRenderComponent
         {
             const string text = "Loading...";
             var size = CalcTextSize(text);
-            
+
             SetCursorPosX((GetWindowWidth() - size.X) * .5f);
             Text(text);
         }
         else
             ProgressBar((_lastInfo as PercentProgressInfo)?.Percent ?? 0, sizeArg, _lastInfo.Text);
-        
+
         End();
     }
 }

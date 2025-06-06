@@ -9,11 +9,11 @@ namespace CringeLauncher.Utils;
 public static class ExceptionFormatter
 {
     private static readonly AccessTools.FieldRef<Exception, string> StackTraceField = AccessTools.FieldRefAccess<Exception, string>("_remoteStackTraceString");
-    
+
     public static void FormatStackTrace(this Exception exception)
     {
         var stackTrace = new StackTrace(exception, true);
-        
+
         var sb = new StringBuilder();
 
         var i = 0;
@@ -22,12 +22,12 @@ public static class ExceptionFormatter
             var method = frame.GetMethod();
             if (method is null)
                 continue;
-            
+
             sb.Append("at ");
             if (method.DeclaringType is { } declaringType &&
                 AssemblyLoadContext.GetLoadContext(declaringType.Assembly) is { } assemblyLoadContext)
                 sb.Append(assemblyLoadContext).Append("//");
-            
+
             if (method.IsStatic)
                 sb.Append("static ");
 
@@ -35,7 +35,7 @@ public static class ExceptionFormatter
                 sb.Append(methodInfo.ReturnType, false);
             else
                 sb.Append("new");
-            
+
             sb.Append(' ');
 
             if (method.DeclaringType is null)
@@ -48,7 +48,7 @@ public static class ExceptionFormatter
                 sb.Append('.');
                 sb.Append(method.Name);
             }
-            
+
             if (method.ContainsGenericParameters)
                 sb.Append(method.GetGenericArguments(), false);
 
@@ -63,7 +63,7 @@ public static class ExceptionFormatter
                 if (j < parameters.Length - 1)
                     sb.Append(", ");
             }
-            
+
             sb.Append(')');
 
             if (frame.GetFileName() is { } fileName)
@@ -75,7 +75,7 @@ public static class ExceptionFormatter
         }
 
         ref var stackTraceString = ref StackTraceField(exception);
-        
+
         stackTraceString = sb.ToString();
     }
 
@@ -84,9 +84,9 @@ public static class ExceptionFormatter
         if (fullName && !string.IsNullOrEmpty(type.Namespace))
             sb.Append(type.Namespace).Append('.');
         sb.Append(type.Name);
-        if (type.ContainsGenericParameters) 
+        if (type.ContainsGenericParameters)
             sb.Append(type.GetGenericArguments(), fullName);
-        
+
         return sb;
     }
 

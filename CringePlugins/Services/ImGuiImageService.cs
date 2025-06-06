@@ -48,7 +48,7 @@ internal sealed class ImGuiImageService(HttpClient client) : IImGuiImageService
         });
 
         var srv = new ShaderResourceView(MyRender11.DeviceInstance, tex);
-        
+
         _placeholderImage = new Image(null!, srv, new(1, 1));
     }
 
@@ -88,12 +88,12 @@ internal sealed class ImGuiImageService(HttpClient client) : IImGuiImageService
         try
         {
             var request = new HttpRequestMessage(HttpMethod.Get, url);
-            if (_webCacheEtag.TryGetValue(new(url), out var existingEtag)) 
+            if (_webCacheEtag.TryGetValue(new(url), out var existingEtag))
                 request.Headers.IfNoneMatch.Add(existingEtag);
             using var response = await client.SendAsync(request, HttpCompletionOption.ResponseHeadersRead);
 
             response.EnsureSuccessStatusCode();
-            
+
             if (response.Headers.ETag is { } etag)
                 _webCacheEtag[new(url)] = etag;
 
@@ -125,7 +125,7 @@ internal sealed class ImGuiImageService(HttpClient client) : IImGuiImageService
         if (cacheControl.MaxAge.HasValue)
         {
             var responseAge = DateTimeOffset.UtcNow - cacheControl.MaxAge.Value;
-            return File.GetLastWriteTimeUtc(path) > responseAge; 
+            return File.GetLastWriteTimeUtc(path) > responseAge;
         }
 
         return true;
@@ -160,14 +160,14 @@ internal sealed class ImGuiImageService(HttpClient client) : IImGuiImageService
             CpuAccessFlags = CpuAccessFlags.None,
             OptionFlags = ResourceOptionFlags.None,
         }, img.ToDataBox());
-        
+
         var srv = new ShaderResourceView(MyRender11.DeviceInstance, tex);
-        
+
         image = new Image(identifier, srv, new(desc.Width, desc.Height));
         _images.Add(identifier, image, true);
         return image;
     }
-    
+
     private class ImageReference(ImGuiImage placeholderImage) : ImGuiImage
     {
         public ImGuiImage? Image;
@@ -175,14 +175,14 @@ internal sealed class ImGuiImageService(HttpClient client) : IImGuiImageService
 
         public override nint TextureId => Image ?? ErrorImage ?? placeholderImage;
         public override Vector2 Size => Image ?? ErrorImage ?? placeholderImage;
-        
+
         public override void Dispose()
         {
             Image?.Dispose();
             ErrorImage?.Dispose();
         }
     }
-    
+
     private class Image(ImageIdentifier identifier, ShaderResourceView srv, Vector2 size) : ImGuiImage
     {
         private bool _disposed;
@@ -210,7 +210,7 @@ internal sealed class ImGuiImageService(HttpClient client) : IImGuiImageService
 
         private void OnUse()
         {
-            ObjectDisposedException.ThrowIf(_disposed, this); 
+            ObjectDisposedException.ThrowIf(_disposed, this);
             _lastUse = Stopwatch.GetTimestamp();
         }
 
@@ -223,20 +223,20 @@ internal sealed class ImGuiImageService(HttpClient client) : IImGuiImageService
 
         public override string ToString()
         {
-            return $"Image {{ {identifier} {size} }}"; 
+            return $"Image {{ {identifier} {size} }}";
         }
     }
 
     private abstract record ImageIdentifier;
     private record WebImageIdentifier(Uri Url) : ImageIdentifier;
-    private record FileImageIdentifier(string Path) : ImageIdentifier; 
+    private record FileImageIdentifier(string Path) : ImageIdentifier;
 }
 
 public abstract class ImGuiImage : IDisposable
 {
     public abstract nint TextureId { get; }
     public abstract Vector2 Size { get; }
-    
+
     public static implicit operator nint(ImGuiImage image) => image.TextureId;
     public static implicit operator Vector2(ImGuiImage image) => image.Size;
     public abstract void Dispose();

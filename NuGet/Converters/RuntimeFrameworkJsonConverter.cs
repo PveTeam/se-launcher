@@ -10,7 +10,7 @@ public class RuntimeFrameworkJsonConverter : JsonConverter<NuGetRuntimeFramework
     {
         if (reader.TokenType is not (JsonTokenType.String or JsonTokenType.PropertyName))
             throw new JsonException("Invalid runtime framework string");
-        
+
         return NuGetRuntimeFramework.Parse(reader.GetString()!);
     }
 

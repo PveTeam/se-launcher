@@ -14,7 +14,7 @@ public static class WhitelistPatch
     private static void Prefix(MyScriptCompiler scriptCompiler)
     {
         var baseDir = new FileInfo(typeof(Type).Assembly.Location).DirectoryName!;
-            
+
         scriptCompiler.AddReferencedAssemblies(
             typeof(Type).Assembly.Location,
             typeof(LinkedList<>).Assembly.Location,

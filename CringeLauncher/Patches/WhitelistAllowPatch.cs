@@ -10,7 +10,7 @@ public static class WhitelistAllowPatch
     private static void Prefix(ref MemberInfo[] members)
     {
         if (members.Any(b => b is null))
-            members = members.Where(b => b is { }).ToArray();
+            members = [.. members.Where(b => b is { })];
     }
 
     private static Exception? Finalizer(Exception __exception)

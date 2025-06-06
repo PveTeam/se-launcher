@@ -20,14 +20,15 @@ internal class PluginsLifetime(ConfigHandler configHandler, HttpClient client) :
     public static ImmutableArray<DerivedAssemblyLoadContext> Contexts { get; private set; } = [];
 
     private static readonly Logger Log = LogManager.GetCurrentClassLogger();
-    
+
     public string Name => "Loading Plugins";
-    
+
     private ImmutableArray<PluginInstance> _plugins = [];
     private readonly DirectoryInfo _dir = Directory.CreateDirectory(Path.Join(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "CringeLauncher"));
     private readonly NuGetRuntimeFramework _runtimeFramework = new(NuGetFramework.ParseFolder("net9.0-windows10.0.19041.0"), RuntimeInformation.RuntimeIdentifier);
-    
+
     private ConfigReference<PackagesConfig>? _configReference;
+    private ConfigReference<LauncherConfig>? _launcherConfig;
 
     public async ValueTask Load(ISplashProgress progress)
     {
@@ -40,7 +41,9 @@ internal class PluginsLifetime(ConfigHandler configHandler, HttpClient client) :
         progress.Report("Loading config");
 
         _configReference = configHandler.RegisterConfig("packages", PackagesConfig.Default);
+        _launcherConfig = configHandler.RegisterConfig("launcher", LauncherConfig.Default);
         var packagesConfig = _configReference.Value;
+        var launcherConfig = _launcherConfig.Value;
 
         progress.Report("Resolving packages");
 
@@ -48,12 +51,14 @@ internal class PluginsLifetime(ConfigHandler configHandler, HttpClient client) :
         // TODO take into account the target framework runtime identifier
         var resolver = new PackageResolver(_runtimeFramework.Framework, packagesConfig.Packages, sourceMapping);
 
-        var packages = await resolver.ResolveAsync();
+        var cacheDir = _dir.CreateSubdirectory("cache");
+
+        var packages = await resolver.ResolveAsync(cacheDir, launcherConfig.DisablePluginUpdates);
 
         progress.Report("Downloading packages");
 
         var builtInPackages = await BuiltInPackages.GetPackagesAsync(_runtimeFramework);
-        var cachedPackages = await resolver.DownloadPackagesAsync(_dir.CreateSubdirectory("cache"), packages, builtInPackages.Keys.ToHashSet(), progress);
+        var cachedPackages = await PackageResolver.DownloadPackagesAsync(cacheDir, packages, builtInPackages.Keys.ToHashSet(), progress);
 
         progress.Report("Loading plugins");
 
@@ -62,7 +67,7 @@ internal class PluginsLifetime(ConfigHandler configHandler, HttpClient client) :
 
         await LoadPlugins(cachedPackages, sourceMapping, packagesConfig, builtInPackages);
 
-        RenderHandler.Current.RegisterComponent(new PluginListComponent(_configReference, sourceMapping, MyFileSystem.ExePath, _plugins));
+        RenderHandler.Current.RegisterComponent(new PluginListComponent(_configReference, _launcherConfig, sourceMapping, MyFileSystem.ExePath, _plugins));
     }
 
     public void RegisterLifetime()
@@ -87,7 +92,7 @@ internal class PluginsLifetime(ConfigHandler configHandler, HttpClient client) :
         PackagesConfig packagesConfig, ImmutableDictionary<string, ResolvedPackage> builtInPackages)
     {
         var plugins = _plugins.ToBuilder();
-        
+
         var resolvedPackages = builtInPackages.ToDictionary();
         foreach (var package in packages)
         {
@@ -100,14 +105,14 @@ internal class PluginsLifetime(ConfigHandler configHandler, HttpClient client) :
                 resolvedPackages.TryGetValue(dependency.Id, out var package);
                 return package?.Entry;
             });
-        
+
         foreach (var package in packages)
         {
             if (builtInPackages.ContainsKey(package.Package.Id)) continue;
 
-            var client = await sourceMapping.GetClientAsync(package.Package.Id);
+            var packageClient = await sourceMapping.GetClientAsync(package.Package.Id);
 
-            if (client == null)
+            if (packageClient == null)
             {
                 Log.Warn("Client not found for {Package}", package.Package.Id);
                 continue;
@@ -133,29 +138,29 @@ internal class PluginsLifetime(ConfigHandler configHandler, HttpClient client) :
                 }
             }
 
-            var sourceName = packagesConfig.Sources.First(b => b.Url == client.ToString()).Name;
+            var sourceName = packagesConfig.Sources.First(b => b.Url == packageClient.ToString()).Name;
             LoadComponent(plugins, Path.Join(dir, $"{package.Package.Id}.dll"),
                 new(package.Package.Id, package.Package.Version, sourceName));
         }
-        
+
         _plugins = plugins.ToImmutable();
     }
 
     private void DiscoverLocalPlugins(DirectoryInfo dir)
     {
         var plugins = ImmutableArray<PluginInstance>.Empty.ToBuilder();
-        
+
         foreach (var directory in dir.EnumerateDirectories())
         {
             var files = directory.GetFiles("*.deps.json");
-            
+
             if (files.Length != 1) continue;
-            
+
             var path = files[0].FullName[..^".deps.json".Length] + ".dll";
-            
+
             LoadComponent(plugins, path);
         }
-        
+
         _plugins = plugins.ToImmutable();
     }
 
@@ -166,7 +171,7 @@ internal class PluginsLifetime(ConfigHandler configHandler, HttpClient client) :
             plugins.Add(metadata is null ? new PluginInstance(path) : new(metadata, path));
         }
         catch (Exception e)
-        { 
+        {
             Log.Error(e, "Failed to load plugin {PluginPath}", path);
         }
     }

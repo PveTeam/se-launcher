@@ -10,7 +10,7 @@ public class VersionRangeJsonConverter : JsonConverter<VersionRange>
     {
         if (reader.TokenType != JsonTokenType.String)
             throw new JsonException("Invalid version range");
-        
+
         return VersionRange.Parse(reader.GetString()!);
     }
 

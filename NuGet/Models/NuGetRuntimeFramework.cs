@@ -13,10 +13,10 @@ public record NuGetRuntimeFramework(NuGetFramework Framework, string? RuntimeIde
     public static NuGetRuntimeFramework Parse(string str)
     {
         var index = str.IndexOf('/');
-        
+
         if (index < 0)
             return new NuGetRuntimeFramework(NuGetFramework.Parse(str), null);
-        
+
         return new NuGetRuntimeFramework(NuGetFramework.Parse(str[..index]), str[(index + 1)..]);
     }
 

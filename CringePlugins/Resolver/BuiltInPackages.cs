@@ -33,10 +33,10 @@ public static class BuiltInPackages
             (_, _, _, libraries) = await DependencyManifestSerializer.DeserializeAsync(stream);
 
         var framework = runtimeFramework.Framework;
-        
+
         var nlog = FromAssembly<LogFactory>(framework, version: libraries.Keys.Single(b => b.Id == NLog).Version);
         Version seVersion = new MyVersion(MyPerGameSettings.BasicGameInfo.GameVersion!.Value);
-        
+
         var se = FromAssembly<SpaceEngineersGame>(framework, [
             nlog.AsDependency(libraries)
         ], SeReferenceAssemblies, new(seVersion));
@@ -50,7 +50,7 @@ public static class BuiltInPackages
             var def = ModuleDefMD.Load(r.ImageBytes, IntrospectionContext.Global.Context);
             var attribute = def.CustomAttributes.Find(typeof(AssemblyFileVersionAttribute).FullName);
             var version = attribute is null ? new(99, 0, 0) : NuGetVersion.Parse((string)attribute.ConstructorArguments[0].Value);
-            
+
             return new BuiltInSdkPackage(
                 new(0, Path.GetFileNameWithoutExtension(r.FileName), version), framework,
                 new(Path.GetFileNameWithoutExtension(r.FileName), version, [new(framework, [])], null, []));
@@ -95,16 +95,16 @@ public static class BuiltInPackages
         var builder = ImmutableDictionary.CreateBuilder<string, ResolvedPackage>();
         foreach (var package in packages)
             builder.TryAdd(package.Package.Id, package);
-        
+
         return builder.ToImmutable();
     }
-    
+
     private static Dependency AsDependency(this ResolvedPackage package, ImmutableDictionary<ManifestPackageKey, DependencyLibrary> libraries)
     {
         //ignore the SE reference because the game can update without a launcher update
         if (package.Entry.Id != SeReferenceAssemblies && !libraries.ContainsKey(new(package.Package.Id, package.Package.Version)))
             throw new KeyNotFoundException($"Package {package.Package} not found in root dependencies manifest");
-        
+
         return new Dependency(package.Package.Id, new(package.Package.Version));
     }
 
