@@ -21,6 +21,11 @@
         <Publicize Include="VRage:VRage.Plugins.MyPlugins.m_handleInputPlugins" />
 		<Publicize Include="VRage.Render11:VRageRender.MyCommon" />
 		<Publicize Include="VRage.Render11:VRageRender.MyRender11.DeviceInstance" />
+		<Publicize Include="VRage.Game:VRage.Game.MyDefinitionManagerBase.m_registeredAssemblies" />
+		<Publicize Include="VRage.Game:VRage.Game.MyDefinitionManagerBase.m_registered" />
+		<Publicize Include="VRage.Game:VRage.Game.ObjectBuilder.MyGlobalTypeMetadata.m_assemblies" />
+		<Publicize Include="VRage:VRage.MyXmlSerializerManager.m_registeredAssemblies" />
+		<Publicize Include="Sandbox.Game:Sandbox.Game.World.MySession.m_sessionComponents" />
     </ItemGroup>
     
     <ItemGroup>

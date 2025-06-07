@@ -18,6 +18,7 @@ namespace CringePlugins.Loader;
 internal class PluginsLifetime(ConfigHandler configHandler, HttpClient client) : IPluginsLifetime
 {
     public static ImmutableArray<DerivedAssemblyLoadContext> Contexts { get; private set; } = [];
+    private static readonly Lock ContextsLock = new();
 
     private static readonly Logger Log = LogManager.GetCurrentClassLogger();
 
@@ -68,6 +69,23 @@ internal class PluginsLifetime(ConfigHandler configHandler, HttpClient client) :
         await LoadPlugins(cachedPackages, sourceMapping, packagesConfig, builtInPackages);
 
         RenderHandler.Current.RegisterComponent(new PluginListComponent(_configReference, _launcherConfig, sourceMapping, MyFileSystem.ExePath, _plugins));
+    }
+
+    public static async Task ReloadPlugin(PluginInstance instance)
+    {
+        try
+        {
+            var (oldContext, newContext) = await instance.ReloadAsync();
+
+            lock(ContextsLock)
+            {
+                Contexts = Contexts.Remove(oldContext).Add(newContext);
+            }
+        }
+        catch (Exception e)
+        {
+            Log.Error(e, "Failed to reload plugin {Plugin}", instance.Metadata);
+        }
     }
 
     public void RegisterLifetime()
@@ -158,17 +176,17 @@ internal class PluginsLifetime(ConfigHandler configHandler, HttpClient client) :
 
             var path = files[0].FullName[..^".deps.json".Length] + ".dll";
 
-            LoadComponent(plugins, path);
+            LoadComponent(plugins, path, null, true);
         }
 
         _plugins = plugins.ToImmutable();
     }
 
-    private static void LoadComponent(ImmutableArray<PluginInstance>.Builder plugins, string path, PluginMetadata? metadata = null)
+    private static void LoadComponent(ImmutableArray<PluginInstance>.Builder plugins, string path, PluginMetadata? metadata = null, bool local = false)
     {
         try
         {
-            plugins.Add(metadata is null ? new PluginInstance(path) : new(metadata, path));
+            plugins.Add(metadata is null ? new PluginInstance(path, local) : new(metadata, path, local));
         }
         catch (Exception e)
         {

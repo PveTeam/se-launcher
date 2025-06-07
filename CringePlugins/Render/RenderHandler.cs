@@ -14,7 +14,8 @@ public sealed class RenderHandler : IRootRenderComponent
     public static RenderHandler Current => _current ?? throw new InvalidOperationException("Render is not yet initialized");
     public static IGuiHandler GuiHandler => _guiHandler ?? throw new InvalidOperationException("Render is not yet initialized");
 
-    private readonly ConcurrentBag<ComponentRegistration> _components = [];
+    private readonly List<ComponentRegistration> _components = [];
+    private readonly Lock _componentsLock = new();
 
     internal RenderHandler(IGuiHandler guiHandler)
     {
@@ -24,7 +25,24 @@ public sealed class RenderHandler : IRootRenderComponent
 
     public void RegisterComponent<TComponent>(TComponent instance) where TComponent : IRenderComponent
     {
-        _components.Add(new ComponentRegistration(typeof(TComponent), instance));
+        lock (_componentsLock)
+            _components.Add(new ComponentRegistration(typeof(TComponent), instance));
+    }
+
+    public void UnregisterComponent<TComponent>(TComponent instance) where TComponent : IRenderComponent
+    {
+        lock (_componentsLock)
+        {
+            for (var i = 0; i < _components.Count; i++)
+            {
+                var (instanceType, renderComponent) = _components[i];
+                if (renderComponent.Equals(instance) && instanceType == typeof(TComponent))
+                {
+                    _components.RemoveAtFast(i);
+                    return;
+                }
+            }
+        }
     }
 
     void IRenderComponent.OnFrame()
@@ -33,15 +51,18 @@ public sealed class RenderHandler : IRootRenderComponent
         ImGui.ShowDemoWindow();
 #endif
 
-        foreach (var (instanceType, renderComponent) in _components)
+        lock (_componentsLock)
         {
-            try
+            foreach (var (instanceType, renderComponent) in _components)
             {
-                renderComponent.OnFrame();
-            }
-            catch (Exception e)
-            {
-                Log.Error(e, "Component {TypeName} failed to render a new frame", instanceType);
+                try
+                {
+                    renderComponent.OnFrame();
+                }
+                catch (Exception e)
+                {
+                    Log.Error(e, "Component {TypeName} failed to render a new frame", instanceType);
+                }
             }
         }
     }

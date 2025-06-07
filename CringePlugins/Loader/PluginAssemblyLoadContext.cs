@@ -30,7 +30,7 @@ internal class PluginAssemblyLoadContext : DerivedAssemblyLoadContext
         if (_assembly is not null)
             return _assembly;
 
-        _assembly = LoadFromAssemblyPath(_entrypointPath);
+        _assembly = LoadAssemblyFile(_entrypointPath);
 
         var module = _assembly.GetMainModule();
 
@@ -50,7 +50,7 @@ internal class PluginAssemblyLoadContext : DerivedAssemblyLoadContext
     protected override Assembly? Load(AssemblyName assemblyName)
     {
         if (_dependencyResolver.ResolveAssemblyToPath(assemblyName) is { } path)
-            return LoadFromAssemblyPath(path);
+            return LoadAssemblyFile(path);
 
         return base.Load(assemblyName);
     }
@@ -62,6 +62,8 @@ internal class PluginAssemblyLoadContext : DerivedAssemblyLoadContext
 
         return base.LoadUnmanagedDll(unmanagedDllName);
     }
+
+    protected virtual Assembly LoadAssemblyFile(string path) => LoadFromAssemblyPath(path);
 
     private static void OnUnload(AssemblyLoadContext context)
     {

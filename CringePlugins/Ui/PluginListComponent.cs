@@ -127,11 +127,14 @@ internal class PluginListComponent : IRenderComponent
                         TableNextColumn();
                         BeginDisabled(!plugin.HasConfig);
                         if (plugin.WrappedInstance?.LastException is not null)
+                        {
                             PushStyleColor(plugin.HasConfig ? ImGuiCol.Text : ImGuiCol.TextDisabled,
-                                plugin.HasConfig ? Color.Red.ToFloat4() : Color.DarkRed.ToFloat4());
-                        if (Selectable(plugin.Metadata.Name, false, ImGuiSelectableFlags.SpanAllColumns))
+                                plugin.IsReloading ? Color.Yellow.ToFloat4() : plugin.HasConfig ? Color.Red.ToFloat4() : Color.DarkRed.ToFloat4());
+                        }
+
+                        if (Selectable(plugin.Metadata.Name, false, ImGuiSelectableFlags.SpanAllColumns) && !plugin.IsReloading)
                             plugin.OpenConfig();
-                        if (plugin.WrappedInstance?.LastException is not null)
+                        if (plugin.WrappedInstance?.LastException is not null && !plugin.IsReloading)
                         {
                             PopStyleColor();
                             if (IsItemHovered(ImGuiHoveredFlags.ForTooltip))
@@ -139,6 +142,18 @@ internal class PluginListComponent : IRenderComponent
                                     $"{plugin.WrappedInstance.LastException.GetType()}: {plugin.WrappedInstance.LastException.Message}");
                         }
                         EndDisabled();
+
+                        if (!plugin.IsReloading && BeginPopupContextItem($"##{plugin.Metadata.Name}ContextMenu"))
+                        {
+                            BeginDisabled(!plugin.IsLocal);
+                            if (Button("Reload"))
+                            {
+                                PluginsLifetime.ReloadPlugin(plugin).ConfigureAwait(false);
+                            }
+                            EndDisabled();
+                            EndPopup();
+                        }
+
                         TableNextColumn();
                         Text(plugin.Metadata.Version.ToString());
                         TableNextColumn();
@@ -182,9 +197,27 @@ internal class PluginListComponent : IRenderComponent
 
                             TableNextColumn();
 
-                            if (Selectable(source.Name, index == _selectedSource?.index, ImGuiSelectableFlags.SpanAllColumns))
+                            if (Selectable($"{source.Name}##{index}", index == _selectedSource?.index, ImGuiSelectableFlags.SpanAllColumns))
                             {
                                 _selectedSource = (source, index);
+                            }
+
+                            if (IsItemActive() && !IsItemHovered())
+                            {
+                                var nextIndex = index + (GetMouseDragDelta(0).Y < 0 ? -1 : 1);
+                                if (nextIndex >= 0 && nextIndex < _packagesConfig.Value.Sources.Length)
+                                {
+                                    var builder = _packagesConfig.Value.Sources.ToBuilder();
+
+                                    builder[index] = builder[nextIndex];
+                                    builder[nextIndex] = source;
+
+                                    _packagesConfig.Value = _packagesConfig.Value with
+                                    {
+                                        Sources = builder.ToImmutable()
+                                    };
+                                    _selectedSource = (source, nextIndex);
+                                }
                             }
 
                             TableNextColumn();
