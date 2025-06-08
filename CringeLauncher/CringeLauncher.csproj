@@ -53,6 +53,10 @@
 
     <ItemGroup>
       <Content Include="NativeMethods.txt" />
+      <None Remove="splash.png" />
+      <Content Include="splash.png">
+        <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      </Content>
     </ItemGroup>
 
 </Project>

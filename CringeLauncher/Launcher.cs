@@ -96,9 +96,9 @@ public class Launcher : ICorePlugin
         MyFileSystem.ExePath = Path.GetDirectoryName(args.ElementAtOrDefault(0) ?? Assembly.GetExecutingAssembly().Location)!;
         MyFileSystem.RootPath = new DirectoryInfo(MyFileSystem.ExePath).Parent!.FullName;
 
-        var splash = new Splash();
-
         var serviceProvider = SetupServices();
+        
+        var splash = new Splash();
 
         splash.DefineStage(_lifetime = serviceProvider.GetRequiredService<IPluginsLifetime>());
 

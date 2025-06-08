@@ -1,6 +1,8 @@
 ﻿using System.Numerics;
 using CringePlugins.Abstractions;
+using CringePlugins.Services;
 using ImGuiNET;
+using Microsoft.Extensions.DependencyInjection;
 using NLog;
 
 using static ImGuiNET.ImGui;
@@ -15,7 +17,11 @@ public class Splash : ISplashProgress, IRenderComponent
 
     private ProgressInfo? _lastInfo;
     private bool _done;
+    private readonly string _splashPath = Path.Join(AppContext.BaseDirectory, "splash.png");
 
+    private readonly IImGuiImageService _imageService =
+        GameServicesExtension.GameServices.GetRequiredService<IImGuiImageService>();
+    
     public void Report(ProgressInfo value)
     {
         _lastInfo = value;
@@ -60,8 +66,12 @@ public class Splash : ISplashProgress, IRenderComponent
         if (_done) return;
 
         SetNextWindowPos(GetMainViewport().GetCenter(), ImGuiCond.Always, new(.5f, .5f));
-        SetNextWindowSize(new(400, GetFrameHeightWithSpacing()), ImGuiCond.Always);
+        const int imageSize = 512;
+        SetNextWindowSize(new(512, GetFrameHeightWithSpacing() * 2 + imageSize), ImGuiCond.Always);
         Begin("Splash", ImGuiWindowFlags.NoDecoration | ImGuiWindowFlags.NoInputs);
+
+        var image = _imageService.GetFromPath(_splashPath);
+        Image(image, new(imageSize));
 
         var sizeArg = new Vector2(GetWindowWidth() - GetStyle().WindowPadding.X * 2, 0);
         if (_lastInfo is null)
