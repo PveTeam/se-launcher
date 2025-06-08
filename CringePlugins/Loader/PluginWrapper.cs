@@ -85,8 +85,7 @@ internal sealed class PluginWrapper(PluginMetadata metadata, IPlugin plugin) : I
 
     private void RenderError()
     {
-        ImGui.TextColored(new System.Numerics.Vector4(1f, 0f, 0f, 0f), "Error: ");
-        ImGui.SameLine();
-        ImGui.TextWrapped($"Fatal error in {metadata.Name}: {LastException?.Message}");
+        ImGui.TextColored(new System.Numerics.Vector4(1f, 0f, 0f, 1f), $"Fatal error in {metadata.Name}:");
+        ImGui.TextWrapped(LastException?.Message);
     }
 }

@@ -54,7 +54,22 @@ internal class PluginsLifetime(ConfigHandler configHandler, HttpClient client) :
 
         var cacheDir = _dir.CreateSubdirectory("cache");
 
-        var packages = await resolver.ResolveAsync(cacheDir, launcherConfig.DisablePluginUpdates);
+        var invalidPackages = new List<PackageReference>();
+        var packages = await resolver.ResolveAsync(cacheDir, launcherConfig.DisablePluginUpdates, invalidPackages);
+
+        if (invalidPackages.Count > 0)
+        {
+            var builder = packagesConfig.Packages.ToBuilder();
+
+            foreach (var package in invalidPackages)
+            {
+                builder.Remove(package);
+            }
+
+            _configReference.Value = packagesConfig with { Packages = builder.ToImmutable() };
+            packagesConfig = _configReference.Value;
+            Log.Warn("Removed {Count} invalid packages from the config", invalidPackages.Count);
+        }
 
         progress.Report("Downloading packages");
 

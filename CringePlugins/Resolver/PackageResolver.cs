@@ -11,7 +11,7 @@ namespace CringePlugins.Resolver;
 public class PackageResolver(NuGetFramework runtimeFramework, ImmutableArray<PackageReference> references, PackageSourceMapping packageSources)
 {
     private static readonly ILogger Log = LogManager.GetCurrentClassLogger();
-    public async Task<ImmutableSortedSet<ResolvedPackage>> ResolveAsync(DirectoryInfo baseDir, bool disableUpdates)
+    public async Task<ImmutableSortedSet<ResolvedPackage>> ResolveAsync(DirectoryInfo baseDir, bool disableUpdates, List<PackageReference> invalidPackages)
     {
         var order = 0;
         var packages = new Dictionary<Package, CatalogEntry>();
@@ -31,6 +31,12 @@ public class PackageResolver(NuGetFramework runtimeFramework, ImmutableArray<Pac
             }
             catch (HttpRequestException ex)
             {
+                if (ex.StatusCode == System.Net.HttpStatusCode.NotFound)
+                {
+                    //package isn't on this source, and should be removed from the config
+                    invalidPackages.Add(reference);
+                }
+
                 Log.Warn("Failed to resolve package {Package}: {Message}", reference.Id, ex.Message);
                 continue;
             }
@@ -70,8 +76,6 @@ public class PackageResolver(NuGetFramework runtimeFramework, ImmutableArray<Pac
 
             if (!packages.TryGetValue(package, out var existingEntry))
                 throw new InvalidOperationException($"Duplicate package error {package.Id}");
-
-            
 
             if (package.Version < existingEntry.Version)
                 throw new NotSupportedException($"Package reference {package.Id} has lower version {package.Version} than already resolved {existingEntry.Version}");

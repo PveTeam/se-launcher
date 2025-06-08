@@ -120,6 +120,7 @@ internal class PluginListComponent : IRenderComponent
                         sortSpecs.SpecsDirty = false;
                     }
 
+                    var i = 0;
                     foreach (var plugin in _plugins)
                     {
                         TableNextRow();
@@ -132,8 +133,18 @@ internal class PluginListComponent : IRenderComponent
                                 plugin.IsReloading ? Color.Yellow.ToFloat4() : plugin.HasConfig ? Color.Red.ToFloat4() : Color.DarkRed.ToFloat4());
                         }
 
-                        if (Selectable(plugin.Metadata.Name, false, ImGuiSelectableFlags.SpanAllColumns) && !plugin.IsReloading)
+                        if (Selectable($"{plugin.Metadata.Name}##{++i}", false, ImGuiSelectableFlags.SpanAllColumns) && !plugin.IsReloading)
                             plugin.OpenConfig();
+
+                        if (!plugin.IsReloading && plugin.IsLocal && BeginPopupContextItem($"##{plugin.Metadata.Name}ContextMenu{i}"))
+                        {
+                            if (Button($"Reload##{i}"))
+                            {
+                                PluginsLifetime.ReloadPlugin(plugin).ConfigureAwait(false);
+                            }
+                            EndPopup();
+                        }
+
                         if (plugin.WrappedInstance?.LastException is not null && !plugin.IsReloading)
                         {
                             PopStyleColor();
@@ -143,16 +154,6 @@ internal class PluginListComponent : IRenderComponent
                         }
                         EndDisabled();
 
-                        if (!plugin.IsReloading && BeginPopupContextItem($"##{plugin.Metadata.Name}ContextMenu"))
-                        {
-                            BeginDisabled(!plugin.IsLocal);
-                            if (Button("Reload"))
-                            {
-                                PluginsLifetime.ReloadPlugin(plugin).ConfigureAwait(false);
-                            }
-                            EndDisabled();
-                            EndPopup();
-                        }
 
                         TableNextColumn();
                         Text(plugin.Metadata.Version.ToString());

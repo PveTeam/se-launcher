@@ -87,7 +87,7 @@ public static class BuiltInPackages
                     steam.AsDependency(libraries)
                 ]
 #if DEBUG
-                , version: new(0, 1, 21)
+                , version: new(0, 1, 84)
 #endif
             ),
         ];
