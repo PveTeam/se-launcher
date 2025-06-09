@@ -11,6 +11,8 @@
         <RestorePackagesWithLockFile>true</RestorePackagesWithLockFile>
         <EnableWindowsTargeting>true</EnableWindowsTargeting>
         <RuntimeIdentifier>win-x64</RuntimeIdentifier>
+        
+        <ApplicationIcon>..\icon.ico</ApplicationIcon>
     </PropertyGroup>
 
     <ItemGroup>
