@@ -75,7 +75,7 @@ internal class PluginListComponent : IRenderComponent
 
     private void ScreenChanged(MyGuiScreenBase screen)
     {
-        _open = MyScreenManager.GetScreenWithFocus() is MyGuiScreenMainMenu && MyGuiScreenGamePlay.Static is null;
+        _open = MyScreenManager.GetScreenWithFocus() is MyGuiScreenMainMenu;
     }
 
     public void OnFrame()
