@@ -1,0 +1,29 @@
+{
+  "$schema": "http://json.schemastore.org/template",
+  "author": "zznty",
+  "classifications": [ "CringeLauncher", "SpaceEngineers", "Plugin" ],
+  "identity": "CringePlugins.PluginTemplate.Plugin",
+  "name": "SpaceEngineers Plugin Template",
+  "shortName": "cringeplugin",
+  "tags": {
+    "language": "C#",
+    "type": "project"
+  },
+  "defaultName": "Plugin",
+  "sourceName": "$projectName$",
+  "postActions": [],
+  "symbols": {
+    "title": {
+      "type": "parameter",
+      "defaultValue": "Test Plugin",
+      "description": "The title of the plugin",
+      "replaces": "TitlePlaceholder"
+    },
+    "description": {
+      "type": "parameter",
+      "defaultValue": "This is a test plugin",
+      "description": "The description of the plugin",
+      "replaces": "DescriptionPlaceholder"
+    }
+  }
+}

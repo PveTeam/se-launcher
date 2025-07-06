@@ -1,0 +1,13 @@
+﻿{
+  "$schema": "http://json.schemastore.org/launchsettings.json",
+  "profiles": {
+    "CringeBootstrap": {
+      "commandName": "Project",
+      "commandLineArgs": "\"C:\\Program Files (x86)\\Steam\\steamapps\\common\\SpaceEngineers\\Bin64\\SpaceEngineers.exe\"",
+      "environmentVariables": {
+        "DOTNET_BOOTSTRAP_ENTRYPOINT": "CringeLauncher.UserDev.UserDevLauncher, CringeLauncher",
+        "DOTNET_USERDEV_RUNDIR": "data"
+      }
+    }
+  }
+}

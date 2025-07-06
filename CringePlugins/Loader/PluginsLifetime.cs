@@ -15,7 +15,7 @@ using VRage.FileSystem;
 
 namespace CringePlugins.Loader;
 
-internal class PluginsLifetime(ConfigHandler configHandler, HttpClient client) : IPluginsLifetime
+internal class PluginsLifetime(ConfigHandler configHandler, HttpClient client, DirectoryInfo dir) : IPluginsLifetime
 {
     public static ImmutableArray<DerivedAssemblyLoadContext> Contexts { get; private set; } = [];
     private static readonly Lock ContextsLock = new();
@@ -25,8 +25,9 @@ internal class PluginsLifetime(ConfigHandler configHandler, HttpClient client) :
     public string Name => "Loading Plugins";
 
     private ImmutableArray<PluginInstance> _plugins = [];
-    private readonly DirectoryInfo _dir = Directory.CreateDirectory(Path.Join(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "CringeLauncher"));
-    private readonly NuGetRuntimeFramework _runtimeFramework = new(NuGetFramework.ParseFolder("net9.0-windows10.0.19041.0"), RuntimeInformation.RuntimeIdentifier);
+
+    private readonly NuGetRuntimeFramework _runtimeFramework =
+        new(NuGetFramework.ParseFolder("net9.0-windows10.0.19041.0"), RuntimeInformation.RuntimeIdentifier);
 
     private ConfigReference<PackagesConfig>? _configReference;
     private ConfigReference<LauncherConfig>? _launcherConfig;
@@ -41,7 +42,7 @@ internal class PluginsLifetime(ConfigHandler configHandler, HttpClient client) :
         await Task.Delay(10000);
 #endif
 
-        DiscoverLocalPlugins(_dir.CreateSubdirectory("plugins"));
+        DiscoverLocalPlugins(dir.CreateSubdirectory("plugins"));
 
         progress.Report("Loading config");
 
@@ -56,7 +57,7 @@ internal class PluginsLifetime(ConfigHandler configHandler, HttpClient client) :
         // TODO take into account the target framework runtime identifier
         var resolver = new PackageResolver(_runtimeFramework.Framework, packagesConfig.Packages, sourceMapping);
 
-        var cacheDir = _dir.CreateSubdirectory("cache");
+        var cacheDir = dir.CreateSubdirectory("cache");
 
         var invalidPackages = new List<PackageReference>();
         var packages = await resolver.ResolveAsync(cacheDir, launcherConfig.DisablePluginUpdates, invalidPackages);
@@ -78,7 +79,8 @@ internal class PluginsLifetime(ConfigHandler configHandler, HttpClient client) :
         progress.Report("Downloading packages");
 
         var builtInPackages = await BuiltInPackages.GetPackagesAsync(_runtimeFramework);
-        var cachedPackages = await PackageResolver.DownloadPackagesAsync(cacheDir, packages, builtInPackages.Keys.ToHashSet(), progress);
+        var cachedPackages =
+            await PackageResolver.DownloadPackagesAsync(cacheDir, packages, builtInPackages.Keys.ToHashSet(), progress);
 
         progress.Report("Loading plugins");
 
@@ -87,7 +89,8 @@ internal class PluginsLifetime(ConfigHandler configHandler, HttpClient client) :
 
         await LoadPlugins(cachedPackages, sourceMapping, packagesConfig, builtInPackages);
 
-        RenderHandler.Current.RegisterComponent(new PluginListComponent(_configReference, _launcherConfig, sourceMapping, MyFileSystem.ExePath, _plugins));
+        RenderHandler.Current.RegisterComponent(new PluginListComponent(_configReference, _launcherConfig,
+            sourceMapping, MyFileSystem.ExePath, _plugins));
     }
 
     public static async Task ReloadPlugin(PluginInstance instance)
@@ -96,7 +99,7 @@ internal class PluginsLifetime(ConfigHandler configHandler, HttpClient client) :
         {
             var (oldContext, newContext) = await instance.ReloadAsync();
 
-            lock(ContextsLock)
+            lock (ContextsLock)
             {
                 Contexts = Contexts.Remove(oldContext).Add(newContext);
             }
@@ -122,6 +125,7 @@ internal class PluginsLifetime(ConfigHandler configHandler, HttpClient client) :
                 Log.Error(e, "Failed to instantiate plugin {Plugin}", instance.Metadata);
             }
         }
+
         Contexts = contextBuilder.ToImmutable();
     }
 
@@ -136,7 +140,7 @@ internal class PluginsLifetime(ConfigHandler configHandler, HttpClient client) :
             resolvedPackages.TryAdd(package.Package.Id, package);
         }
 
-        var manifestBuilder = new DependencyManifestBuilder(_dir.CreateSubdirectory("cache"), sourceMapping,
+        var manifestBuilder = new DependencyManifestBuilder(dir.CreateSubdirectory("cache"), sourceMapping,
             dependency =>
             {
                 resolvedPackages.TryGetValue(dependency.Id, out var package);
@@ -187,7 +191,9 @@ internal class PluginsLifetime(ConfigHandler configHandler, HttpClient client) :
     {
         var plugins = ImmutableArray<PluginInstance>.Empty.ToBuilder();
 
-        foreach (var directory in dir.EnumerateDirectories())
+        foreach (var directory in Environment.GetEnvironmentVariable("DOTNET_USERDEV_PLUGINDIR") is { } userDevPlugin
+                     ? [new(userDevPlugin), ..dir.GetDirectories()]
+                     : dir.EnumerateDirectories())
         {
             var files = directory.GetFiles("*.deps.json");
 
@@ -201,7 +207,8 @@ internal class PluginsLifetime(ConfigHandler configHandler, HttpClient client) :
         _plugins = plugins.ToImmutable();
     }
 
-    private static void LoadComponent(ImmutableArray<PluginInstance>.Builder plugins, string path, PluginMetadata? metadata = null, bool local = false)
+    private static void LoadComponent(ImmutableArray<PluginInstance>.Builder plugins, string path,
+        PluginMetadata? metadata = null, bool local = false)
     {
         try
         {

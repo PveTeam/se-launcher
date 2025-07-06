@@ -1,0 +1,9 @@
+﻿<Project>
+    <Target Name="_GenerateRunConfig" AfterTargets="CollectPackageReferences" Condition=" '$([System.OperatingSystem]::IsWindows())' == 'True' ">
+        <GenerateRunConfig RunConfigPath="$(RunConfigPath)" ProjectName="$(MSBuildProjectName)" />
+    </Target>
+    
+    <Target Name="AfterClean">
+        <Delete Files="$(RunConfigPath)" ContinueOnError="true" />
+    </Target>
+</Project>

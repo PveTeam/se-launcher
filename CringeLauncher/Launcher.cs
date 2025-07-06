@@ -45,15 +45,27 @@ namespace CringeLauncher;
 
 public class Launcher : ICorePlugin
 {
-    private const uint AppId = 244850U;
+    private readonly string? _gameDataDirectoryPathOverride;
+    protected const uint AppId = 244850U;
     private SpaceEngineersGame? _game;
     private readonly Harmony _harmony = new("CringeBootstrap");
     private IPluginsLifetime? _lifetime;
 
     private MyGameRenderComponent? _renderComponent;
 
-    private readonly DirectoryInfo _configDir = Directory.CreateDirectory(
-        Path.Join(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "CringeLauncher", "config"));
+    private readonly DirectoryInfo _configDir;
+    private readonly DirectoryInfo _dir;
+
+    public Launcher() : this(null) { }
+
+    protected Launcher(string? gameDataDirectoryPathOverride)
+    {
+        _gameDataDirectoryPathOverride = gameDataDirectoryPathOverride;
+        _dir = Directory.CreateDirectory(Path.Join(
+            gameDataDirectoryPathOverride ?? Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
+            "CringeLauncher"));
+        _configDir = _dir.CreateSubdirectory("config");
+    }
 
     public void Initialize(string[] args)
     {
@@ -107,7 +119,7 @@ public class Launcher : ICorePlugin
         MyFinalBuildConstants.APP_VERSION = MyPerGameSettings.BasicGameInfo.GameVersion.GetValueOrDefault();
         MyShaderCompiler.Init(MyShaderCompiler.TargetPlatform.PC, false);
         MyVRageWindows.Init(MyPerGameSettings.BasicGameInfo.ApplicationName, MySandboxGame.Log,
-                            Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
+                            Path.Join(_gameDataDirectoryPathOverride ?? Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
                                          MyPerGameSettings.BasicGameInfo.ApplicationName),
                             false, false);
 
@@ -168,7 +180,8 @@ public class Launcher : ICorePlugin
         var retryPolicy = HttpPolicyExtensions.HandleTransientHttpError()
             .WaitAndRetryAsync(5, _ => TimeSpan.FromSeconds(1));
 
-        services.AddHttpClient<PluginsLifetime>()
+        services.AddHttpClient<PluginsLifetime, PluginsLifetime>((client, provider) => 
+                new PluginsLifetime(provider.GetRequiredService<ConfigHandler>(), client, _dir))
             .ConfigurePrimaryHttpMessageHandler(() => new HttpClientHandler
             {
                 AutomaticDecompression = DecompressionMethods.All
@@ -225,7 +238,7 @@ public class Launcher : ICorePlugin
         return MyVRage.Platform.Windows.Window;
     }
 
-    private async Task<bool> CheckUpdatesDisabledAsync(Logger logger)
+    protected virtual async Task<bool> CheckUpdatesDisabledAsync(Logger logger)
     {
         var path = Path.Join(_configDir.FullName, "launcher.json");
 
@@ -319,7 +332,7 @@ public class Launcher : ICorePlugin
         MyTexts.LoadTexts(textsPath, description.CultureName, description.SubcultureName);
     }
 
-    public static void InitUgc()
+    protected virtual void InitUgc()
     {
         var steamGameService = MySteamGameService.Create(false, AppId);
         MyServiceManager.Instance.AddService(steamGameService);

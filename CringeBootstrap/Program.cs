@@ -1,5 +1,6 @@
 ﻿using System.Diagnostics;
 using System.Reflection;
+using System.Reflection.Metadata;
 using System.Runtime.Loader;
 using CringeBootstrap;
 using CringeBootstrap.Abstractions;
@@ -47,9 +48,20 @@ context.AddDependencyOverride("CringeLauncher");
 context.AddDependencyOverride("CringePlugins");
 context.AddDependencyOverride("EOSSDK");
 
-var launcher = context.LoadFromAssemblyName(new AssemblyName("CringeLauncher"));
+var entrypoint = Environment.GetEnvironmentVariable("DOTNET_BOOTSTRAP_ENTRYPOINT") ??
+                                           "CringeLauncher.Launcher, CringeLauncher";
+if (!TypeName.TryParse(entrypoint, out var entrypointName) || 
+    entrypointName.AssemblyName is null)
+{
+    Console.Error.WriteLine($"Invalid entrypoint name: {entrypoint}");
+    Console.Error.WriteLine("Bootstrap encountered a fatal error and will shutdown.");
+    Console.Read();
+    return;
+}
 
-using var corePlugin = (ICorePlugin) launcher.CreateInstance("CringeLauncher.Launcher")!;
+var launcher = context.LoadFromAssemblyName(entrypointName.AssemblyName.ToAssemblyName());
+
+using var corePlugin = (ICorePlugin) launcher.CreateInstance(entrypointName.FullName)!;
 
 corePlugin.Initialize(args);
 corePlugin.Run();

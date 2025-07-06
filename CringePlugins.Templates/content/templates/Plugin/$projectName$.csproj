@@ -1,0 +1,32 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net9.0-windows</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <RuntimeIdentifier>win-x64</RuntimeIdentifier>
+    <UseWindowsForms>true</UseWindowsForms>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <EnableWindowsTargeting>true</EnableWindowsTargeting>
+    <RestoreAdditionalProjectSources>https://ng.zznty.ru/v3/index.json</RestoreAdditionalProjectSources>
+    <EnableDynamicLoading>true</EnableDynamicLoading>
+    <PackageType>CringePlugin</PackageType>
+    <Authors>CringeLauncher</Authors>
+    <PackageId>Plugin.$projectName$</PackageId>
+    <AssemblyName>Plugin.$projectName$</AssemblyName>
+    <Title>TitlePlaceholder</Title>
+    <Description>DescriptionPlaceholder</Description>
+    <LangVersion>preview</LangVersion>
+    <PackageIcon>icon.png</PackageIcon>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="CringePlugins" Version="*" ExcludeAssets="runtime; native" />
+    <PackageReference Include="CringePlugins.MSBuild" Version="*" PrivateAssets="All" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="icon.png" Pack="true" PackagePath="" />
+  </ItemGroup>
+
+</Project>
