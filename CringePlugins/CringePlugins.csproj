@@ -37,13 +37,17 @@
         <PackageReference Include="ImGui.NET.DirectX" Version="1.91.0.1" />
         <PackageReference Include="SpaceEngineersDedicated.ReferenceAssemblies" Version="1.*" ExcludeAssets="runtime" />
         <PackageReference Include="dnlib" Version="4.4.0" />
-		<PackageReference Include="Steamworks.NET" Version="[20.1.0]" />
+        <PackageReference Include="Steamworks.NET" Version="[20.1.0]" />
         <PackageReference Include="Krafs.Publicizer" Version="2.3.0">
             <PrivateAssets>all</PrivateAssets>
             <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
         </PackageReference>
+        
+        <!-- It is included only because some plugins were using it previously -->
+        <!-- TODO Make this a reference in each plugin project when dependencies support is shipped -->
+        <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
     </ItemGroup>
-    
+
     <ItemGroup>
       <EmbeddedResource Include="splash.gif" />
     </ItemGroup>

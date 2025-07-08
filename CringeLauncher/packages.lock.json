@@ -371,6 +371,11 @@
           "MonoMod.ILHelpers": "1.1.0"
         }
       },
+      "Newtonsoft.Json": {
+        "type": "Transitive",
+        "resolved": "13.0.3",
+        "contentHash": "HrC5BXdl00IP9zeV+0Z848QWPAoCr9P3bDEZguI+gkLcBKAOxix/tLEAAHC+UvDNPv4a2d18lOReHMOagPa+zQ=="
+      },
       "NuGet.Frameworks": {
         "type": "Transitive",
         "resolved": "6.13.2",
@@ -457,6 +462,7 @@
           "Lib.Harmony.Thin": "[2.3.4-torch, )",
           "Microsoft.Extensions.DependencyInjection.Abstractions": "[9.0.5, )",
           "NLog": "[5.4.0, )",
+          "Newtonsoft.Json": "[13.0.3, )",
           "NuGet": "[1.0.0, )",
           "SharedCringe": "[1.0.0, )",
           "SpaceEngineersDedicated.ReferenceAssemblies": "[1.*, )",
