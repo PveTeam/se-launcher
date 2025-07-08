@@ -8,6 +8,12 @@
         "resolved": "5.3.4",
         "contentHash": "eMlf4Y0gx5KycV3cdptEocd9Y9h10fWhRVUKyuY9nF6a55eWJlpKHqCWQbgHjvbC/7cBfF8DsZG8dZbST2fpew=="
       },
+      "System.Runtime.Serialization.Formatters": {
+        "type": "Direct",
+        "requested": "[9.0.6, )",
+        "resolved": "9.0.6",
+        "contentHash": "zm5backJELHp2RgdVA2LJd+Ydnsd0kkJd2/lNPTH9T8gIpzRKMKQgPMFH+1q/7IPlZu8wYL1ZeRqsVgHqmaC8g=="
+      },
       "Velopack": {
         "type": "Direct",
         "requested": "[0.0.942, )",

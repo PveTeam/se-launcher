@@ -12,12 +12,17 @@
         <EnableWindowsTargeting>true</EnableWindowsTargeting>
         <RuntimeIdentifier>win-x64</RuntimeIdentifier>
         
+        <!-- Required for Serialization of List<MyGameInventoryItem> in VRage.GameServices.MyInventoryHelper -->
+        <!-- Deserialization is patched to use safer NrbfDecoder instead -->
+        <EnableUnsafeBinaryFormatterSerialization>true</EnableUnsafeBinaryFormatterSerialization>
+        
         <ApplicationIcon>..\icon.ico</ApplicationIcon>
     </PropertyGroup>
 
     <ItemGroup>
         <PackageReference Include="NLog.Schema" Version="5.3.4" />
         <PackageReference Include="Velopack" Version="0.0.942" />
+        <PackageReference Include="System.Runtime.Serialization.Formatters" Version="9.0.6" />
     </ItemGroup>
 
     <ItemGroup>
