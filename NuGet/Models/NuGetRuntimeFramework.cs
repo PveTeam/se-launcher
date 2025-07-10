@@ -22,6 +22,6 @@ public record NuGetRuntimeFramework(NuGetFramework Framework, string? RuntimeIde
 
     public override string ToString()
     {
-        return string.IsNullOrEmpty(RuntimeIdentifier) ? Framework.ToString() : $"{Framework}/{RuntimeIdentifier}";
+        return string.IsNullOrEmpty(RuntimeIdentifier) ? Framework.DotNetFrameworkName : $"{Framework.DotNetFrameworkName}/{RuntimeIdentifier}";
     }
 }

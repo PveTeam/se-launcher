@@ -84,21 +84,25 @@ public class DependencyManifestBuilder(DirectoryInfo cacheDirectory, PackageSour
         var runtimeTarget = new RuntimeTarget(targetFramework);
 
         var targets = ImmutableDictionary<ManifestPackageKey, DependencyTarget>.Empty.ToBuilder();
+        var libraries = ImmutableDictionary<ManifestPackageKey, DependencyLibrary>.Empty.ToBuilder();
 
-        await MapCatalogEntryAsync(catalogEntry, targetFramework, targets);
+        await MapCatalogEntryAsync(catalogEntry, targetFramework, targets, libraries);
 
         var manifest = new DependenciesManifest(runtimeTarget, ImmutableDictionary<NuGetRuntimeFramework, string>.Empty,
             ImmutableDictionary<NuGetRuntimeFramework, ImmutableDictionary<ManifestPackageKey, DependencyTarget>>.Empty
                 .Add(targetFramework, targets.ToImmutable()),
-            ImmutableDictionary<ManifestPackageKey, DependencyLibrary>.Empty);
+            libraries.ToImmutable());
 
         await DependencyManifestSerializer.SerializeAsync(stream, manifest);
     }
 
     private async Task MapCatalogEntryAsync(CatalogEntry catalogEntry, NuGetRuntimeFramework targetFramework,
-        ImmutableDictionary<ManifestPackageKey, DependencyTarget>.Builder targets)
+        ImmutableDictionary<ManifestPackageKey, DependencyTarget>.Builder targets,
+        ImmutableDictionary<ManifestPackageKey, DependencyLibrary>.Builder libraries)
     {
-        if (targets.ContainsKey(new(catalogEntry.Id, catalogEntry.Version)) || !catalogEntry.DependencyGroups.HasValue)
+        var packageKey = new ManifestPackageKey(catalogEntry.Id, catalogEntry.Version);
+        
+        if (targets.ContainsKey(packageKey) || !catalogEntry.DependencyGroups.HasValue)
             return;
 
         // TODO take into account the target framework runtime identifier
@@ -108,15 +112,18 @@ public class DependencyManifestBuilder(DirectoryInfo cacheDirectory, PackageSour
         if (nearest is null)
             return;
 
-        targets.Add(new(catalogEntry.Id, catalogEntry.Version),
+        targets.Add(packageKey,
             await MapEntryAsync(catalogEntry, nearest));
+
+        libraries.Add(packageKey,
+            new DependencyLibrary(LibraryType.Package, Serviceable: true, Path: packageKey));
 
         foreach (var entry in (nearest.Dependencies ?? []).Select(catalogEntryResolver))
         {
             if (entry is null)
                 continue;
 
-            await MapCatalogEntryAsync(entry, targetFramework, targets);
+            await MapCatalogEntryAsync(entry, targetFramework, targets, libraries);
         }
     }
 
@@ -127,11 +134,12 @@ public class DependencyManifestBuilder(DirectoryInfo cacheDirectory, PackageSour
         return new(
             group.Dependencies?.ToImmutableDictionary(b => b.Id, b => catalogEntryResolver(b)!.Version) ??
             ImmutableDictionary<string, NuGetVersion>.Empty,
-            packageEntries.Where(b => b.FullName.StartsWith($"lib/{group.TargetFramework.GetShortFolderName()}/"))
-                .ToImmutableDictionary(b => b.FullName, _ => new RuntimeDependency()),
+            packageEntries.Where(b => b.FullName.StartsWith($@"lib\{group.TargetFramework.GetShortFolderName()}\") && 
+                                      Path.GetExtension(b.FullName.AsSpan()) is ".dll")
+                .ToImmutableDictionary(b => b.FullName.Replace('\\', '/'), _ => new RuntimeDependency()),
             packageEntries.Where(b =>
-                    b.FullName.StartsWith($"runtimes/{RuntimeInformation.RuntimeIdentifier}/native/"))
-                .ToImmutableDictionary(b => b.FullName, _ => new Dependency()));
+                    b.FullName.StartsWith($@"runtimes\{RuntimeInformation.RuntimeIdentifier}\native\"))
+                .ToImmutableDictionary(b => b.FullName.Replace('\\', '/'), _ => new Dependency()));
     }
 
     private async Task<ImmutableArray<CatalogPackageEntry>> GetPackageContent(CatalogEntry entry)
@@ -145,7 +153,7 @@ public class DependencyManifestBuilder(DirectoryInfo cacheDirectory, PackageSour
                 return
                 [
                     ..dir.EnumerateFiles("*", SearchOption.AllDirectories)
-                        .Select(b => new CatalogPackageEntry(b.Name, b.FullName, b.Length, b.Length))
+                        .Select(b => new CatalogPackageEntry(b.Name, Path.GetRelativePath(dir.FullName, b.FullName), b.Length, b.Length))
                 ];
             }
 

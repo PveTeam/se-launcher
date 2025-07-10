@@ -58,6 +58,8 @@ internal class PluginsLifetime(ConfigHandler configHandler, HttpClient client, D
         var resolver = new PackageResolver(_runtimeFramework.Framework, packagesConfig.Packages, sourceMapping);
 
         var cacheDir = dir.CreateSubdirectory("cache");
+        
+        InitializeSharedStore(ref cacheDir);
 
         var invalidPackages = new List<PackageReference>();
         var packages = await resolver.ResolveAsync(cacheDir, launcherConfig.DisablePluginUpdates, invalidPackages);
@@ -149,7 +151,7 @@ internal class PluginsLifetime(ConfigHandler configHandler, HttpClient client, D
 
         foreach (var package in packages)
         {
-            if (builtInPackages.ContainsKey(package.Package.Id)) continue;
+            if (builtInPackages.ContainsKey(package.Package.Id) || package.Entry.PackageTypes is not ["CringePlugin"]) continue;
 
             var packageClient = await sourceMapping.GetClientAsync(package.Package.Id);
 
@@ -218,5 +220,24 @@ internal class PluginsLifetime(ConfigHandler configHandler, HttpClient client, D
         {
             Log.Error(e, "Failed to load plugin {PluginPath}", path);
         }
+    }
+
+    // initializes dotnet shared store for plugin resolver to look for dependencies
+    private void InitializeSharedStore(ref DirectoryInfo cacheDir)
+    {
+        const string envVar = "DOTNET_SHARED_STORE";
+        
+        string[] paths = [];
+        if (Environment.GetEnvironmentVariable(envVar) is { } value)
+        {
+            paths = value.Split(Path.PathSeparator, StringSplitOptions.RemoveEmptyEntries);
+        }
+
+        paths = [cacheDir.FullName, ..paths];
+        
+        Environment.SetEnvironmentVariable(envVar, string.Join(Path.PathSeparator, paths));
+
+        cacheDir = cacheDir.CreateSubdirectory("x64"); // todo change this to automatic if we ever get to aarch64
+        cacheDir = cacheDir.CreateSubdirectory(new NuGetFramework(_runtimeFramework.Framework.Framework, _runtimeFramework.Framework.Version).GetShortFolderName());
     }
 }
