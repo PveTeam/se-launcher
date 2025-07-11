@@ -4,7 +4,7 @@ namespace CringePlugins.Services;
 
 public static class GameServicesExtension
 {
-    internal static IServiceProvider GameServices { get; set; } = null!;
+    public static IServiceProvider GameServices { get; set; } = null!;
 
     extension(MySandboxGame)
     {

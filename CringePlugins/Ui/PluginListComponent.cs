@@ -162,7 +162,7 @@ internal class PluginListComponent : IRenderComponent
                         {
                             if (Button($"Reload##{i}"))
                             {
-                                PluginsLifetime.ReloadPlugin(plugin).ConfigureAwait(false);
+                                PluginsLifetime.ReloadPluginAsync(plugin).ConfigureAwait(false);
                             }
                             EndPopup();
                         }

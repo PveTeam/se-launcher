@@ -27,6 +27,11 @@ using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Runtime.Loader;
 using System.Text.Json;
+using Autofac;
+using Autofac.Extensions.DependencyInjection;
+using CringeLauncher.Services;
+using CringePlugins.Abstractions;
+using Velopack;
 using VRage;
 using VRage.Audio;
 using VRage.FileSystem;
@@ -199,8 +204,9 @@ public class Launcher : ICorePlugin
         var retryPolicy = HttpPolicyExtensions.HandleTransientHttpError()
             .WaitAndRetryAsync(5, _ => TimeSpan.FromSeconds(1));
 
-        services.AddHttpClient<PluginsLifetime, PluginsLifetime>((client, provider) =>
-                new PluginsLifetime(provider.GetRequiredService<ConfigHandler>(), client, _dir))
+        services.AddHttpClient<PluginsLifetime, PluginsLifetime>((client, provider) => 
+                new PluginsLifetime(provider.GetRequiredService<ConfigHandler>(),
+                    provider.GetRequiredService<IPluginServiceProviderFactory>(), client, _dir))
             .ConfigurePrimaryHttpMessageHandler(() => new HttpClientHandler
             {
                 AutomaticDecompression = DecompressionMethods.All
@@ -219,8 +225,13 @@ public class Launcher : ICorePlugin
             .AddSingleton<IImGuiImageService>(s => s.GetRequiredService<ImGuiImageService>())
             .AddSingleton(_ => new ConfigHandler(_configDir))
             .AddSingleton(_crashPadService!);
+        
+        var factory = new AutofacServiceProviderFactory();
 
-        return GameServicesExtension.GameServices = services.BuildServiceProvider();
+        services.AddSingleton<IServiceProviderFactory<ContainerBuilder>>(factory)
+            .AddTransient<IPluginServiceProviderFactory, PluginServiceProviderFactory>();
+
+        return GameServicesExtension.GameServices = factory.CreateServiceProvider(factory.CreateBuilder(services));
     }
 
     protected virtual async ValueTask<LauncherConfig?> ReadUpdateConfigAsync(Logger logger)

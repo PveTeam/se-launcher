@@ -1,7 +1,10 @@
 ﻿using System.Collections.Immutable;
+using System.Reflection;
 using System.Runtime.Loader;
 using CringeBootstrap.Abstractions;
+using CringePlugins.Abstractions;
 using CringePlugins.Utils;
+using Microsoft.Extensions.DependencyInjection;
 using NLog;
 using Sandbox;
 using Sandbox.Game.World;
@@ -13,8 +16,16 @@ using VRage.Plugins;
 
 namespace CringePlugins.Loader;
 
-internal sealed class PluginInstance(PluginMetadata metadata, string entrypointPath, bool local)
+internal sealed class PluginInstance(
+    PluginMetadata metadata,
+    string entrypointPath,
+    bool local,
+    IPluginServiceProviderFactory serviceProviderFactory,
+    PluginInstance? parent = null)
 {
+    private static readonly MethodInfo RegisterServicesMethod =
+        typeof(PluginInstance).GetMethod(nameof(RegisterServices), BindingFlags.NonPublic | BindingFlags.Static)!;
+    
     public bool HasConfig => _openConfigAction != null;
     public bool IsReloading => _disposeTcs?.Task.IsCompleted == false;
 
@@ -25,12 +36,15 @@ internal sealed class PluginInstance(PluginMetadata metadata, string entrypointP
     private TaskCompletionSource<(DerivedAssemblyLoadContext OldContext, DerivedAssemblyLoadContext NewContext)>? _disposeTcs;
 
     private Action? _openConfigAction;
+    private IServiceProviderScope? _serviceProviderScope;
     public PluginWrapper? WrappedInstance { get; private set; }
 
     private static readonly ILogger Log = LogManager.GetCurrentClassLogger();
     public PluginMetadata Metadata { get; } = metadata;
 
-    public PluginInstance(string entrypointPath, bool local) : this(PluginMetadata.ReadFromEntrypoint(entrypointPath), entrypointPath, local)
+    public PluginInstance(string entrypointPath, bool local, IPluginServiceProviderFactory serviceProviderFactory,
+        PluginInstance? parent = null) : this(PluginMetadata.ReadFromEntrypoint(entrypointPath), entrypointPath, local,
+        serviceProviderFactory, parent)
     {
     }
 
@@ -39,7 +53,9 @@ internal sealed class PluginInstance(PluginMetadata metadata, string entrypointP
         if (AssemblyLoadContext.GetLoadContext(typeof(PluginInstance).Assembly) is not ICoreLoadContext parentContext)
             throw new NotSupportedException("Plugin instantiation is not supported in this context");
 
-        _context = local ? new LocalLoadContext(parentContext, entrypointPath) : new PluginAssemblyLoadContext(parentContext, entrypointPath);
+        _context = local
+            ? new LocalLoadContext(parentContext, entrypointPath)
+            : new PluginAssemblyLoadContext(parent?._context ?? parentContext, entrypointPath);
         contextBuilder.Add(_context);
 
         var entrypoint = _context.LoadEntrypoint();
@@ -51,7 +67,16 @@ internal sealed class PluginInstance(PluginMetadata metadata, string entrypointP
         if (plugins.Length > 1)
             throw new InvalidOperationException("Entrypoint contains multiple plugins");
 
-        _instance = (IPlugin) Activator.CreateInstance(plugins[0])!;
+        var services = serviceProviderFactory.CreateBuilder();
+
+        services.AddSingleton(typeof(IPlugin), plugins[0]);
+
+        if (plugins[0].IsAssignableTo(typeof(IPluginWithServices)))
+            RegisterServicesMethod.MakeGenericMethod(plugins[0]).Invoke(null, [services]);
+
+        _serviceProviderScope = serviceProviderFactory.CreateServiceProviderScope(_context, services);
+
+        _instance = _serviceProviderScope.Provider.GetRequiredService<IPlugin>();
 
         var openConfigMethod = plugins[0].GetMethod("OpenConfigDialog");
 
@@ -68,7 +93,7 @@ internal sealed class PluginInstance(PluginMetadata metadata, string entrypointP
             }
         }
 
-        WrappedInstance = new PluginWrapper(Metadata, _instance);
+        WrappedInstance = new PluginWrapper(new PluginContext(Metadata, _serviceProviderScope.Provider), _instance);
     }
 
     public void RegisterLifetime()
@@ -144,6 +169,7 @@ internal sealed class PluginInstance(PluginMetadata metadata, string entrypointP
         WrappedInstance = null;
         _instance = null;
 
+        _serviceProviderScope?.Dispose();
         _context.Unload();
         var oldContext = _context;
 
@@ -160,5 +186,15 @@ internal sealed class PluginInstance(PluginMetadata metadata, string entrypointP
         _disposeTcs = null;
 
         Log.Info("Reloaded local plugin {Name}", Metadata.Name);
+    }
+
+    private static void RegisterServices<T>(IServiceCollection services) where T : IPluginWithServices
+    {
+        T.RegisterServices(services);
+    }
+
+    private record PluginContext(PluginMetadata Metadata, IServiceProvider Provider) : IPluginContext
+    {
+        public object? GetService(Type serviceType) => Provider.GetService(serviceType);
     }
 }

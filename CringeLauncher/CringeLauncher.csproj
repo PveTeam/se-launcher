@@ -31,6 +31,7 @@
 	</ItemGroup>
 
     <ItemGroup>
+        <PackageReference Include="Autofac.Extensions.DependencyInjection" Version="10.0.0" />
         <PackageReference Include="Basic.Reference.Assemblies.Net90" Version="1.8.3" />
         <PackageReference Include="dnlib" Version="4.5.0" />
         <PackageReference Include="EOSSDK" Version="1.0.3" />
@@ -44,7 +45,6 @@
         <PackageReference Include="System.Private.ServiceModel" Version="4.10.3" />
         <PackageReference Include="SixLabors.ImageSharp" Version="4.0.0-compat" />
         <PackageReference Include="Velopack" Version="0.0.1298" />
-        <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="9.0.9" />
         <PackageReference Include="Microsoft.Windows.CsWin32" Version="0.3.205">
             <PrivateAssets>all</PrivateAssets>
             <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>

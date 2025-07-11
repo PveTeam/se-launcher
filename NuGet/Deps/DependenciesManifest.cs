@@ -79,14 +79,14 @@ public static class DependencyManifestSerializer
 
 public class DependencyManifestBuilder(DirectoryInfo cacheDirectory, PackageSourceMapping packageSources, Func<Models.Dependency, CatalogEntry?> catalogEntryResolver)
 {
-    public async ValueTask WriteDependencyManifestAsync(Stream stream, CatalogEntry catalogEntry, NuGetRuntimeFramework targetFramework)
+    public async ValueTask WriteDependencyManifestAsync(Stream stream, CatalogEntry catalogEntry, NuGetRuntimeFramework targetFramework, Predicate<CatalogEntry>? dependencyLeafPredicate = null)
     {
         var runtimeTarget = new RuntimeTarget(targetFramework);
 
         var targets = ImmutableDictionary<ManifestPackageKey, DependencyTarget>.Empty.ToBuilder();
         var libraries = ImmutableDictionary<ManifestPackageKey, DependencyLibrary>.Empty.ToBuilder();
 
-        await MapCatalogEntryAsync(catalogEntry, targetFramework, targets, libraries);
+        await MapCatalogEntryAsync(catalogEntry, targetFramework, targets, libraries, dependencyLeafPredicate);
 
         var manifest = new DependenciesManifest(runtimeTarget, ImmutableDictionary<NuGetRuntimeFramework, string>.Empty,
             ImmutableDictionary<NuGetRuntimeFramework, ImmutableDictionary<ManifestPackageKey, DependencyTarget>>.Empty
@@ -98,7 +98,8 @@ public class DependencyManifestBuilder(DirectoryInfo cacheDirectory, PackageSour
 
     private async Task MapCatalogEntryAsync(CatalogEntry catalogEntry, NuGetRuntimeFramework targetFramework,
         ImmutableDictionary<ManifestPackageKey, DependencyTarget>.Builder targets,
-        ImmutableDictionary<ManifestPackageKey, DependencyLibrary>.Builder libraries)
+        ImmutableDictionary<ManifestPackageKey, DependencyLibrary>.Builder libraries,
+        Predicate<CatalogEntry>? dependencyLeafPredicate)
     {
         var packageKey = new ManifestPackageKey(catalogEntry.Id, catalogEntry.Version);
         
@@ -120,10 +121,11 @@ public class DependencyManifestBuilder(DirectoryInfo cacheDirectory, PackageSour
 
         foreach (var entry in (nearest.Dependencies ?? []).Select(catalogEntryResolver))
         {
-            if (entry is null)
+            // predicate is invoked lately so the root entry cannot be skipped
+            if (entry is null || dependencyLeafPredicate?.Invoke(catalogEntry) is false)
                 continue;
 
-            await MapCatalogEntryAsync(entry, targetFramework, targets, libraries);
+            await MapCatalogEntryAsync(entry, targetFramework, targets, libraries, dependencyLeafPredicate);
         }
     }
 
