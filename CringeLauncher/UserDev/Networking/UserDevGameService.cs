@@ -317,7 +317,7 @@ public class UserDevGameService(uint appId) : IMyGameService
         bool attemptResolution,
         Action<PermissionResult>? onDone)
     {
-        onDone?.Invoke(permission == Permissions.UGC ? PermissionResult.Error : PermissionResult.Granted);
+        onDone?.Invoke(PermissionResult.Granted);
     }
 
     public void RequestPermissionsWithTargetUser(
