@@ -8,6 +8,7 @@
         <UseWindowsForms>true</UseWindowsForms>
         <LangVersion>preview</LangVersion>
         <TieredPGO>true</TieredPGO>
+        <PublishReadyToRun>true</PublishReadyToRun>
         <RestorePackagesWithLockFile>true</RestorePackagesWithLockFile>
         <EnableWindowsTargeting>true</EnableWindowsTargeting>
         <RuntimeIdentifier>win-x64</RuntimeIdentifier>
@@ -28,6 +29,7 @@
     <ItemGroup>
       <ProjectReference Include="..\CringeBootstrap.Abstractions\CringeBootstrap.Abstractions.csproj" />
       <ProjectReference Include="..\CringeLauncher\CringeLauncher.csproj" ExcludeAssets="compile" />
+      <ProjectReference Include="..\CringeLauncher\CringeLauncher.csproj" />
     </ItemGroup>
     
 </Project>

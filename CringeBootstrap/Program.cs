@@ -1,9 +1,9 @@
 ﻿using System.Diagnostics;
-using System.Reflection;
 using System.Reflection.Metadata;
 using System.Runtime.Loader;
 using CringeBootstrap;
 using CringeBootstrap.Abstractions;
+using CringeBootstrap.CrossGen;
 using Velopack;
 
 #if DEBUG
@@ -41,15 +41,45 @@ AssemblyLoadContext.Default.Resolving += (loadContext, name) =>
 #endif
 
 var dir = Path.GetDirectoryName(args[0])!;
-var context = new GameDirectoryAssemblyLoadContext(dir);
+var gameDir = dir;
+
+var customEntrypoint = Environment.GetEnvironmentVariable("DOTNET_BOOTSTRAP_ENTRYPOINT");
+
+if (
+#if !DEBUG // disable crossgen for plugins userdev, but leave for debug
+    customEntrypoint is null &&
+#endif 
+    !args.Contains("--skip-crossgen", StringComparer.OrdinalIgnoreCase))
+{
+    var cacheDir = Directory.CreateDirectory(Path.Join(
+        Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
+        "CringeLauncher", "cache"));
+    
+    var crossGenService = new CrossGenService(gameDir, cacheDir.FullName);
+
+    try
+    {
+        dir = crossGenService.RunCrossGen();
+    }
+    catch (Exception e)
+    {
+        Console.ForegroundColor = ConsoleColor.Red;
+        Console.WriteLine("Crossgen encountered a fatal error and will be skipped for this session.");
+        Console.ResetColor();
+        Console.WriteLine(e);
+        
+        crossGenService.CleanCache();
+    }
+}
+
+var context = new GameDirectoryAssemblyLoadContext(dir, gameDir);
 
 // a list of assemblies which are not in the game binaries but reference them
 context.AddDependencyOverride("CringeLauncher");
 context.AddDependencyOverride("CringePlugins");
 context.AddDependencyOverride("EOSSDK");
 
-var entrypoint = Environment.GetEnvironmentVariable("DOTNET_BOOTSTRAP_ENTRYPOINT") ??
-                                           "CringeLauncher.Launcher, CringeLauncher";
+var entrypoint = customEntrypoint ?? "CringeLauncher.Launcher, CringeLauncher";
 if (!TypeName.TryParse(entrypoint, out var entrypointName) || 
     entrypointName.AssemblyName is null)
 {

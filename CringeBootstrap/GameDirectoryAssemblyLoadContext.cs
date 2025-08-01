@@ -9,14 +9,17 @@ namespace CringeBootstrap;
 public class GameDirectoryAssemblyLoadContext : AssemblyLoadContext, ICoreLoadContext
 {
     private readonly string _dir;
+    private readonly string _unmanagedAssembliesDir;
+
     private static readonly ImmutableHashSet<string> ReferenceAssemblies = ["netstandard"];
     // Assembly simple names are case-insensitive per the runtime behavior
     // (see SimpleNameToFileNameMapTraits for the TPA lookup hash).
     private readonly Dictionary<string, string> _assemblyNames = new(StringComparer.OrdinalIgnoreCase);
 
-    public GameDirectoryAssemblyLoadContext(string dir) : base("CringeBootstrap")
+    public GameDirectoryAssemblyLoadContext(string dir, string unmanagedAssembliesDir) : base("CringeBootstrap")
     {
         _dir = dir;
+        _unmanagedAssembliesDir = unmanagedAssembliesDir;
         var files = Directory.GetFiles(dir, "*.dll");
         foreach (var file in files)
         {
@@ -73,7 +76,8 @@ public class GameDirectoryAssemblyLoadContext : AssemblyLoadContext, ICoreLoadCo
             return base.LoadUnmanagedDll(unmanagedDllName);
 
         // prefer System32 over ours
-        ReadOnlySpan<string> dirs = [Environment.SystemDirectory, _dir];
+        // avoid using _dir because it may be a crossgen directory without unmanaged assemblies
+        ReadOnlySpan<string> dirs = [Environment.SystemDirectory, _unmanagedAssembliesDir];
         foreach (var dir in dirs)
         {
             var path = Path.Join(dir, unmanagedDllName);
