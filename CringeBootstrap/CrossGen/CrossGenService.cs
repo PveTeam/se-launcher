@@ -125,6 +125,14 @@ internal class CrossGenService(string gameDirectoryPath, string cachePath)
             return gameDirectoryPath;
         }
         
+        foreach (var excludedAssembly in _excludedAssemblies)
+        {
+            var gameAssemblyPath = Path.Join(gameDirectoryPath, excludedAssembly);
+            var cacheAssemblyPath = Path.Join(cacheDirectory, excludedAssembly);
+            if (File.Exists(gameAssemblyPath))
+                File.Copy(gameAssemblyPath, cacheAssemblyPath, true);
+        }
+        
         Console.ForegroundColor = ConsoleColor.Green;
         Console.WriteLine("Crossgen finished");
         Console.ResetColor();
