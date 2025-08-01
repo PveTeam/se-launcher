@@ -28,7 +28,6 @@
 
     <ItemGroup>
       <ProjectReference Include="..\CringeBootstrap.Abstractions\CringeBootstrap.Abstractions.csproj" />
-      <ProjectReference Include="..\CringeLauncher\CringeLauncher.csproj" ExcludeAssets="compile" />
       <ProjectReference Include="..\CringeLauncher\CringeLauncher.csproj" />
     </ItemGroup>
     
