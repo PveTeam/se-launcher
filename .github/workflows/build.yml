@@ -8,6 +8,7 @@ jobs:
   compute-version:
     name: Compute Version
     runs-on: ubuntu-latest
+    if: "!contains(github.event.commits[0].message, '[skip ci]')"
     outputs:
       version: ${{ steps.version.outputs.version }}
     steps:
@@ -27,6 +28,7 @@ jobs:
   build-nuget:
     name: Build Nuget package
     runs-on: ubuntu-latest
+    if: "!contains(github.event.commits[0].message, '[skip ci]')"
     needs: [compute-version]
     strategy: 
       matrix:
@@ -48,6 +50,7 @@ jobs:
   build:
     name: Build Launcher
     runs-on: ubuntu-latest
+    if: "!contains(github.event.commits[0].message, '[skip ci]')"
     needs: [compute-version]
     env:
       VPK_CHANNEL: win
