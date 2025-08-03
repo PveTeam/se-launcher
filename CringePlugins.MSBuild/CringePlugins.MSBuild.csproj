@@ -1,7 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
     <PropertyGroup>
-        <TargetFramework>netstandard2.0</TargetFramework>
+        <TargetFrameworks>netstandard2.0;net472</TargetFrameworks>
         <LangVersion>latest</LangVersion>
         <Nullable>enable</Nullable>
         <!-- This property tells MSBuild where the root folder of the package's build assets should be. Because we are not a library package, we should not pack to 'lib'. Instead, we choose 'tasks' by convention. -->
@@ -10,7 +10,7 @@
         <NoWarn>NU5100</NoWarn>
         <DebugType>embedded</DebugType>
         <IsPackable>true</IsPackable>
-        <Version>1.0.0</Version>
+        <Version>1.0.2</Version>
     </PropertyGroup>
 
     <ItemGroup>

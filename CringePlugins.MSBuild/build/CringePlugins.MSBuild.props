@@ -1,12 +1,15 @@
 ﻿<Project>
     <PropertyGroup>
         <!--The folder where the custom task will be present. It points to inside the NuGet package. -->
-        <CustomTasksFolder>$(MSBuildThisFileDirectory)..\tasks\netstandard2.0</CustomTasksFolder>
+        <CustomTasksFolderCore>$(MSBuildThisFileDirectory)..\tasks\netstandard2.0</CustomTasksFolderCore>
+        <CustomTasksFolderFull>$(MSBuildThisFileDirectory)..\tasks\net472</CustomTasksFolderFull>
         <!--Reference to the assembly which contains the MSBuild Task-->
-        <CustomTasksAssembly>$(CustomTasksFolder)\$(MSBuildThisFileName).dll</CustomTasksAssembly>
+        <CustomTasksAssemblyCore>$(CustomTasksFolderCore)\$(MSBuildThisFileName).dll</CustomTasksAssemblyCore>
+        <CustomTasksAssemblyFull>$(CustomTasksFolderFull)\$(MSBuildThisFileName).dll</CustomTasksAssemblyFull>
     </PropertyGroup>
 
-    <UsingTask TaskName="$(MSBuildThisFileName).GenerateRunConfig" AssemblyFile="$(CustomTasksAssembly)" />
+    <UsingTask TaskName="$(MSBuildThisFileName).GenerateRunConfig" AssemblyFile="$(CustomTasksAssemblyCore)" Condition=" '$(MSBuildRuntimeType)' == 'Core' " />
+    <UsingTask TaskName="$(MSBuildThisFileName).GenerateRunConfig" AssemblyFile="$(CustomTasksAssemblyFull)" Condition=" '$(MSBuildRuntimeType)' != 'Core' " />
     
     <PropertyGroup>
         <RunConfigPath Condition="'$(RunConfigPath)' == ''">$(ProjectDir)Properties\launchSettings.json</RunConfigPath>
