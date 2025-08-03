@@ -23,27 +23,27 @@
 	</ItemGroup>
 
     <ItemGroup>
-        <PackageReference Include="Basic.Reference.Assemblies.Net90" Version="1.8.0" />
-        <PackageReference Include="dnlib" Version="4.4.0" />
+        <PackageReference Include="Basic.Reference.Assemblies.Net90" Version="1.8.3" />
+        <PackageReference Include="dnlib" Version="4.5.0" />
         <PackageReference Include="EOSSDK" Version="1.0.2" />
         <PackageReference Include="Krafs.Publicizer" Version="2.3.0">
             <PrivateAssets>all</PrivateAssets>
             <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
         </PackageReference>
-        <PackageReference Include="Microsoft.Extensions.Http.Polly" Version="9.0.5" />
-        <PackageReference Include="System.Diagnostics.PerformanceCounter" Version="9.0.4" />
-        <PackageReference Include="System.Management" Version="9.0.4" />
+        <PackageReference Include="Microsoft.Extensions.Http.Polly" Version="9.0.7" />
+        <PackageReference Include="System.Diagnostics.PerformanceCounter" Version="9.0.7" />
+        <PackageReference Include="System.Management" Version="9.0.7" />
         <PackageReference Include="System.Private.ServiceModel" Version="4.10.3" />
         <PackageReference Include="Torch.SixLabors.ImageSharp" Version="1.0.0-beta6" />
-        <PackageReference Include="Velopack" Version="0.0.942" />
-        <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="9.0.5" />
+        <PackageReference Include="Velopack" Version="0.0.1298" />
+        <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="9.0.7" />
         <PackageReference Include="Microsoft.Windows.CsWin32" Version="0.3.183">
             <PrivateAssets>all</PrivateAssets>
             <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
         </PackageReference>
-        <PackageReference Include="NLog" Version="5.4.0" />
-        <PackageReference Include="Microsoft.CodeAnalysis.CSharp" Version="4.13.0" />
-        <PackageReference Include="SpaceEngineersDedicated.ReferenceAssemblies" Version="1.*" ExcludeAssets="runtime" />
+        <PackageReference Include="NLog" Version="6.0.2" />
+        <PackageReference Include="Microsoft.CodeAnalysis.CSharp" Version="4.14.0" />
+        <PackageReference Include="SpaceEngineersDedicated.ReferenceAssemblies" Version="1.206.32" ExcludeAssets="runtime" />
     </ItemGroup>
 
     <ItemGroup>

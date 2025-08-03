@@ -182,7 +182,7 @@ internal class PluginListComponent : IRenderComponent
 
             if (BeginTabItem("Sources Configuration"))
             {
-                BeginChild("Sources List", new(400, 0), ImGuiChildFlags.Border | ImGuiChildFlags.ResizeX);
+                BeginChild("Sources List", new(400, 0), ImGuiChildFlags.Borders | ImGuiChildFlags.ResizeX);
                 {
                     if (BeginTable("Sources Table", 2,
                             ImGuiTableFlags.ScrollY | ImGuiTableFlags.Resizable | ImGuiTableFlags.SizingStretchProp))
@@ -438,7 +438,7 @@ internal class PluginListComponent : IRenderComponent
             return;
         }
 
-        BeginChild("Profile List", new(400, 0), ImGuiChildFlags.Border | ImGuiChildFlags.ResizeX);
+        BeginChild("Profile List", new(400, 0), ImGuiChildFlags.Borders | ImGuiChildFlags.ResizeX);
 
         if (BeginTable("ProfilesTable", 2,
                     ImGuiTableFlags.ScrollY | ImGuiTableFlags.Resizable | ImGuiTableFlags.SizingStretchProp))
@@ -627,7 +627,7 @@ internal class PluginListComponent : IRenderComponent
             return;
         }
 
-        BeginChild("List", new(400, 0), ImGuiChildFlags.Border | ImGuiChildFlags.ResizeX);
+        BeginChild("List", new(400, 0), ImGuiChildFlags.Borders | ImGuiChildFlags.ResizeX);
         {
             if (BeginTable("AvailableTable", 3,
                     ImGuiTableFlags.ScrollY | ImGuiTableFlags.Resizable | ImGuiTableFlags.SizingStretchProp | ImGuiTableFlags.Sortable))

@@ -1,5 +1,4 @@
-﻿using CringePlugins.Render;
-using NLog;
+﻿using NLog;
 using VRage.Plugins;
 
 namespace TestPlugin;
@@ -16,7 +15,7 @@ public class Plugin : IPlugin
     {
         Log.Info("Test Plugin init");
 
-        RenderHandler.Current.RegisterComponent(new TestRenderComponent());
+        Log.Info("Dependency Test {Time}", NodaTime.SystemClock.Instance.GetCurrentInstant());
     }
 
     public void Update()

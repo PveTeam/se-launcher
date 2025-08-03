@@ -7,20 +7,15 @@
         <Nullable>enable</Nullable>
         <RestorePackagesWithLockFile>true</RestorePackagesWithLockFile>
         <EnableWindowsTargeting>true</EnableWindowsTargeting>
+        <EnableDynamicLoading>true</EnableDynamicLoading>
         <PackageType>CringePlugin</PackageType>
+        <LangVersion>preview</LangVersion>
     </PropertyGroup>
 
     <ItemGroup>
-        <PackageReference Include="NLog" Version="5.4.0" ExcludeAssets="runtime" />
-        <PackageReference Include="SpaceEngineersDedicated.ReferenceAssemblies" Version="1.*" ExcludeAssets="runtime"/>
-        <PackageReference Include="ImGui.NET.DirectX" Version="1.91.0.1" ExcludeAssets="runtime; native"/>
-    </ItemGroup>
-
-    <ItemGroup>
-        <Reference Include="CringePlugins">
-            <HintPath>..\CringePlugins\bin\$(Configuration)\$(TargetFramework)\$(RuntimeIdentifier)\CringePlugins.dll</HintPath>
-            <Private>false</Private>
-        </Reference>
+        <PackageReference Include="CringePlugins" Version="0.1.95" ExcludeAssets="runtime; native" />
+        <PackageReference Include="CringePlugins.MSBuild" Version="1.0.0" PrivateAssets="All" />
+        <PackageReference Include="NodaTime" Version="3.2.2" />
     </ItemGroup>
 
 </Project>
