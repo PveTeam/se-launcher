@@ -1,5 +1,4 @@
-﻿{
-  "$schema": "http://json.schemastore.org/launchsettings.json",
+{
   "profiles": {
     "CringeBootstrap": {
       "commandName": "Project",
@@ -7,7 +6,9 @@
       "environmentVariables": {
         "DOTNET_BOOTSTRAP_ENTRYPOINT": "CringeLauncher.UserDev.UserDevLauncher, CringeLauncher",
         "DOTNET_USERDEV_RUNDIR": "data"
-      }
+      },
+      "nativeDebugging": true
     }
-  }
+  },
+  "$schema": "http://json.schemastore.org/launchsettings.json"
 }

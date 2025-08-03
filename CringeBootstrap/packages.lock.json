@@ -51,8 +51,8 @@
       },
       "ImGui.NET.DirectX": {
         "type": "Transitive",
-        "resolved": "1.92.1",
-        "contentHash": "xb1h2jzp05qltRHT55lKgUwBs6aoFY1zhfNJZT0r067luC9mssBJNhMMrEXUinYF9etCk0DLdIRH1GfCOsthpA=="
+        "resolved": "1.92.1.2",
+        "contentHash": "3n4qx0oWGlYHphHJ5a2/ernzasrsyE6RZ6NOxeACf3w/18qsqCVrXu2Xh9L0f4bwqq3eTTMNpV860yUHu1yiuw=="
       },
       "Json.More.Net": {
         "type": "Transitive",
@@ -438,7 +438,7 @@
       "cringeplugins": {
         "type": "Project",
         "dependencies": {
-          "ImGui.NET.DirectX": "[1.92.1, )",
+          "ImGui.NET.DirectX": "[1.92.1.2, )",
           "JsonSchema.Net.Generation": "[5.0.4, )",
           "Lib.Harmony.Thin": "[2.3.4-torch, )",
           "Microsoft.Extensions.DependencyInjection.Abstractions": "[9.0.7, )",
@@ -479,8 +479,8 @@
       },
       "ImGui.NET.DirectX": {
         "type": "Transitive",
-        "resolved": "1.92.1",
-        "contentHash": "xb1h2jzp05qltRHT55lKgUwBs6aoFY1zhfNJZT0r067luC9mssBJNhMMrEXUinYF9etCk0DLdIRH1GfCOsthpA=="
+        "resolved": "1.92.1.2",
+        "contentHash": "3n4qx0oWGlYHphHJ5a2/ernzasrsyE6RZ6NOxeACf3w/18qsqCVrXu2Xh9L0f4bwqq3eTTMNpV860yUHu1yiuw=="
       },
       "Steamworks.NET": {
         "type": "Transitive",

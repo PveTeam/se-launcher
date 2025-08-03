@@ -34,7 +34,7 @@
         <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="9.0.7" />
         <PackageReference Include="NLog" Version="6.0.2" />
         <PackageReference Include="Lib.Harmony.Thin" Version="2.3.4-torch" />
-        <PackageReference Include="ImGui.NET.DirectX" Version="1.92.1" />
+        <PackageReference Include="ImGui.NET.DirectX" Version="1.92.1.2" />
         <PackageReference Include="SpaceEngineersDedicated.ReferenceAssemblies" Version="1.206.32" ExcludeAssets="runtime" />
         <PackageReference Include="dnlib" Version="4.5.0" />
         <PackageReference Include="Steamworks.NET" Version="[20.1.0]" />
