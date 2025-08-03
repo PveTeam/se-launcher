@@ -57,7 +57,7 @@ public sealed class NotificationsComponent : IRenderComponent
 
             Vector2 lastWinSize = Vector2.Zero;
 
-            if (ImGui.Begin($"notification-{notification.GlobalId}", ImGuiWindowFlags.NoMove | ImGuiWindowFlags.NoCollapse | ImGuiWindowFlags.NoTitleBar | ImGuiWindowFlags.NoResize | ImGuiWindowFlags.Tooltip))
+            if (ImGui.Begin($"notification-{notification.GlobalId}", ImGuiWindowFlags.NoMove | ImGuiWindowFlags.NoCollapse | ImGuiWindowFlags.NoTitleBar | ImGuiWindowFlags.NoResize | ImGuiWindowFlags.Tooltip | ImGuiWindowFlags.NoDocking | ImGuiWindowFlags.NoMouseInputs | ImGuiWindowFlags.NoSavedSettings))
             {
                 notification.RenderCallback?.Invoke();
 
