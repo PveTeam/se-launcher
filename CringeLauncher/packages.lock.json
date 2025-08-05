@@ -19,11 +19,11 @@
       },
       "EOSSDK": {
         "type": "Direct",
-        "requested": "[1.0.2, )",
-        "resolved": "1.0.2",
-        "contentHash": "zk6YQMJe1gtnHcuSK8ETopJiJ+pnfdxJZ+eEIPov/T+nUhaoOgioLFvIkARt1g5yfOnQBjRrzT4iMJcQmNQF/Q==",
+        "requested": "[1.0.3, )",
+        "resolved": "1.0.3",
+        "contentHash": "Iw+nu3eeaCSzq1XU/3k041oniQ0RXCCttvjWCrL+maqb3n1WClRHl5zQguBUzmGekmFpaRmHeJxWo8U+XpZTkw==",
         "dependencies": {
-          "CringePlugins": "0.1.74"
+          "CringePlugins": "0.1.105"
         }
       },
       "Krafs.Publicizer": {
@@ -486,11 +486,11 @@
     "net9.0-windows10.0.19041/win-x64": {
       "EOSSDK": {
         "type": "Direct",
-        "requested": "[1.0.2, )",
-        "resolved": "1.0.2",
-        "contentHash": "zk6YQMJe1gtnHcuSK8ETopJiJ+pnfdxJZ+eEIPov/T+nUhaoOgioLFvIkARt1g5yfOnQBjRrzT4iMJcQmNQF/Q==",
+        "requested": "[1.0.3, )",
+        "resolved": "1.0.3",
+        "contentHash": "Iw+nu3eeaCSzq1XU/3k041oniQ0RXCCttvjWCrL+maqb3n1WClRHl5zQguBUzmGekmFpaRmHeJxWo8U+XpZTkw==",
         "dependencies": {
-          "CringePlugins": "0.1.74"
+          "CringePlugins": "0.1.105"
         }
       },
       "System.Diagnostics.PerformanceCounter": {
