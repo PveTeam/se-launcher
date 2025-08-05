@@ -38,8 +38,11 @@ internal class PluginListComponent : IRenderComponent
     private int _selectedProfile = -1;
     private ImmutableArray<Profile> _profiles;
 
+    private readonly DirectoryInfo _dataDir;
     private bool _disableUpdates;
     private bool _disablePluginUpdates;
+    private bool _cacheModAssemblies;
+    private bool _cacheScriptAssemblies;
 
     private bool _restartRequired;
     private bool _open = true;
@@ -55,7 +58,7 @@ internal class PluginListComponent : IRenderComponent
     private readonly IImGuiImageService _imageService = GameServicesExtension.GameServices.GetRequiredService<IImGuiImageService>();
 
     public PluginListComponent(ConfigReference<PackagesConfig> packagesConfig, ConfigReference<LauncherConfig> launcherConfig,
-        PackageSourceMapping sourceMapping, string gameFolder, ImmutableArray<PluginInstance> plugins)
+        PackageSourceMapping sourceMapping, string gameFolder, ImmutableArray<PluginInstance> plugins, DirectoryInfo dataDir)
     {
         _packagesConfig = packagesConfig;
         _launcherConfig = launcherConfig;
@@ -68,6 +71,10 @@ internal class PluginListComponent : IRenderComponent
 
         _disablePluginUpdates = _launcherConfig.Value.DisablePluginUpdates;
         _disableUpdates = _launcherConfig.Value.DisableLauncherUpdates;
+        _cacheModAssemblies = _launcherConfig.Value.CacheModAssemblies;
+        _cacheScriptAssemblies = _launcherConfig.Value.CacheScriptAssemblies;
+
+        _dataDir = dataDir;
 
         MyScreenManager.ScreenAdded += ScreenChanged;
         MyScreenManager.ScreenRemoved += ScreenChanged;
@@ -328,6 +335,44 @@ internal class PluginListComponent : IRenderComponent
                 {
                     _launcherConfig.Value = _launcherConfig.Value with { DisableLauncherUpdates = _disableUpdates };
                 }
+                if (Checkbox("Cache Mod Assemblies", ref _cacheModAssemblies))
+                {
+                    _launcherConfig.Value = _launcherConfig.Value with
+                    {
+                        CacheModAssemblies = _cacheModAssemblies
+                    };
+                }
+                BeginDisabled(!_cacheModAssemblies);
+
+                SameLine();
+                if (Button("Clear Mod Assembly Cache"))
+                {
+                    var dir = Path.Join(_dataDir.FullName, "cache", "mods");
+                    if (Directory.Exists(dir))
+                        Directory.Delete(dir, true);
+                }
+
+                EndDisabled();
+                if (Checkbox("Cache Script Assemblies", ref _cacheScriptAssemblies))
+                {
+                    _launcherConfig.Value = _launcherConfig.Value with
+                    {
+                        CacheScriptAssemblies = _cacheScriptAssemblies
+                    };
+                }
+
+                BeginDisabled(!_cacheScriptAssemblies);
+
+                SameLine();
+                if (Button("Clear Script Assembly Cache"))
+                {
+                    var dir = Path.Join(_dataDir.FullName, "cache", "scripts");
+                    if (Directory.Exists(dir))
+                        Directory.Delete(dir, true);
+                }
+
+                EndDisabled();
+
                 var oldConfigPath = Path.Join(_gameFolder, "Plugins", "config.xml");
                 if (File.Exists(oldConfigPath))
                 {
@@ -360,9 +405,7 @@ internal class PluginListComponent : IRenderComponent
 
                         if (configSerializer.Deserialize(fs) is PluginLoaderConfig plConfig)
                         {
-                            var dir = new DirectoryInfo(Path.Join(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
-                                "config", "CringeLauncher"));
-                            var file = Path.Join(dir.FullName, "mods.json");
+                            var file = Path.Join(_dataDir.FullName, "mods.json");
 
                             using var modsFile = File.Create(file);
                             JsonSerializer.Serialize(modsFile, plConfig.GetMods(), _serializerOptions);

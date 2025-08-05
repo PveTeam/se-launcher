@@ -1,18 +1,27 @@
 ﻿using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
+using NLog;
 using System.Diagnostics;
 using VRage.Scripting.Rewriters;
 
 namespace CringeLauncher.SyntaxRewriters;
 internal sealed class MissingUsingRewriter : ProtoTagRewriter //use existing rewriter to prevent another iteration
 {
-    private readonly SemanticModel _semanticModel;
-    private MissingUsingRewriter(CSharpCompilation compilation, SyntaxTree tree) : base(compilation, tree) => _semanticModel = compilation.GetSemanticModel(tree);
+    private static ILogger Log = LogManager.GetCurrentClassLogger();
 
-    public static new SyntaxTree Rewrite(CSharpCompilation compilation, SyntaxTree tree)
+    private readonly SemanticModel _semanticModel;
+    private readonly bool _debug;
+
+    private MissingUsingRewriter(CSharpCompilation compilation, SyntaxTree tree, bool debug) : base(compilation, tree)
     {
-        SyntaxNode syntaxNode = new MissingUsingRewriter(compilation, tree).Visit(tree.GetRoot());
+        _semanticModel = compilation.GetSemanticModel(tree);
+        _debug = debug;
+    }
+
+    public static new SyntaxTree Rewrite(CSharpCompilation compilation, SyntaxTree tree, bool debug)
+    {
+        SyntaxNode syntaxNode = new MissingUsingRewriter(compilation, tree, debug).Visit(tree.GetRoot());
         return tree.WithRootAndOptions(syntaxNode, tree.Options);
     }
 
@@ -28,7 +37,9 @@ internal sealed class MissingUsingRewriter : ProtoTagRewriter //use existing rew
         if (symbolInfo.Symbol is INamespaceOrTypeSymbol)
             return usingDirective;
 
-        Debug.WriteLine($"Missing using: {usingDirective}");
+        if (_debug)
+            Log.Info($"Missing using: {usingDirective}");
+
         return null;
     }
 }

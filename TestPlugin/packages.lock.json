@@ -5,17 +5,17 @@
       "CringePlugins": {
         "type": "Direct",
         "requested": "[*, )",
-        "resolved": "0.1.97",
-        "contentHash": "YuZtT8O4g1F5yLfOjQ8xwYeDbUkf9R6myN04c6csXQdZjqb9hYnEG4hJF50cWfY4uYMGJntZbakBxlX3lKbzAQ==",
+        "resolved": "0.1.106",
+        "contentHash": "i8bvuqy1yRwdR6HatsYzU0d9ZGysMDPy1piDO+FBDadiTEqKX5KFY0JBdT36xo76/OPPvwun2i1RnZbqQ5rrlw==",
         "dependencies": {
-          "ImGui.NET.DirectX": "1.92.1.2",
+          "ImGui.NET.DirectX": "1.92.1.3",
           "JsonSchema.Net.Generation": "5.0.4",
           "Lib.Harmony.Thin": "2.3.4-torch",
           "Microsoft.Extensions.DependencyInjection.Abstractions": "9.0.7",
           "NLog": "6.0.2",
           "Newtonsoft.Json": "13.0.3",
-          "NuGet": "0.1.97",
-          "SharedCringe": "0.1.97",
+          "NuGet": "0.1.106",
+          "SharedCringe": "0.1.106",
           "SpaceEngineersDedicated.ReferenceAssemblies": "1.206.32",
           "Steamworks.NET": "[20.1.0]",
           "dnlib": "4.5.0"
@@ -35,8 +35,8 @@
       },
       "CringeBootstrap.Abstractions": {
         "type": "Transitive",
-        "resolved": "0.1.97",
-        "contentHash": "Qk+0PPBbf090PK5JHsNPGaKO+QqXxoKDzmIezjDk5TTUAgNQqkJktmTxKrerqOJu9OddDFzYrV1JkQvIYAPYbg=="
+        "resolved": "0.1.106",
+        "contentHash": "NUT7vVUE8guo9O19oj/8iN3sHz+9FcY/UW2w5tvnXqUjjZ0ONY9JBU/TNxRbaxlbYjFK1T5uS6CpdSZzMHjhmA=="
       },
       "dnlib": {
         "type": "Transitive",
@@ -50,8 +50,8 @@
       },
       "ImGui.NET.DirectX": {
         "type": "Transitive",
-        "resolved": "1.92.1.2",
-        "contentHash": "3n4qx0oWGlYHphHJ5a2/ernzasrsyE6RZ6NOxeACf3w/18qsqCVrXu2Xh9L0f4bwqq3eTTMNpV860yUHu1yiuw=="
+        "resolved": "1.92.1.3",
+        "contentHash": "C9UQJZt1dK1sq2nR5c+GfvLBiASp6b2sRBMXBf8iojZtaslwN5HPmI0mY+QBdYpVPptj4+EGgGyltTwZRGP0BQ=="
       },
       "Json.More.Net": {
         "type": "Transitive",
@@ -148,8 +148,8 @@
       },
       "NuGet": {
         "type": "Transitive",
-        "resolved": "0.1.97",
-        "contentHash": "zcQnc47jlYn7j85U1ho6+v0fzKWu3l8MEibsEbjkRMipvPb28sHS+LZ2MddVwfbQPDQygQ9mu4U8v3b0XToVkQ==",
+        "resolved": "0.1.106",
+        "contentHash": "iBLw+vGPGpCo98HkagH6aCGSqoro0MjZ/JU5FBwyZ97tkgvKAQBWc+3Pw/fhDrUR3r3DlKQbkxROCVQ4PwbZ/w==",
         "dependencies": {
           "NuGet.Frameworks": "6.14.0",
           "NuGet.Versioning": "6.14.0",
@@ -173,10 +173,10 @@
       },
       "SharedCringe": {
         "type": "Transitive",
-        "resolved": "0.1.97",
-        "contentHash": "t2gKyOtpU+f9cUyDVeYnY/65PdustUyBzP8XuSr3YnTTOAk3GuHd6TJ9WMThFUk4XNs2+nL2zV5su8wzEJhMPw==",
+        "resolved": "0.1.106",
+        "contentHash": "m6bgXzqpaKfBMEU2wNLGxKXP5V9DgxIZD6qHqto/iRMQcf+ssxvCdmTQtMDX+gaYNJApJl2IOzca+wmhBApMVA==",
         "dependencies": {
-          "CringeBootstrap.Abstractions": "0.1.97",
+          "CringeBootstrap.Abstractions": "0.1.106",
           "NLog": "6.0.2",
           "SpaceEngineersDedicated.ReferenceAssemblies": "1.206.32"
         }
@@ -209,8 +209,8 @@
     "net9.0-windows7.0/win-x64": {
       "ImGui.NET.DirectX": {
         "type": "Transitive",
-        "resolved": "1.92.1.2",
-        "contentHash": "3n4qx0oWGlYHphHJ5a2/ernzasrsyE6RZ6NOxeACf3w/18qsqCVrXu2Xh9L0f4bwqq3eTTMNpV860yUHu1yiuw=="
+        "resolved": "1.92.1.3",
+        "contentHash": "C9UQJZt1dK1sq2nR5c+GfvLBiASp6b2sRBMXBf8iojZtaslwN5HPmI0mY+QBdYpVPptj4+EGgGyltTwZRGP0BQ=="
       },
       "Steamworks.NET": {
         "type": "Transitive",

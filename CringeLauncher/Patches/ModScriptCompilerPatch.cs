@@ -1,10 +1,14 @@
 ﻿using CringeBootstrap.Abstractions;
 using CringeLauncher.Loader;
+using CringeLauncher.SyntaxRewriters;
+using CringePlugins.Config;
+using CringePlugins.Services;
 using HarmonyLib;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.Diagnostics;
 using Microsoft.CodeAnalysis.Emit;
+using Microsoft.Extensions.DependencyInjection;
 using NLog;
 using Sandbox;
 using Sandbox.Game;
@@ -16,9 +20,12 @@ using Sandbox.Game.World;
 using Sandbox.Graphics.GUI;
 using Sandbox.ModAPI;
 using Sandbox.ModAPI.Ingame;
+using Steamworks;
+using System.Diagnostics;
 using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Runtime.Loader;
+using System.Security.Cryptography;
 using System.Text;
 using VRage;
 using VRage.Collections;
@@ -52,9 +59,6 @@ public static class ModScriptCompilerPatch
     private static readonly DiagnosticAnalyzer ScriptWhitelistAnalyzer =
             AccessTools.FieldRefAccess<MyScriptCompiler, DiagnosticAnalyzer>(MyScriptCompiler.Static, "m_inGameWhitelistDiagnosticAnalyzer");
 
-    private static readonly Func<CSharpCompilation, SyntaxTree, int, SyntaxTree> InjectMod = AccessTools.MethodDelegate<Func<CSharpCompilation, SyntaxTree, int, SyntaxTree>>(
-            AccessTools.Method(typeof(MyScriptCompiler), "InjectMod"), MyScriptCompiler.Static);
-
     private static readonly Func<CSharpCompilation, SyntaxTree, bool, SyntaxTree> InjectResourceMonitoring = AccessTools.MethodDelegate<Func<CSharpCompilation, SyntaxTree, bool, SyntaxTree>>(
             AccessTools.Method(typeof(MyScriptCompiler), "InjectResourceMonitoring"), MyScriptCompiler.Static);
 
@@ -68,10 +72,20 @@ public static class ModScriptCompilerPatch
             AccessTools.MethodDelegate<Func<MyScriptCompiler, string, IEnumerable<Script>, bool, CSharpCompilation>>(AccessTools.Method(typeof(MyScriptCompiler),
                 "CreateCompilation"));
 
+    private static readonly ConfigReference<LauncherConfig> LauncherConfigRef =
+        MySandboxGame.Services.GetRequiredService<ConfigHandler>().RegisterConfig("launcher", LauncherConfig.Default);
+
     static ModScriptCompilerPatch()
     {
         MySession.OnUnloaded += OnUnloaded;
         _modContext = new(CoreContext);
+
+        MyScriptManager.m_compatibilityChanges.Remove("using VRage.Common.Voxels;");
+        MyScriptManager.m_compatibilityChanges.Remove("using Sandbox.Common.ObjectBuilders.Serializer;");
+        MyScriptManager.m_compatibilityChanges.Remove("using Sandbox.Common.ObjectBuilders.VRageData;");
+        MyScriptManager.m_compatibilityChanges.Remove("using Sandbox.Common.Input;");
+        MyScriptManager.m_compatibilityChanges.Remove("using Sandbox.Common.ModAPI;");
+        MyScriptManager.m_compatibilityChanges.Add("FirstOrDefault(null)", "FirstOrDefault()");
     }
 
     private static void OnUnloaded()
@@ -221,6 +235,12 @@ public static class ModScriptCompilerPatch
         var assemblyFileName = MakeAssemblyName(assemblyName);
         Func<CSharpCompilation, SyntaxTree, bool, SyntaxTree>? syntaxTreeInjector;
         DiagnosticAnalyzer? whitelistAnalyzer;
+
+        Debug.WriteLine(assemblyName);
+        Debug.WriteLine(assemblyFileName);
+
+        string? cachePath = null;
+
         switch (target)
         {
             case MyApiTarget.None:
@@ -229,19 +249,52 @@ public static class ModScriptCompilerPatch
                 break;
             case MyApiTarget.Mod:
                 {
-                    var modId = MyModWatchdog.AllocateModId(friendlyName);
-                    whitelistAnalyzer = ModWhitelistAnalyzer;
-                    syntaxTreeInjector = (c, st, _) => InjectMod(c, st, modId);
-
                     //skip if name exists already
                     if (!LoadedModAssemblyNames.Add(assemblyFileName))
                     {
                         Console.WriteLine($"{assemblyFileName} is already loaded, skipping");
                         return null;
                     }
+
+
+                    var ind = assemblyFileName.IndexOf('.');
+                    var idStr = ind > 0 ? assemblyFileName[..ind] : "";
+                    if (LauncherConfigRef.Value.CacheModAssemblies && ulong.TryParse(idStr, out var id) && SteamUGC.GetItemInstallInfo((PublishedFileId_t)id, out _, out _, 260U, out var timestamp))
+                    {
+                        cachePath = Path.Join(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
+                                "CringeLauncher", "cache", "mods", $"{assemblyFileName}-{timestamp}.cache");
+
+                        if (File.Exists(cachePath))
+                        {
+                            await using var ms = new MemoryStream(await File.ReadAllBytesAsync(cachePath));
+                            return context.LoadFromStream(ms);
+                        }
+                    }
+
+                    whitelistAnalyzer = ModWhitelistAnalyzer;
+                    syntaxTreeInjector = MissingUsingRewriter.Rewrite;
+
+                    scripts = await Task.WhenAll(scripts.Select(LoadModScript));
                     break;
                 }
             case MyApiTarget.Ingame:
+
+                if (LauncherConfigRef.Value.CacheScriptAssemblies)
+                {
+                    await using var stream = new MemoryStream(Encoding.UTF8.GetBytes(scripts.First().Code));
+                    var bytes = await MD5.HashDataAsync(stream);
+                    var hash = Convert.ToHexString(bytes);
+
+                    cachePath = Path.Join(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
+                                "CringeLauncher", "cache", "scripts", $"{hash}.cache");
+
+                    if (File.Exists(cachePath))
+                    {
+                        await using var ms = new MemoryStream(await File.ReadAllBytesAsync(cachePath));
+                        return context.LoadFromStream(ms);
+                    }
+                }
+
                 syntaxTreeInjector = InjectResourceMonitoring;
                 whitelistAnalyzer = ScriptWhitelistAnalyzer;
                 break;
@@ -307,12 +360,34 @@ public static class ModScriptCompilerPatch
             if (injectionFailed)
                 return null;
             if (success)
+            {
+                if (cachePath is not null)
+                {
+                    Directory.CreateDirectory(Path.GetDirectoryName(cachePath)!);
+                    await using var fileStream = File.Create(cachePath);
+                    await assemblyStream.CopyToAsync(fileStream);
+
+                    assemblyStream.Seek(0, SeekOrigin.Begin);
+                }
                 return context.LoadFromStream(assemblyStream);
+            }
 
             await EmitDiagnostics(analyticCompilation!, compilationWithoutInjection.Emit(assemblyStream), messages,
                 false).ConfigureAwait(false);
         }
 
         return null;
+    }
+
+    private static async Task<Script> LoadModScript(Script script)
+    {
+        var text = await File.ReadAllTextAsync(script.Code);
+
+        foreach ((var old, var @new) in MyScriptManager.m_compatibilityChanges)
+        {
+            text = text.Replace(old, @new, StringComparison.Ordinal);
+        }
+
+        return new(script.Name, text.Insert(0, MyScriptManager.CompatibilityUsings));
     }
 }

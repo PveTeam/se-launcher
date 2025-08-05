@@ -92,7 +92,7 @@ internal class PluginsLifetime(ConfigHandler configHandler, HttpClient client, D
         await LoadPlugins(cachedPackages, sourceMapping, packagesConfig, builtInPackages);
 
         RenderHandler.Current.RegisterComponent(new PluginListComponent(_configReference, _launcherConfig,
-            sourceMapping, MyFileSystem.ExePath, _plugins));
+            sourceMapping, MyFileSystem.ExePath, _plugins, dir));
     }
 
     public static async Task ReloadPlugin(PluginInstance instance)
