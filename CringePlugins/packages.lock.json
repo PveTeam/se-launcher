@@ -19,9 +19,9 @@
       },
       "ImGui.NET.DirectX": {
         "type": "Direct",
-        "requested": "[1.92.1.2, )",
-        "resolved": "1.92.1.2",
-        "contentHash": "3n4qx0oWGlYHphHJ5a2/ernzasrsyE6RZ6NOxeACf3w/18qsqCVrXu2Xh9L0f4bwqq3eTTMNpV860yUHu1yiuw=="
+        "requested": "[1.92.1.3, )",
+        "resolved": "1.92.1.3",
+        "contentHash": "C9UQJZt1dK1sq2nR5c+GfvLBiASp6b2sRBMXBf8iojZtaslwN5HPmI0mY+QBdYpVPptj4+EGgGyltTwZRGP0BQ=="
       },
       "JsonSchema.Net.Generation": {
         "type": "Direct",
@@ -209,9 +209,9 @@
     "net9.0-windows7.0/win-x64": {
       "ImGui.NET.DirectX": {
         "type": "Direct",
-        "requested": "[1.92.1.2, )",
-        "resolved": "1.92.1.2",
-        "contentHash": "3n4qx0oWGlYHphHJ5a2/ernzasrsyE6RZ6NOxeACf3w/18qsqCVrXu2Xh9L0f4bwqq3eTTMNpV860yUHu1yiuw=="
+        "requested": "[1.92.1.3, )",
+        "resolved": "1.92.1.3",
+        "contentHash": "C9UQJZt1dK1sq2nR5c+GfvLBiASp6b2sRBMXBf8iojZtaslwN5HPmI0mY+QBdYpVPptj4+EGgGyltTwZRGP0BQ=="
       },
       "Steamworks.NET": {
         "type": "Direct",
