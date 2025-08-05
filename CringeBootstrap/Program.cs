@@ -45,7 +45,8 @@ var gameDir = dir;
 
 var customEntrypoint = Environment.GetEnvironmentVariable("DOTNET_BOOTSTRAP_ENTRYPOINT");
 
-if (
+// TODO figure out aggressive inlining from crossgen affecting patches 
+/*if (
 #if !DEBUG // disable crossgen for plugins userdev, but leave for debug
     customEntrypoint is null &&
 #endif 
@@ -70,7 +71,7 @@ if (
         
         crossGenService.CleanCache();
     }
-}
+}*/
 
 var context = new GameDirectoryAssemblyLoadContext(dir, gameDir);
 
