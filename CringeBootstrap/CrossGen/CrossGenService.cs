@@ -1,7 +1,6 @@
 ﻿using System.Collections.Immutable;
 using System.Diagnostics;
 using System.IO.Compression;
-using System.Reflection;
 using System.Security.Cryptography;
 using System.Text;
 using NuGet;
@@ -12,10 +11,76 @@ namespace CringeBootstrap.CrossGen;
 
 internal class CrossGenService(string gameDirectoryPath, string cachePath)
 {
-    private readonly ImmutableHashSet<string> _excludedAssemblies = ImmutableHashSet.Create(
-        StringComparer.OrdinalIgnoreCase,
+    private readonly ImmutableHashSet<string> _excludedAssemblies =
+    [
         "VRage.NativeAftermath.dll" // managed C++ is not supported
-    );
+    ];
+    
+    private readonly ImmutableHashSet<string> _includedAssemblies =
+    [
+        "CppNet.dll",
+        "DirectShowLib.dll",
+        "EmptyKeys.UserInterface.Core.dll",
+        "EmptyKeys.UserInterface.dll",
+        "GameAnalytics.Mono.dll",
+        "HavokWrapper.dll",
+        "Microsoft.CodeAnalysis.CSharp.dll",
+        "Microsoft.CodeAnalysis.dll",
+        "netstandard.dll",
+        "ProtoBuf.Net.Core.dll",
+        "ProtoBuf.Net.dll",
+        "RecastDetourWrapper.dll",
+        "RestSharp.dll",
+        "Sandbox.Common.dll",
+        "Sandbox.Game.dll",
+        "Sandbox.Game.XmlSerializers.dll",
+        "Sandbox.Graphics.dll",
+        "Sandbox.RenderDirect.dll",
+        "SharpDX.D3DCompiler.dll",
+        "SharpDX.Desktop.dll",
+        "SharpDX.Direct3D11.dll",
+        "SharpDX.DirectInput.dll",
+        "SharpDX.dll",
+        "SharpDX.DXGI.dll",
+        "SharpDX.XAudio2.dll",
+        "SharpDX.XInput.dll",
+        "SpaceEngineers.Game.dll",
+        "SpaceEngineers.ObjectBuilders.dll",
+        "SpaceEngineers.ObjectBuilders.XmlSerializers.dll",
+        "Steamworks.NET.dll",
+        "System.Buffers.dll",
+        "System.Collections.Immutable.dll",
+        "System.ComponentModel.Annotations.dll",
+        "System.Data.SQLite.dll",
+        "System.Memory.dll",
+        "System.Numerics.Vectors.dll",
+        "System.Reflection.Metadata.dll",
+        "System.Runtime.CompilerServices.Unsafe.dll",
+        "System.Text.Encoding.CodePages.dll",
+        "System.Threading.Tasks.Extensions.dll",
+        "VRage.Ansel.dll",
+        "VRage.Audio.dll",
+        "VRage.dll",
+        "VRage.EOS.dll",
+        "VRage.EOS.XmlSerializers.dll",
+        "VRage.Game.dll",
+        "VRage.Game.XmlSerializers.dll",
+        "VRage.Input.dll",
+        "VRage.Library.dll",
+        "VRage.Math.dll",
+        "VRage.Math.XmlSerializers.dll",
+        "VRage.Mod.Io.dll",
+        "VRage.NativeAftermath.dll",
+        "VRage.NativeWrapper.dll",
+        "VRage.Network.dll",
+        "VRage.Platform.Windows.dll",
+        "VRage.Render.dll",
+        "VRage.Render11.dll",
+        "VRage.Scripting.dll",
+        "VRage.Steam.dll",
+        "VRage.UserInterface.dll",
+        "VRage.XmlSerializers.dll",
+    ]; 
     
     // assembly with game version constant so hash always changes with game updates
     private const string CacheKeyFileName = "SpaceEngineers.Game.dll";
@@ -172,25 +237,10 @@ internal class CrossGenService(string gameDirectoryPath, string cachePath)
     private ImmutableArray<string> CollectInputAssemblies()
     {
         return [
-            ..Directory.EnumerateFiles(gameDirectoryPath, "*.dll")
-                .Where(IsManagedAssembly)
+            .._includedAssemblies.Except(_excludedAssemblies)
+                .Select(s => Path.Join(gameDirectoryPath, s))
+                .Where(File.Exists)
         ];
-    }
-
-    private bool IsManagedAssembly(string path)
-    {
-        if (_excludedAssemblies.Contains(Path.GetFileName(path)))
-            return false;
-        
-        try
-        {
-            AssemblyName.GetAssemblyName(path);
-            return true;
-        }
-        catch (Exception)
-        {
-            return false;
-        }
     }
 
     private async Task<string?> DownloadCrossGenAsync()
