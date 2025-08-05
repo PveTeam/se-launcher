@@ -1,4 +1,5 @@
-﻿using System.Text.Json;
+﻿using System.Collections.Concurrent;
+using System.Text.Json;
 using System.Text.Json.Nodes;
 using CringePlugins.Config.Spec;
 using Json.Schema;
@@ -19,7 +20,9 @@ public sealed class ConfigHandler
     private static readonly Logger Log = LogManager.GetCurrentClassLogger();
 
     private readonly DirectoryInfo _configDirectory;
-    
+
+    private readonly ConcurrentDictionary<string, object> _configReferences = [];
+    private readonly Lock _lock = new Lock();
 
     private readonly EvaluationOptions _evaluationOptions = new()
     {
@@ -36,50 +39,58 @@ public sealed class ConfigHandler
 
     public ConfigReference<T> RegisterConfig<T>(string name, T? defaultInstance = null) where T : class
     {
-        var spec = IConfigurationSpecProvider.FromType(typeof(T));
-
-        var path = Path.Join(_configDirectory.FullName, $"{name}.json");
-        var backupPath = path + $".bak.{DateTimeOffset.Now.ToUnixTimeSeconds()}";
-
-        JsonNode? jsonNode = null;
-        if (File.Exists(path))
+        lock (_lock)
         {
-            using var stream = File.OpenRead(path);
+            if (_configReferences.TryGetValue(name, out var existing))
+            {
+                return existing as ConfigReference<T> ?? throw new InvalidOperationException($"Config {name} is already registered with a different type");
+            }
+
+            var spec = IConfigurationSpecProvider.FromType(typeof(T));
+
+            var path = Path.Join(_configDirectory.FullName, $"{name}.json");
+            var backupPath = path + $".bak.{DateTimeOffset.Now.ToUnixTimeSeconds()}";
+
+            JsonNode? jsonNode = null;
+            if (File.Exists(path))
+            {
+                using var stream = File.OpenRead(path);
+                try
+                {
+                    jsonNode = JsonNode.Parse(stream, new JsonNodeOptions { PropertyNameCaseInsensitive = true },
+                        new JsonDocumentOptions { CommentHandling = JsonCommentHandling.Skip, AllowTrailingCommas = true });
+                }
+                catch (JsonException e)
+                {
+                    Log.Warn(e, "Failed to load config {Name}", name);
+                }
+            }
+
+            var reference = new ConfigReference<T>(name, this);
+            if (jsonNode == null || (spec != null && !TryValidate(name, spec, jsonNode)))
+            {
+                if (File.Exists(path))
+                    File.Move(path, backupPath);
+                defaultInstance ??= Activator.CreateInstance<T>();
+                RegisterChange(name, defaultInstance);
+                return reference;
+            }
+
+            T instance;
             try
             {
-                jsonNode = JsonNode.Parse(stream, new JsonNodeOptions { PropertyNameCaseInsensitive = true },
-                    new JsonDocumentOptions { CommentHandling = JsonCommentHandling.Skip, AllowTrailingCommas = true });
+                instance = jsonNode.Deserialize<T>(SerializerOptions)!;
             }
             catch (JsonException e)
             {
                 Log.Warn(e, "Failed to load config {Name}", name);
-            }
-        }
 
-        var reference = new ConfigReference<T>(name, this);
-        if (jsonNode == null || (spec != null && !TryValidate(name, spec, jsonNode)))
-        {
-            if (File.Exists(path))
-                File.Move(path, backupPath);
-            defaultInstance ??= Activator.CreateInstance<T>();
-            RegisterChange(name, defaultInstance);
+                instance = defaultInstance ?? Activator.CreateInstance<T>();
+            }
+            ConfigReloaded?.Invoke(this, new ConfigValue<T>(name, instance));
+
             return reference;
         }
-
-        T instance;
-        try
-        {
-            instance = jsonNode.Deserialize<T>(SerializerOptions)!;
-        }
-        catch (JsonException e)
-        {
-            Log.Warn(e, "Failed to load config {Name}", name);
-
-            instance = defaultInstance ?? Activator.CreateInstance<T>();
-        }
-        ConfigReloaded?.Invoke(this, new ConfigValue<T>(name, instance));
-
-        return reference;
     }
 
     internal void RegisterChange<T>(string name, T newValue)
