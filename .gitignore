@@ -9,3 +9,5 @@ riderModule.iml
 /CringeLauncher/pub
 *.user
 pub/
+/CringeBootstrap/NLog.xsd
+/TestPlugin/Properties/launchSettings.json
