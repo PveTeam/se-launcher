@@ -53,7 +53,7 @@ public sealed class NotificationsComponent : IRenderComponent
                 y = _notificationSize.Y + YPadding;
 
             ImGui.SetNextWindowPos(new Vector2(WindowSize.Width, y * EaseInOutCubic(lerpMult)) - _notificationSize + viewportPos);
-            ImGui.SetNextWindowSize(new Vector2(_notificationSize.X, 0f));
+            ImGui.SetNextWindowSize(new Vector2(MathF.Max(_notificationSize.X, float.Epsilon), 0f));
 
             Vector2 lastWinSize = Vector2.Zero;
 
