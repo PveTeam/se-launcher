@@ -23,7 +23,8 @@ public sealed class NotificationsComponent : IRenderComponent
         var y = 0f;
 
         var lastY = _notificationSize.Y;
-        var viewportPos = ImGui.GetMainViewport().Pos;
+        var viewport = ImGui.GetMainViewport();
+        var viewportPos = viewport.Pos;
 
         //todo: consider adding a limit to the number of messages that can be displayed at once
         for (var i = Notifications.Count; i-- > 0;)
@@ -54,6 +55,7 @@ public sealed class NotificationsComponent : IRenderComponent
 
             ImGui.SetNextWindowPos(new Vector2(WindowSize.Width, y * EaseInOutCubic(lerpMult)) - _notificationSize + viewportPos);
             ImGui.SetNextWindowSize(new Vector2(MathF.Max(_notificationSize.X, float.Epsilon), 0f));
+            ImGui.SetNextWindowViewport(viewport.ID);
 
             Vector2 lastWinSize = Vector2.Zero;
 
