@@ -278,12 +278,6 @@ public class Launcher : ICorePlugin
 
     private async Task CheckUpdates(string[] args, Logger logger)
     {
-        if (await CheckUpdatesDisabledAsync(logger))
-        {
-            logger.Warn("Updates Disabled (may break from keen update)");
-            return;
-        }
-
         logger.Info("Checking for updates...");
 
         var mgr = new UpdateManager("https://dl.zznty.ru/CringeLauncher/");
@@ -307,6 +301,13 @@ public class Launcher : ICorePlugin
             Console.WriteLine();
         }
         Console.ResetColor();
+
+        if (await CheckUpdatesDisabledAsync(logger))
+        {
+            logger.Warn("Updates Disabled, skipping update");
+            return;
+        }
+
         logger.Info("Downloading new version...");
 
         // download new version
