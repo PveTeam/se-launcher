@@ -67,13 +67,12 @@ public class Launcher : ICorePlugin
         _configDir = _dir.CreateSubdirectory("config");
     }
 
-    public void Initialize(string[] args)
+    public bool Initialize(string[] args)
     {
         if (Type.GetType("GameAnalyticsSDK.Net.Logging.GALogger, GameAnalytics.Mono") is { } gaLoggerType)
             RuntimeHelpers.RunClassConstructor(gaLoggerType.TypeHandle);
 
         LogManager.Setup()
-            .LoadConfigurationFromFile()
             .SetupExtensions(s =>
             {
                 s.RegisterLayoutRenderer("cringe-exception", e =>
@@ -82,7 +81,8 @@ public class Launcher : ICorePlugin
                     e.Exception.FormatStackTrace();
                     return e.Exception.ToString();
                 });
-            });
+            })
+            .LoadConfigurationFromFile(optional: false);
 
         LogManager.ReconfigExistingLoggers();
 
@@ -168,9 +168,24 @@ public class Launcher : ICorePlugin
 
         _renderComponent.RenderThread.SizeChanged += _game.RenderThread_SizeChanged;
         _renderComponent.RenderThread.UpdateSize();
+        
+        return true;
     }
 
-    public void Run() => _game?.Run();
+    public bool Run()
+    {
+        try
+        {
+            _game?.Run();
+        }
+        catch (Exception e)
+        {
+            LogManager.GetLogger("Game").Fatal(e, "Fatal exception in game loop");
+            return false;
+        }
+        
+        return true;
+    }
 
 
     private IServiceProvider SetupServices()

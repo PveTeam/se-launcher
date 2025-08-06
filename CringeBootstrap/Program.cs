@@ -29,7 +29,7 @@ if (args.Length == 0)
     Console.WriteLine($"\"{path}\" %command%");
     Console.ResetColor();
     Console.Read();
-    return;
+    return 0;
 }
 
 #if DEBUG
@@ -87,12 +87,18 @@ if (!TypeName.TryParse(entrypoint, out var entrypointName) ||
     Console.Error.WriteLine($"Invalid entrypoint name: {entrypoint}");
     Console.Error.WriteLine("Bootstrap encountered a fatal error and will shutdown.");
     Console.Read();
-    return;
+    return -1;
 }
 
 var launcher = context.LoadFromAssemblyName(entrypointName.AssemblyName.ToAssemblyName());
 
 using var corePlugin = (ICorePlugin) launcher.CreateInstance(entrypointName.FullName)!;
 
-corePlugin.Initialize(args);
-corePlugin.Run();
+if (!corePlugin.Initialize(args) || corePlugin.Run())
+{
+    Console.WriteLine("Press any key to exit...");
+    Console.Read();
+    return 1;
+}
+
+return 0;

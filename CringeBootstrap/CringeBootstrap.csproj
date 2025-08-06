@@ -30,5 +30,12 @@
       <ProjectReference Include="..\CringeBootstrap.Abstractions\CringeBootstrap.Abstractions.csproj" />
       <ProjectReference Include="..\CringeLauncher\CringeLauncher.csproj" />
     </ItemGroup>
+
+    <ItemGroup>
+      <Content Include="NLog.config">
+        <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+        <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
+      </Content>
+    </ItemGroup>
     
 </Project>

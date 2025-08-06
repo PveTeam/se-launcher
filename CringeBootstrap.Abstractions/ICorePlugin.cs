@@ -2,6 +2,6 @@
 
 public interface ICorePlugin : IDisposable
 {
-    void Initialize(string[] args);
-    void Run();
+    bool Initialize(string[] args);
+    bool Run();
 }
