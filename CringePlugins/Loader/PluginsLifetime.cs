@@ -101,9 +101,9 @@ internal class PluginsLifetime(ConfigHandler configHandler, HttpClient client, D
         {
             var (oldContext, newContext) = await instance.ReloadAsync();
 
-            lock (ContextsLock)
+            using (ContextsLock.EnterScope())
             {
-                Contexts = Contexts.Remove(oldContext).Add(newContext);
+                Contexts = Contexts.Replace(oldContext, newContext);
             }
         }
         catch (Exception e)

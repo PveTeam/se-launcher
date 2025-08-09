@@ -1,5 +1,6 @@
 ﻿using System.Collections.Concurrent;
 using CringePlugins.Abstractions;
+using CringePlugins.Ui;
 using ImGuiNET;
 using NLog;
 
@@ -25,13 +26,13 @@ public sealed class RenderHandler : IRootRenderComponent
 
     public void RegisterComponent<TComponent>(TComponent instance) where TComponent : IRenderComponent
     {
-        lock (_componentsLock)
+        using (_componentsLock.EnterScope())
             _components.Add(new ComponentRegistration(typeof(TComponent), instance));
     }
 
     public void UnregisterComponent<TComponent>(TComponent instance) where TComponent : IRenderComponent
     {
-        lock (_componentsLock)
+        using (_componentsLock.EnterScope())
         {
             for (var i = 0; i < _components.Count; i++)
             {
@@ -50,8 +51,10 @@ public sealed class RenderHandler : IRootRenderComponent
 #if DEBUG
         ImGui.ShowDemoWindow();
 #endif
+        
+        ImGui.PushFont(ImFontVariants.Regular);
 
-        lock (_componentsLock)
+        using (_componentsLock.EnterScope())
         {
             foreach (var (instanceType, renderComponent) in _components)
             {
@@ -65,6 +68,8 @@ public sealed class RenderHandler : IRootRenderComponent
                 }
             }
         }
+        
+        ImGui.PopFont();
     }
 
     private record ComponentRegistration(Type InstanceType, IRenderComponent Instance);

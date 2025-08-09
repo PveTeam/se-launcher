@@ -17,7 +17,7 @@ public class Splash : ISplashProgress, IRenderComponent
 
     private ProgressInfo? _lastInfo;
     private bool _done;
-    private readonly string _splashPath = Path.Join(AppContext.BaseDirectory, "splash.png");
+    private readonly string _splashPath = Path.Join(AppContext.BaseDirectory, "Resources", "splash.png");
 
     private readonly IImGuiImageService _imageService =
         GameServicesExtension.GameServices.GetRequiredService<IImGuiImageService>();

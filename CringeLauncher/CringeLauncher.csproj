@@ -54,8 +54,13 @@
 
     <ItemGroup>
       <Content Include="NativeMethods.txt" />
-      <None Remove="splash.png" />
-      <Content Include="splash.png">
+      <Content Include="Resources\splash.png">
+        <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      </Content>
+      <Content Include="Resources\Fonts\OFL.txt">
+        <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      </Content>
+      <Content Include="Resources\Fonts\*.ttf">
         <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
       </Content>
     </ItemGroup>

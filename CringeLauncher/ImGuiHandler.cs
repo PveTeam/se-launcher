@@ -8,6 +8,7 @@ using Windows.Win32.UI.WindowsAndMessaging;
 using CringePlugins.Abstractions;
 using CringePlugins.Render;
 using CringePlugins.Services;
+using CringePlugins.Ui;
 using ImGuiNET;
 using Microsoft.Extensions.DependencyInjection;
 using SharpDX.Direct3D11;
@@ -60,6 +61,7 @@ internal sealed class ImGuiHandler : IGuiHandler, IDisposable
 
         io.NativePtr->IniFilename = Utf8StringMarshaller.ConvertToUnmanaged(path);
 
+        io.ConfigErrorRecoveryEnableAssert = false;
         io.ConfigWindowsMoveFromTitleBarOnly = true;
         io.ConfigFlags |= ImGuiConfigFlags.DockingEnable | ImGuiConfigFlags.ViewportsEnable;
 
@@ -68,6 +70,35 @@ internal sealed class ImGuiHandler : IGuiHandler, IDisposable
         _init = true;
 
         _imageService.Initialize();
+
+        BuildFonts(io);
+    }
+
+    private static unsafe void BuildFonts(ImGuiIOPtr io)
+    {
+        ImFontGlyphRangesBuilderPtr builder = ImGuiNative.ImFontGlyphRangesBuilder_ImFontGlyphRangesBuilder();
+
+        try
+        {
+            builder.AddRanges(io.Fonts.GetGlyphRangesDefault());
+            builder.AddRanges(io.Fonts.GetGlyphRangesCyrillic());
+            builder.BuildRanges(out var ranges);
+            try
+            {
+                ImFontVariants.LoadFonts(io, Path.Join(AppContext.BaseDirectory, "Resources", "Fonts"), "SourceCodePro",
+                    ranges.Data,
+                    Enum.GetValues<FontVariant>());
+                io.Fonts.Build();
+            }
+            finally
+            {
+                MemFree(ranges.Data);
+            }
+        }
+        finally
+        {
+            builder.Destroy();
+        }
     }
 
     public static void HookWindow(HWND windowHandle)
