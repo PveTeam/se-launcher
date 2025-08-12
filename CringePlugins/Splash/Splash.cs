@@ -50,8 +50,15 @@ public class Splash : ISplashProgress, IRenderComponent
         {
             foreach (var loadingStage in _loadingStages)
             {
-                // todo sync context
-                loadingStage.Load(this).AsTask().GetAwaiter().GetResult();
+                try
+                {
+                    // todo sync context
+                    loadingStage.Load(this).AsTask().GetAwaiter().GetResult();
+                }
+                catch (Exception e)
+                {
+                    Logger.Fatal(e, "Failed to execute loading stage {StageName}", loadingStage.Name);
+                }
                 _lastInfo = null;
             }
         }
