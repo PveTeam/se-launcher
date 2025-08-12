@@ -457,7 +457,6 @@
           "JsonSchema.Net.Generation": "[5.0.4, )",
           "Lib.Harmony.Thin": "[2.3.4-torch, )",
           "Microsoft.Extensions.DependencyInjection.Abstractions": "[9.0.7, )",
-          "NLog": "[6.0.2, )",
           "Newtonsoft.Json": "[13.0.3, )",
           "NuGet": "[1.0.0, )",
           "SharedCringe": "[1.0.0, )",
@@ -469,6 +468,7 @@
       "nuget": {
         "type": "Project",
         "dependencies": {
+          "NLog": "[6.0.2, )",
           "NuGet.Frameworks": "[6.14.0, )",
           "NuGet.Versioning": "[6.14.0, )",
           "System.Linq.Async": "[6.0.3, )"

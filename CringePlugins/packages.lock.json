@@ -60,12 +60,6 @@
         "resolved": "13.0.3",
         "contentHash": "HrC5BXdl00IP9zeV+0Z848QWPAoCr9P3bDEZguI+gkLcBKAOxix/tLEAAHC+UvDNPv4a2d18lOReHMOagPa+zQ=="
       },
-      "NLog": {
-        "type": "Direct",
-        "requested": "[6.0.2, )",
-        "resolved": "6.0.2",
-        "contentHash": "kfjfjcjh/hHXLJ0TbEUH6ajb2jQFmwk/23nyYW9iPZ6cj5769SyeDTbUwGI7LSVUk5iTRJoC6CTKKmWrXK79oA=="
-      },
       "SpaceEngineersDedicated.ReferenceAssemblies": {
         "type": "Direct",
         "requested": "[1.206.32, )",
@@ -161,6 +155,11 @@
           "MonoMod.ILHelpers": "1.1.0"
         }
       },
+      "NLog": {
+        "type": "Transitive",
+        "resolved": "6.0.2",
+        "contentHash": "kfjfjcjh/hHXLJ0TbEUH6ajb2jQFmwk/23nyYW9iPZ6cj5769SyeDTbUwGI7LSVUk5iTRJoC6CTKKmWrXK79oA=="
+      },
       "NuGet.Frameworks": {
         "type": "Transitive",
         "resolved": "6.14.0",
@@ -192,6 +191,7 @@
       "nuget": {
         "type": "Project",
         "dependencies": {
+          "NLog": "[6.0.2, )",
           "NuGet.Frameworks": "[6.14.0, )",
           "NuGet.Versioning": "[6.14.0, )",
           "System.Linq.Async": "[6.0.3, )"

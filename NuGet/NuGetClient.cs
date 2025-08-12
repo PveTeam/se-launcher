@@ -96,20 +96,28 @@ public sealed class NuGetClient
         return _client.GetFromJsonAsync<SearchResult>(builder.Uri, SerializerOptions)!;
     }
 
-    public static async Task<NuGetClient?> CreateFromIndexUrlAsync(string indexUrl, HttpClient client)
+    public static async Task<NuGetClient> CreateFromIndexUrlAsync(string indexUrl, HttpClient client)
     {
-        var index = await client.GetFromJsonAsync<NuGetIndex>(indexUrl, SerializerOptions);
+        try
+        {
+            var index = await client.GetFromJsonAsync<NuGetIndex>(indexUrl, SerializerOptions);
 
-        var (packageBaseAddress, _, _) = index!.Resources.First(b => b.Type.Id == "PackageBaseAddress");
-        var (registration, _, _) = index.Resources.First(b => b.Type.Id == "RegistrationsBaseUrl");
-        var (search, _, _) = index.Resources.First(b => b.Type.Id == "SearchQueryService");
+            var (packageBaseAddress, _, _) = index!.Resources.First(b => b.Type.Id == "PackageBaseAddress");
+            var (registration, _, _) = index.Resources.First(b => b.Type.Id == "RegistrationsBaseUrl");
+            var (search, _, _) = index.Resources.First(b => b.Type.Id == "SearchQueryService");
 
-        if (!packageBaseAddress.EndsWith('/'))
-            packageBaseAddress += '/';
-        if (!registration.EndsWith('/'))
-            registration += '/';
+            if (!packageBaseAddress.EndsWith('/'))
+                packageBaseAddress += '/';
+            if (!registration.EndsWith('/'))
+                registration += '/';
 
-        return new NuGetClient(new Uri(indexUrl), client, new Uri(packageBaseAddress), new Uri(registration), new Uri(search));
+            return new NuGetClient(new Uri(indexUrl), client, new Uri(packageBaseAddress), new Uri(registration),
+                new Uri(search));
+        }
+        catch (Exception e)
+        {
+            throw new Exception($"Failed to create NuGetClient for {indexUrl}", e);
+        }
     }
 
     public override string ToString() => _index.ToString();
