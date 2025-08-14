@@ -44,8 +44,11 @@ public static class ExceptionFormatter
         var i = 0;
         while (stackTrace.GetFrame(i++) is { } frame)
         {
-            if (Harmony.GetOriginalMethodFromStackframe(frame) is not { } method)
+            var method = frame.GetMethod();
+            if (method is null)
                 continue;
+            if (method is MethodInfo methodInfo && Harmony.GetOriginalMethod(methodInfo) is { } originalMethod)
+                method = originalMethod;
 
             sb.Append(pad + "at ");
             sb.AppendMethod(method);
