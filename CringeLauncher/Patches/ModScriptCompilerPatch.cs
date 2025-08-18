@@ -42,7 +42,7 @@ public static class ModScriptCompilerPatch
 
     private static readonly Logger Log = LogManager.GetCurrentClassLogger();
     private static ModAssemblyLoadContext _modContext;
-    private static readonly HashSet<string> LoadedModAssemblyNames = [];
+    private static readonly MyConcurrentHashSet<string> LoadedModAssemblyNames = [];
 
     private static readonly ConditionalWeakTable<MyProgrammableBlock, PbAssemblyLoadContext> LoadContexts = [];
 
@@ -86,6 +86,8 @@ public static class ModScriptCompilerPatch
         MyScriptManager.m_compatibilityChanges.Remove("using Sandbox.Common.Input;");
         MyScriptManager.m_compatibilityChanges.Remove("using Sandbox.Common.ModAPI;");
         MyScriptManager.m_compatibilityChanges.Add("FirstOrDefault(null)", "FirstOrDefault()");
+
+        MyModWatchdog.ModInfo = [new("Unknown")];
     }
 
     private static void OnUnloaded()
