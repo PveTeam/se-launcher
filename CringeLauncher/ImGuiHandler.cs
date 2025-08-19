@@ -15,6 +15,7 @@ using SharpDX.Direct3D11;
 using static ImGuiNET.ImGui;
 using VRage;
 using Sandbox.Graphics.GUI;
+using VRageRender;
 
 namespace CringeLauncher;
 
@@ -40,6 +41,7 @@ internal sealed class ImGuiHandler : IGuiHandler, IDisposable
 
     private readonly IRootRenderComponent _renderHandler;
     private readonly ImGuiImageService _imageService;
+    private bool _gameRendererInitialized;
     private static bool _init;
 
     public ImGuiHandler(DirectoryInfo configDir)
@@ -49,7 +51,7 @@ internal sealed class ImGuiHandler : IGuiHandler, IDisposable
         _imageService = (ImGuiImageService)GameServicesExtension.GameServices.GetRequiredService<IImGuiImageService>();
     }
 
-    public unsafe void Init(nint windowHandle, Device1 device, DeviceContext deviceContext)
+    public unsafe void Init(nint windowHandle, Device device, DeviceContext deviceContext)
     {
         _deviceContext = deviceContext;
 
@@ -66,10 +68,11 @@ internal sealed class ImGuiHandler : IGuiHandler, IDisposable
         io.ConfigFlags |= ImGuiConfigFlags.DockingEnable | ImGuiConfigFlags.ViewportsEnable;
 
         ImGui_ImplWin32_Init(windowHandle);
+        ImGui_ImplWin32_EnableAlphaCompositing(windowHandle);
         ImGui_ImplDX11_Init(device.NativePointer, deviceContext.NativePointer);
         _init = true;
 
-        _imageService.Initialize();
+        _imageService.Initialize(device);
 
         BuildFonts(io);
     }
@@ -113,6 +116,11 @@ internal sealed class ImGuiHandler : IGuiHandler, IDisposable
         }
     }
 
+    public void NotifyGameRendererInitialized()
+    {
+        _gameRendererInitialized = true;
+    }
+
     public void DoRender()
     {
         if (Rtv is null)
@@ -131,21 +139,12 @@ internal sealed class ImGuiHandler : IGuiHandler, IDisposable
             _blockKeysCounter--;
 
         DrawMouse = io.MouseDrawCursor || MouseToggle || MouseKey;
-
-        var focusedScreen = MyScreenManager.GetScreenWithFocus(); //migrated logic from MyDX9Gui.Draw
-
-        if (DrawMouse || focusedScreen?.GetDrawMouseCursor() == true || (MyScreenManager.InputToNonFocusedScreens && MyScreenManager.GetScreensCount() > 1))
-        {
-            MyGuiSandbox.SetMouseCursorVisibility(true, false);
-        }
-        else if (focusedScreen != null)
-        {
-            MyGuiSandbox.SetMouseCursorVisibility(focusedScreen.GetDrawMouseCursor());
-        }
+        
+        if (_gameRendererInitialized) UpdateMouse();
 
         _renderHandler.OnFrame();
 
-        Render();
+        ImGui.Render();
 
         _deviceContext!.ClearState();
         _deviceContext.OutputMerger.SetRenderTargets(Rtv);
@@ -156,6 +155,20 @@ internal sealed class ImGuiHandler : IGuiHandler, IDisposable
         RenderPlatformWindowsDefault();
 
         _imageService.Update();
+    }
+
+    private void UpdateMouse()
+    {
+        var focusedScreen = MyScreenManager.GetScreenWithFocus(); //migrated logic from MyDX9Gui.Draw
+
+        if (DrawMouse || focusedScreen?.GetDrawMouseCursor() == true || (MyScreenManager.InputToNonFocusedScreens && MyScreenManager.GetScreensCount() > 1))
+        {
+            MyGuiSandbox.SetMouseCursorVisibility(true, false);
+        }
+        else if (focusedScreen != null)
+        {
+            MyGuiSandbox.SetMouseCursorVisibility(focusedScreen.GetDrawMouseCursor());
+        }
     }
 
     [UnmanagedCallersOnly(CallConvs = [typeof(CallConvStdcall)])]

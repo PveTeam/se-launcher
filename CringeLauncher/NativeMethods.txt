@@ -1,2 +1,6 @@
 ﻿GetWindowLongPtr
 SetWindowLongPtr
+WM_COPYDATA
+WM_INPUTLANGCHANGE
+COPYDATASTRUCT
+FreeConsole

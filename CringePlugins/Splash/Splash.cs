@@ -9,7 +9,7 @@ using static ImGuiNET.ImGui;
 
 namespace CringePlugins.Splash;
 
-public class Splash : ISplashProgress, IRenderComponent
+public class Splash : ISplashProgress, IRenderComponent, IDisposable
 {
     private static readonly Logger Logger = LogManager.GetCurrentClassLogger();
 
@@ -46,26 +46,26 @@ public class Splash : ISplashProgress, IRenderComponent
 
     public void ExecuteLoadingStages()
     {
-        try
+        // todo sync context
+        ExecuteLoadingStagesAsync().GetAwaiter().GetResult();
+    }
+
+    private async Task ExecuteLoadingStagesAsync()
+    {
+        foreach (var loadingStage in _loadingStages)
         {
-            foreach (var loadingStage in _loadingStages)
+            try
             {
-                try
-                {
-                    // todo sync context
-                    loadingStage.Load(this).AsTask().GetAwaiter().GetResult();
-                }
-                catch (Exception e)
-                {
-                    Logger.Fatal(e, "Failed to execute loading stage {StageName}", loadingStage.Name);
-                }
-                _lastInfo = null;
+                await loadingStage.Load(this);
             }
+            catch (Exception e)
+            {
+                Logger.Fatal(e, "Failed to execute loading stage {StageName}", loadingStage.Name);
+            }
+            _lastInfo = null;
         }
-        finally
-        {
-            _done = true;
-        }
+        
+        _loadingStages.Clear();
     }
 
     public void OnFrame()
@@ -74,24 +74,29 @@ public class Splash : ISplashProgress, IRenderComponent
 
         SetNextWindowPos(GetMainViewport().GetCenter(), ImGuiCond.Always, new(.5f, .5f));
         const int imageSize = 512;
-        SetNextWindowSize(new(512, GetFrameHeightWithSpacing() * 2 + imageSize), ImGuiCond.Always);
+        SetNextWindowSize(new(512, GetFrameHeightWithSpacing() * 3 + imageSize), ImGuiCond.Always);
         Begin("Splash", ImGuiWindowFlags.NoDecoration | ImGuiWindowFlags.NoInputs);
 
         var image = _imageService.GetFromPath(_splashPath);
         Image(image, new(imageSize));
 
         var sizeArg = new Vector2(GetWindowWidth() - GetStyle().WindowPadding.X * 2, 0);
-        if (_lastInfo is null)
-        {
-            const string text = "Loading...";
-            var size = CalcTextSize(text);
+        
+        var text = _lastInfo?.Text ?? "Loading...";
+        var size = CalcTextSize(text);
 
-            SetCursorPosX((GetWindowWidth() - size.X) * .5f);
-            Text(text);
-        }
-        else
-            ProgressBar((_lastInfo as PercentProgressInfo)?.Percent ?? 0, sizeArg, _lastInfo.Text);
+        SetCursorPosX((GetWindowWidth() - size.X) * .5f);
+        Text(text);
+        
+        if (_lastInfo is PercentProgressInfo { Percent: var percent })
+            ProgressBar(percent, sizeArg);
 
         End();
+    }
+
+    public void Dispose()
+    {
+        ObjectDisposedException.ThrowIf(_done, this);
+        _done = true;
     }
 }

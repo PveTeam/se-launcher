@@ -1,5 +1,6 @@
 ﻿using CringeLauncher.UserDev.Networking;
 using CringePlugins.Config;
+using CringePlugins.Splash;
 using NLog;
 using VRage;
 using VRage.GameServices;
@@ -8,7 +9,7 @@ namespace CringeLauncher.UserDev;
 
 public class UserDevLauncher() : Launcher(Environment.GetEnvironmentVariable("DOTNET_USERDEV_RUNDIR"))
 {
-    protected override void InitUgc()
+    protected override void InitUgc(Splash splash)
     {
         var gameService = new UserDevGameService(AppId);
         MyServiceManager.Instance.AddService<IMyGameService>(gameService);

@@ -14,7 +14,7 @@ public sealed class NotificationsComponent : IRenderComponent
     private static Vector2 _notificationSize = new(300, 75);
     private static readonly List<NotificationInstruction> Notifications = [];
 
-    private static Size WindowSize => ((Form)MyVRage.Platform.Windows.Window).Size;
+    private static VRageMath.Vector2I WindowSize => MyVRage.Platform.Windows.Window.ClientSize;
 
     private static float _time;
 
@@ -53,11 +53,11 @@ public sealed class NotificationsComponent : IRenderComponent
             if (!inTransition && y < _notificationSize.Y + YPadding)
                 y = _notificationSize.Y + YPadding;
 
-            ImGui.SetNextWindowPos(new Vector2(WindowSize.Width, y * EaseInOutCubic(lerpMult)) - _notificationSize + viewportPos);
+            ImGui.SetNextWindowPos(new Vector2(WindowSize.X, y * EaseInOutCubic(lerpMult)) - _notificationSize + viewportPos);
             ImGui.SetNextWindowSize(new Vector2(MathF.Max(_notificationSize.X, float.Epsilon), 0f));
             ImGui.SetNextWindowViewport(viewport.ID);
 
-            Vector2 lastWinSize = Vector2.Zero;
+            var lastWinSize = Vector2.Zero;
 
             if (ImGui.Begin($"notification-{notification.GlobalId}", ImGuiWindowFlags.NoMove | ImGuiWindowFlags.NoCollapse | ImGuiWindowFlags.NoTitleBar | ImGuiWindowFlags.NoResize | ImGuiWindowFlags.Tooltip | ImGuiWindowFlags.NoDocking | ImGuiWindowFlags.NoMouseInputs | ImGuiWindowFlags.NoSavedSettings))
             {
@@ -74,7 +74,6 @@ public sealed class NotificationsComponent : IRenderComponent
 
             lastY = lastWinSize.Y;
         }
-
 
         Notifications.RemoveAll(x => x.IsGarbage);
 

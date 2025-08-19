@@ -8,7 +8,7 @@ using NLog;
 using SharpDX.Direct3D11;
 using SharpDX.DXGI;
 using VRage.Collections;
-using VRageRender;
+using Device = SharpDX.Direct3D11.Device;
 
 namespace CringePlugins.Services;
 
@@ -27,10 +27,12 @@ internal sealed class ImGuiImageService(HttpClient client) : IImGuiImageService
     private readonly Dictionary<ImageIdentifier, ImageReference> _imageReferences = [];
     private readonly Dictionary<WebImageIdentifier, EntityTagHeaderValue> _webCacheEtag = [];
     private Image? _placeholderImage;
+    private Device? _device;
 
-    internal void Initialize()
+    internal void Initialize(Device device)
     {
-        using var tex = new Texture2D(MyRender11.DeviceInstance, new()
+        _device = device;
+        using var tex = new Texture2D(device, new()
         {
             Width = 1,
             Height = 1,
@@ -47,7 +49,7 @@ internal sealed class ImGuiImageService(HttpClient client) : IImGuiImageService
             OptionFlags = ResourceOptionFlags.None,
         });
 
-        var srv = new ShaderResourceView(MyRender11.DeviceInstance, tex);
+        var srv = new ShaderResourceView(device, tex);
 
         _placeholderImage = new Image(null!, srv, new(1, 1));
     }
@@ -144,7 +146,7 @@ internal sealed class ImGuiImageService(HttpClient client) : IImGuiImageService
         using var img = SharpDX.Toolkit.Graphics.Image.Load(path);
 
         var desc = img.Description;
-        using var tex = new Texture2D(MyRender11.DeviceInstance, new()
+        using var tex = new Texture2D(_device, new()
         {
             Width = desc.Width,
             Height = desc.Height,
@@ -161,7 +163,7 @@ internal sealed class ImGuiImageService(HttpClient client) : IImGuiImageService
             OptionFlags = ResourceOptionFlags.None,
         }, img.ToDataBox());
 
-        var srv = new ShaderResourceView(MyRender11.DeviceInstance, tex);
+        var srv = new ShaderResourceView(_device, tex);
 
         image = new Image(identifier, srv, new(desc.Width, desc.Height));
         _images.Add(identifier, image, true);

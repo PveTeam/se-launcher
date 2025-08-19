@@ -10,6 +10,7 @@
         <RestorePackagesWithLockFile>true</RestorePackagesWithLockFile>
         <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
         <EnableWindowsTargeting>true</EnableWindowsTargeting>
+        <NoWarn>WFO1000</NoWarn>
     </PropertyGroup>
 
     <ItemGroup>
@@ -18,6 +19,8 @@
         <Publicize Include="Sandbox.Game:Sandbox.Engine.Platform.Game.set_DrawThread" />
         <Publicize Include="Sandbox.Game:Sandbox.MySandboxGame.form" />
         <Publicize Include="Sandbox.Game:Sandbox.MySandboxGame.RenderThread_SizeChanged" />
+        <Publicize Include="Sandbox.Game:Sandbox.MySandboxGame.Window_OnManualWindowCloseRequest" />
+        <Publicize Include="Sandbox.Game:Sandbox.MySandboxGame.OnExit" />
         <Publicize Include="VRage.Render;VRage.Render11;VRage.Platform.Windows;VRage.Scripting;VRage.Input" IncludeCompilerGeneratedMembers="false" />
 		<Publicize Include="VRage.Scripting:VRage.Scripting.Rewriters.ProtoTagRewriter" />
 		<Publicize Include="Sandbox.Game:Sandbox.Game.World.MyScriptManager.m_compatibilityChanges" />

@@ -94,7 +94,7 @@ var launcher = context.LoadFromAssemblyName(entrypointName.AssemblyName.ToAssemb
 
 using var corePlugin = (ICorePlugin) launcher.CreateInstance(entrypointName.FullName)!;
 
-if (!corePlugin.Initialize(args) || corePlugin.Run())
+if (!corePlugin.Initialize(args) || !corePlugin.Run())
 {
     Console.WriteLine("Press any key to exit...");
     Console.Read();

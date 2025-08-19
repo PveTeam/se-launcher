@@ -1,6 +1,7 @@
 ﻿using HarmonyLib;
 using SharpDX.Direct3D11;
 using SharpDX.DXGI;
+using SharpDX.Mathematics.Interop;
 using VRage.Platform.Windows.Render;
 using VRage.Render11.Resources;
 using VRageRender;
@@ -11,6 +12,7 @@ namespace CringeLauncher.Patches;
 public static class SwapChainPatch
 {
     internal static nint WindowHandle;
+    internal static RawColor4 ClearColor = default;
 
     [HarmonyPrefix, HarmonyPatch(typeof(MyPlatformRender), nameof(MyPlatformRender.CreateSwapChain))]
     private static bool SwapChainPrefix(nint windowHandle)
@@ -57,11 +59,11 @@ public static class SwapChainPatch
         return false;
     }
 
-    [HarmonyPostfix, HarmonyPatch(typeof(MyRender11), nameof(MyRender11.CreateDeviceInternal))]
+    /*[HarmonyPostfix, HarmonyPatch(typeof(MyRender11), nameof(MyRender11.CreateDeviceInternal))]
     private static void CreateDevicePostfix()
     {
         ImGuiHandler.Instance?.Init(WindowHandle, MyRender11.DeviceInstance, MyRender11.RC.DeviceContext);
-    }
+    }*/
 
     [HarmonyPrefix, HarmonyPatch(typeof(MyBackbuffer), MethodType.Constructor, typeof(SharpDX.Direct3D11.Resource))]
     private static bool SwapChainBBPrefix(MyBackbuffer __instance, SharpDX.Direct3D11.Resource swapChainBB)
@@ -74,6 +76,7 @@ public static class SwapChainPatch
         });
         __instance.m_srv = new ShaderResourceView(MyRender11.DeviceInstance, swapChainBB);
 
+        ImGuiHandler.Rtv?.Dispose();
         ImGuiHandler.Rtv = new RenderTargetView(MyRender11.DeviceInstance, swapChainBB, new()
         {
             Format = Format.R8G8B8A8_UNorm,
@@ -90,5 +93,15 @@ public static class SwapChainPatch
 
         ImGuiHandler.Rtv.Dispose();
         ImGuiHandler.Rtv = null;
+    }
+
+    [HarmonyTranspiler, HarmonyPatch(typeof(MyRender11), nameof(MyRender11.SimpleDraw))]
+    private static IEnumerable<CodeInstruction> Transpiler(IEnumerable<CodeInstruction> instructions)
+    {
+        return new CodeMatcher(instructions)
+            .MatchStartForward(CodeMatch.IsLdloc())
+            .RemoveInstructions(3)
+            .Insert(CodeInstruction.LoadField(typeof(SwapChainPatch), nameof(ClearColor)))
+            .InstructionEnumeration();
     }
 }
