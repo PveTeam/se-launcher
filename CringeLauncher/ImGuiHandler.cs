@@ -176,21 +176,21 @@ internal sealed class ImGuiHandler : IGuiHandler, IDisposable
     {
         //special handling for the mouse free key
 
-        if (msg is 0x0100 or 0x104 && (int)wParam == 0xC0 && Instance != null)
+        if ((uint)msg is PInvoke.WM_KEYDOWN or PInvoke.WM_SYSKEYDOWN && (int)wParam == (int)Keys.Oemtilde && Instance != null)
         {
             Instance.MouseKey = true;
 
             return 0;
         }
 
-        if (msg is 0x0101 or 0x105 && (int)wParam == 0xC0 && Instance != null)
+        if ((uint)msg is PInvoke.WM_KEYUP or PInvoke.WM_SYSKEYUP && (int)wParam == (int)Keys.Oemtilde && Instance != null)
         {
             Instance.MouseKey = false;
 
             return 0;
         }
 
-        if (msg == 0x102 && (char)(int)wParam == '`')
+        if ((uint)msg == PInvoke.WM_CHAR && (char)(int)wParam == '`')
             return 0;
 
         //ignore input if mouse is hidden
