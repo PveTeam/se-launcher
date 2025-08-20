@@ -2,7 +2,7 @@ name: Build
 
 on:
   push:
-    branches: [master]
+    branches: [master, preview]
 
 jobs:
   compute-version:
@@ -28,7 +28,7 @@ jobs:
   build-nuget:
     name: Build Nuget package
     runs-on: ubuntu-latest
-    if: "!contains(github.event.commits[0].message, '[skip ci]')"
+    if: "!contains(github.event.commits[0].message, '[skip ci]') && github.ref_name == 'master'"
     needs: [compute-version]
     strategy: 
       matrix:
@@ -96,6 +96,7 @@ jobs:
           VPK_NO_PORTABLE: true
           VPK_FRAMEWORK: net9.0-x64-desktop,vcredist120-x64,vcredist143-x64
           VPK_SHORTCUTS: 'None'
+          VPK_CHANNEL: ${{ github.ref_name == 'master' && 'win' || 'win-preview' }}
           
       - run: ~/.dotnet/tools/vpk upload s3 -o $VPK_OUTPUT_DIR --bucket $VPK_BUCKET --endpoint $VPK_ENDPOINT
         name: Upload new release

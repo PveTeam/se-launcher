@@ -41,6 +41,7 @@ internal class PluginListComponent : IRenderComponent
     private readonly DirectoryInfo _dataDir;
     private bool _disableUpdates;
     private bool _disablePluginUpdates;
+    private bool _usePreviewBranch;
     private bool _cacheModAssemblies;
     private bool _cacheScriptAssemblies;
 
@@ -71,6 +72,7 @@ internal class PluginListComponent : IRenderComponent
 
         _disablePluginUpdates = _launcherConfig.Value.DisablePluginUpdates;
         _disableUpdates = _launcherConfig.Value.DisableLauncherUpdates;
+        _usePreviewBranch = _launcherConfig.Value.UsePreviewBranch;
         _cacheModAssemblies = _launcherConfig.Value.CacheModAssemblies;
         _cacheScriptAssemblies = _launcherConfig.Value.CacheScriptAssemblies;
 
@@ -335,6 +337,23 @@ internal class PluginListComponent : IRenderComponent
                 {
                     _launcherConfig.Value = _launcherConfig.Value with { DisableLauncherUpdates = _disableUpdates };
                 }
+
+                if (_usePreviewBranch)
+                {
+                    TextColored(new(1, 0, 0, 1), "Preview Branch is unstable! Use at your own risk!");
+                }
+                if (Checkbox("Use Preview Branch", ref _usePreviewBranch))
+                {
+                    _launcherConfig.Value = _launcherConfig.Value with
+                    {
+                        UsePreviewBranch = _usePreviewBranch
+                    };
+                }
+                if (IsItemHovered(ImGuiHoveredFlags.ForTooltip))
+                {
+                    SetTooltip("Preview branch is used for testing new features and bug fixes. It may be unstable and may not work as expected.");
+                }
+                
                 if (Checkbox("Cache Mod Assemblies", ref _cacheModAssemblies))
                 {
                     _launcherConfig.Value = _launcherConfig.Value with

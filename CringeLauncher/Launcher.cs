@@ -95,7 +95,7 @@ public class Launcher : ICorePlugin
 #if !DEBUG
         CheckUpdates(args, logger).GetAwaiter().GetResult();
 #else
-        logger.Info("Updates disabled: {Flag}", CheckUpdatesDisabledAsync(logger).GetAwaiter().GetResult());
+        logger.Info("Updates disabled: {Flag}", ReadUpdateConfigAsync(logger).AsTask().Result?.DisableLauncherUpdates);
 #endif
 
         // hook up steam as we ship it inside base context as an override
@@ -253,12 +253,12 @@ public class Launcher : ICorePlugin
         return MyVRage.Platform.Windows.Window;
     }
 
-    protected virtual async Task<bool> CheckUpdatesDisabledAsync(Logger logger)
+    protected virtual async ValueTask<LauncherConfig?> ReadUpdateConfigAsync(Logger logger)
     {
         var path = Path.Join(_configDir.FullName, "launcher.json");
 
         if (!File.Exists(path))
-            return false;
+            return null;
 
         try
         {
@@ -266,21 +266,27 @@ public class Launcher : ICorePlugin
 
             var conf = await JsonSerializer.DeserializeAsync<LauncherConfig>(stream, ConfigHandler.SerializerOptions);
 
-            return conf?.DisableLauncherUpdates ?? false;
+            return conf;
         }
         catch (Exception ex)
         {
             logger.Error(ex, "Error reading launcher config");
         }
 
-        return false;
+        return null;
     }
 
     private async Task CheckUpdates(string[] args, Logger logger)
     {
         logger.Info("Checking for updates...");
+        
+        var config = await ReadUpdateConfigAsync(logger);
 
-        var mgr = new UpdateManager("https://dl.zznty.ru/CringeLauncher/");
+        var mgr = new UpdateManager("https://dl.zznty.ru/CringeLauncher/", new()
+        {
+            AllowVersionDowngrade = true, // in case preview version is higher than stable
+            ExplicitChannel = config?.UsePreviewBranch is true ? "win-preview" : null
+        });
 
         // check for new version
         var newVersion = await mgr.CheckForUpdatesAsync();
@@ -302,7 +308,7 @@ public class Launcher : ICorePlugin
         }
         Console.ResetColor();
 
-        if (await CheckUpdatesDisabledAsync(logger))
+        if (config?.DisableLauncherUpdates is true)
         {
             logger.Warn("Updates Disabled, skipping update");
             return;

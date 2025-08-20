@@ -1,4 +1,5 @@
 ﻿using CringeLauncher.UserDev.Networking;
+using CringePlugins.Config;
 using NLog;
 using VRage;
 using VRage.GameServices;
@@ -16,8 +17,8 @@ public class UserDevLauncher() : Launcher(Environment.GetEnvironmentVariable("DO
         MyServiceManager.Instance.AddService<IMyServerDiscovery>(new MyNullServerDiscovery());
     }
 
-    protected override Task<bool> CheckUpdatesDisabledAsync(Logger logger)
+    protected override ValueTask<LauncherConfig?> ReadUpdateConfigAsync(Logger logger)
     {
-        return Task.FromResult(true);
+        return ValueTask.FromResult<LauncherConfig?>(LauncherConfig.Default with { DisableLauncherUpdates = true });
     }
 }
