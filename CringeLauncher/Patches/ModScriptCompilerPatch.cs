@@ -268,8 +268,18 @@ public static class ModScriptCompilerPatch
 
                         if (File.Exists(cachePath))
                         {
-                            await using var ms = new MemoryStream(await File.ReadAllBytesAsync(cachePath));
-                            return context.LoadFromStream(ms);
+                            for (var i = 0; i < 200; i++)
+                            {
+                                try
+                                {
+                                    await using var ms = new MemoryStream(await File.ReadAllBytesAsync(cachePath));
+                                    return context.LoadFromStream(ms);
+                                }
+                                catch (IOException) //retry if file is in use
+                                {
+                                    await Task.Delay(5);
+                                }
+                            }
                         }
                     }
 
@@ -292,8 +302,18 @@ public static class ModScriptCompilerPatch
 
                     if (File.Exists(cachePath))
                     {
-                        await using var ms = new MemoryStream(await File.ReadAllBytesAsync(cachePath));
-                        return context.LoadFromStream(ms);
+                        for (var i = 0; i < 200; i++)
+                        {
+                            try
+                            {
+                                await using var ms = new MemoryStream(await File.ReadAllBytesAsync(cachePath));
+                                return context.LoadFromStream(ms);
+                            }
+                            catch (IOException) //retry if file is in use
+                            {
+                                await Task.Delay(5);
+                            }
+                        }
                     }
                 }
 
