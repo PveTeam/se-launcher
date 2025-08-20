@@ -53,7 +53,7 @@ jobs:
     if: "!contains(github.event.commits[0].message, '[skip ci]')"
     needs: [compute-version]
     env:
-      VPK_CHANNEL: win
+      VPK_CHANNEL: ${{ github.ref_name == 'master' && 'win' || 'win-preview' }}
       VPK_OUTPUT_DIR: Releases
     steps:
       - uses: actions/checkout@master
@@ -96,7 +96,6 @@ jobs:
           VPK_NO_PORTABLE: true
           VPK_FRAMEWORK: net9.0-x64-desktop,vcredist120-x64,vcredist143-x64
           VPK_SHORTCUTS: 'None'
-          VPK_CHANNEL: ${{ github.ref_name == 'master' && 'win' || 'win-preview' }}
           
       - run: ~/.dotnet/tools/vpk upload s3 -o $VPK_OUTPUT_DIR --bucket $VPK_BUCKET --endpoint $VPK_ENDPOINT
         name: Upload new release
