@@ -41,6 +41,7 @@ internal class EarlyRenderThread
         {
             Console.SetOut(new StreamWriter(Stream.Null));
             Console.SetError(new StreamWriter(Stream.Null));
+            Console.SetIn(new StreamReader(Stream.Null));
             PInvoke.FreeConsole();
         }
         while (true)
