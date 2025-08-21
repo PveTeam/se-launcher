@@ -1,4 +1,5 @@
-﻿using SharpDX.Direct3D;
+﻿using NLog;
+using SharpDX.Direct3D;
 using SharpDX.Direct3D11;
 using SharpDX.DXGI;
 using SharpDX.Windows;
@@ -9,6 +10,7 @@ namespace CringeLauncher.Render;
 
 internal sealed class EarlyWindow : Form
 {
+    private static readonly Logger Log = LogManager.GetCurrentClassLogger();
     private Device? _device;
     private SwapChain? _swapChain;
     private VRageWindowSurrogate? _surrogate;
@@ -49,6 +51,19 @@ internal sealed class EarlyWindow : Form
             ControlStyles.UserPaint | ControlStyles.AllPaintingInWmPaint | ControlStyles.SupportsTransparentBackColor,
             true);
         BackColor = Color.Transparent;
+
+        Icon? icon;
+        try
+        {
+            icon = Icon.ExtractAssociatedIcon(Application.ExecutablePath);
+        }
+        catch (Exception e)
+        {
+            Log.Warn(e, "Failed to extract icon from executable");
+            icon = null;
+        }
+        if (icon is not null)
+            Icon = icon;
     }
 
     public void Frame()
