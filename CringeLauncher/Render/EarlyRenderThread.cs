@@ -35,7 +35,7 @@ internal class EarlyRenderThread
     {
         Window = new() { Text = "Cringe Launcher" };
         Window.Show();
-        Window.Focus();
+        Window.Activate();
         _initEvent.Set();
         if (!_keepConsole)
         {

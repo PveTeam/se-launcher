@@ -241,7 +241,7 @@ internal class VRageWindowSurrogate : IVRageWindow, IVRageInput
         Window.Invoke(() =>
         {
             Window.Show();
-            Window.Focus();
+            Window.Activate();
         });
         IsActive = true;
         ActiveChanged?.Invoke();
