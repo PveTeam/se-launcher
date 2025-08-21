@@ -31,7 +31,7 @@ public class CheckUpdatesStage(string[] args, Func<Logger, ValueTask<LauncherCon
         var mgr = new UpdateManager("https://dl.zznty.ru/CringeLauncher/", new()
         {
             AllowVersionDowngrade = true, // in case preview version is higher than stable
-            ExplicitChannel = config?.UsePreviewBranch is true ? "win-preview" : null
+            ExplicitChannel = config?.UsePreviewBranch is true ? "win-preview" : "win"
         });
 
         // check for new version
