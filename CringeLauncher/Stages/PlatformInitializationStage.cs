@@ -44,8 +44,18 @@ internal class PlatformInitializationStage(EarlyRenderThread renderThread, strin
         MyInitializer.InvokeBeforeRun(Launcher.AppId, MyPerGameSettings.BasicGameInfo.ApplicationName,
             MyVRage.Platform.System.GetRootPath(), MyVRage.Platform.System.GetAppDataPath(), true, 3, () =>
             {
+                if (MySandboxGame.Config.ExperimentalMode)
+                {
+                    MyPlatformGameSettings.LOBBY_MAX_PLAYERS = 16;
+                    MyPlatformGameSettings.LOBBY_TOTAL_PCU_MAX =
+                        MyVRage.Platform.System.GetExperimentalPCULimit(100000);
+                    MyPlatformGameSettings.SERVER_TOTAL_PCU_MAX = null;
+                    MyPlatformGameSettings.OFFLINE_TOTAL_PCU_MAX = MyPlatformGameSettings.LOBBY_TOTAL_PCU_MAX;
+                }
+
                 MyFakes.VOICE_CHAT_MIC_SENSITIVITY = MySandboxGame.Config.MicSensitivity;
-                MyPlatformGameSettings.VOICE_CHAT_AUTOMATIC_ACTIVATION = MySandboxGame.Config.AutomaticVoiceChatActivation;
+                MyPlatformGameSettings.VOICE_CHAT_AUTOMATIC_ACTIVATION =
+                    MySandboxGame.Config.AutomaticVoiceChatActivation;
             });
         MyVRage.Platform.Init();
         SpaceEngineersGame.SetupPerGameSettings();
