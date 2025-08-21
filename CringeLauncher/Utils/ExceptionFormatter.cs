@@ -27,14 +27,22 @@ public static class ExceptionFormatter
         new(typeof(void), "void")
     ]);
 
-    private static readonly AccessTools.FieldRef<Exception, string> StackTraceField =
+    private static readonly AccessTools.FieldRef<Exception, string> RemoteStackTraceField =
         AccessTools.FieldRefAccess<Exception, string>("_remoteStackTraceString");
+    
+    private static readonly AccessTools.FieldRef<Exception, string> StackTraceField =
+        AccessTools.FieldRefAccess<Exception, string>("_stackTraceString");
     
     private static readonly AccessTools.FieldRef<StackFrame, bool> IsLastFrameFromForeignExceptionStackTraceField =
         AccessTools.FieldRefAccess<StackFrame, bool>("_isLastFrameFromForeignExceptionStackTrace");
 
     public static void FormatStackTrace(this Exception exception)
     {
+        ref var remoteStackTraceString = ref RemoteStackTraceField(exception);
+        
+        if (remoteStackTraceString is not null)
+            return;
+        
         var stackTrace = new StackTrace(exception, true);
 
         var sb = new StringBuilder();
@@ -62,15 +70,22 @@ public static class ExceptionFormatter
             ref var isLastFrameFromForeignExceptionStackTrace = ref IsLastFrameFromForeignExceptionStackTraceField(frame);
             
             if (isLastFrameFromForeignExceptionStackTrace)
-                sb.AppendLine("--- End of stack trace from previous location ---");
+                sb.AppendLine("   --- End of stack trace from previous location ---");
         }
         
         if (sb.Length > 0)
-            sb.AppendLine("--- End of stack trace from the exception formatter ---");
+            StackTraceField(exception) = "   --- End of stack trace from the exception formatter ---";
+        
+        remoteStackTraceString = sb.ToString();
+        
+        if (exception is AggregateException aggregateException)
+        {
+            foreach (var innerException in aggregateException.InnerExceptions)
+                innerException.FormatStackTrace();
+            return;
+        }
 
-        ref var stackTraceString = ref StackTraceField(exception);
-
-        stackTraceString = sb.ToString();
+        exception.InnerException?.FormatStackTrace();
     }
 
     private static StringBuilder AppendPatchInformation(this StringBuilder sb, MethodBase method)
@@ -110,9 +125,27 @@ public static class ExceptionFormatter
 
         if (method.IsStatic)
             sb.Append("static ");
+        
+        void AppendParameter(ParameterInfo parameter)
+        {
+            if (parameter.ParameterType.IsByRef)
+            {
+                if (parameter.IsOut)
+                    sb.Append("out ");
+                else if (parameter.IsIn)
+                    sb.Append("in ");
+                else
+                    sb.Append("ref ");
+                sb.AppendType(parameter.ParameterType.GetElementType()!);
+            }
+            else
+                sb.AppendType(parameter.ParameterType);
+            if (!string.IsNullOrEmpty(parameter.Name))
+                sb.Append(' ').Append(parameter.Name);
+        }
 
         if (method is MethodInfo methodInfo)
-            sb.AppendType(methodInfo.ReturnType, false);
+            AppendParameter(methodInfo.ReturnParameter);
         else
             sb.Append("new");
 
@@ -142,9 +175,8 @@ public static class ExceptionFormatter
         var parameters = method.GetParameters();
         for (var j = 0; j < parameters.Length; j++)
         {
-            sb.AppendType(parameters[j].ParameterType, false);
-            if (!string.IsNullOrEmpty(parameters[j].Name))
-                sb.Append(' ').Append(parameters[j].Name);
+            var parameter = parameters[j];
+            AppendParameter(parameter);
             if (j < parameters.Length - 1)
                 sb.Append(", ");
         }
@@ -162,6 +194,50 @@ public static class ExceptionFormatter
             var index = span.IndexOf('`');
             if (index != -1) span = span[..index];
             sb.Append(span);
+        }
+
+        if (type.IsByRef)
+        {
+            sb.Append("ref ");
+            sb.AppendType(type.GetElementType()!, fullName);
+            return sb;
+        }
+        
+        if (type.IsPointer)
+        {
+            sb.AppendType(type.GetElementType()!, fullName);
+            sb.Append('*');
+            return sb;
+        }
+        
+        if (type.IsArray)
+        {
+            sb.AppendType(type.GetElementType()!, fullName);
+            sb.Append('[');
+            for (var i = 0; i < type.GetArrayRank() - 1; i++)
+                sb.Append(',');
+            sb.Append(']');
+            return sb;
+        }
+        
+        if (Nullable.GetUnderlyingType(type) is { } underlyingType)
+        {
+            sb.AppendType(underlyingType, fullName);
+            sb.Append('?');
+            return sb;
+        }
+
+        if (type.IsConstructedGenericType && type.GetGenericTypeDefinition() == typeof(ValueTuple<>))
+        {
+            sb.Append('(');
+            for (var i = 0; i < type.GetGenericArguments().Length; i++)
+            {
+                sb.AppendType(type.GetGenericArguments()[i], fullName);
+                if (i < type.GetGenericArguments().Length - 1)
+                    sb.Append(", ");
+            }
+            sb.Append(')');
+            return sb;
         }
         
         if (fullName)
