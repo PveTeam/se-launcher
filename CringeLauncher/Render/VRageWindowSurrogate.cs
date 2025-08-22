@@ -36,6 +36,13 @@ internal class VRageWindowSurrogate : IVRageWindow, IVRageInput
         Window.FormClosing += WindowOnFormClosing;
         Window.GotFocus += WindowOnGotFocus;
         Window.LostFocus += WindowOnLostFocus;
+        Window.KeyPress += WindowOnKeyPress;
+    }
+
+    private void WindowOnKeyPress(object? sender, KeyPressEventArgs e)
+    {
+        AddChar(e.KeyChar);
+        e.Handled = true;
     }
 
     private void WindowOnLostFocus(object? sender, EventArgs e)
@@ -277,6 +284,7 @@ internal class VRageWindowSurrogate : IVRageWindow, IVRageInput
 
     public void GetBufferedTextInput(ref List<char> currentTextInput)
     {
+        currentTextInput.Clear();
         currentTextInput = Interlocked.Exchange(ref _textBuffer, currentTextInput);
     }
 
