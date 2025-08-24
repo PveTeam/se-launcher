@@ -62,7 +62,9 @@ internal class PluginsLifetime(ConfigHandler configHandler, HttpClient client, D
         InitializeSharedStore(ref cacheDir);
 
         var invalidPackages = new List<PackageReference>();
-        var packages = await resolver.ResolveAsync(cacheDir, launcherConfig.DisablePluginUpdates, invalidPackages);
+        var builtInPackages = await BuiltInPackages.GetPackagesAsync(_runtimeFramework);
+        var builtInPackageIds = builtInPackages.Keys.ToHashSet();
+        var packages = await resolver.ResolveAsync(cacheDir, launcherConfig.DisablePluginUpdates, builtInPackageIds, invalidPackages);
 
         if (invalidPackages.Count > 0)
         {
@@ -80,9 +82,8 @@ internal class PluginsLifetime(ConfigHandler configHandler, HttpClient client, D
 
         progress.Report("Downloading packages");
 
-        var builtInPackages = await BuiltInPackages.GetPackagesAsync(_runtimeFramework);
         var cachedPackages =
-            await PackageResolver.DownloadPackagesAsync(cacheDir, packages, builtInPackages.Keys.ToHashSet(), progress);
+            await PackageResolver.DownloadPackagesAsync(cacheDir, packages, builtInPackageIds, progress);
 
         progress.Report("Loading plugins");
 
@@ -92,7 +93,7 @@ internal class PluginsLifetime(ConfigHandler configHandler, HttpClient client, D
         await LoadPlugins(cachedPackages, sourceMapping, packagesConfig, builtInPackages);
 
         RenderHandler.Current.RegisterComponent(new PluginListComponent(_configReference, _launcherConfig,
-            sourceMapping, MyFileSystem.ExePath, _plugins, dir));
+            sourceMapping, MyFileSystem.ExePath, _plugins, dir, cacheDir));
     }
 
     public static async Task ReloadPlugin(PluginInstance instance)
@@ -155,17 +156,18 @@ internal class PluginsLifetime(ConfigHandler configHandler, HttpClient client, D
 
             var packageClient = await sourceMapping.GetClientAsync(package.Package.Id);
 
-            if (packageClient == null)
-            {
-                Log.Warn("Client not found for {Package}", package.Package.Id);
-                continue;
-            }
 
-            var dir = Path.Join(package.Directory.FullName, "lib", package.ResolvedFramework.GetShortFolderName());
+            var packageDir = Path.Join(package.Directory.FullName, "lib", package.ResolvedFramework.GetShortFolderName());
 
-            var path = Path.Join(dir, $"{package.Package.Id}.deps.json");
+            var path = Path.Join(packageDir, $"{package.Package.Id}.deps.json");
             if (!File.Exists(path))
             {
+                if (packageClient == null)
+                {
+                    Log.Warn("No package source found for {Package}, cannot generate dependency manifest", package.Package.Id);
+                    continue;
+                }
+
                 try
                 {
                     await using var stream = File.Create(path);
@@ -181,8 +183,8 @@ internal class PluginsLifetime(ConfigHandler configHandler, HttpClient client, D
                 }
             }
 
-            var sourceName = packagesConfig.Sources.First(b => b.Url == packageClient.ToString()).Name;
-            LoadComponent(plugins, Path.Join(dir, $"{package.Package.Id}.dll"),
+            var sourceName = packageClient == null ? "Local Cache" : packagesConfig.Sources.First(b => b.Url == packageClient.ToString()).Name;
+            LoadComponent(plugins, Path.Join(packageDir, $"{package.Package.Id}.dll"),
                 new(package.Package.Id, package.Package.Version, sourceName));
         }
 

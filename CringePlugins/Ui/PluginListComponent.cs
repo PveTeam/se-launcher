@@ -11,9 +11,9 @@ using NLog;
 using NuGet;
 using NuGet.Models;
 using NuGet.Versioning;
-using Sandbox.Game.Gui;
 using Sandbox.Graphics.GUI;
 using SpaceEngineers.Game.GUI;
+using System.Collections.Concurrent;
 using System.Collections.Immutable;
 using System.Diagnostics;
 using System.Numerics;
@@ -28,7 +28,7 @@ internal class PluginListComponent : IRenderComponent
     private static readonly Logger Log = LogManager.GetCurrentClassLogger();
 
     private ImmutableDictionary<string, VersionRange> _packages;
-    private ImmutableDictionary<NuGetClient, SearchResult>? _searchResults;
+    private ImmutableArray<(NuGetClient? Client, SearchResult Entry)>? _searchResults;
     private bool _searchResultsDirty;
     private string _searchQuery = "";
     private Task? _searchTask;
@@ -39,11 +39,15 @@ internal class PluginListComponent : IRenderComponent
     private ImmutableArray<Profile> _profiles;
 
     private readonly DirectoryInfo _dataDir;
+    private readonly DirectoryInfo _cacheDir;
     private bool _disableUpdates;
     private bool _disablePluginUpdates;
     private bool _usePreviewBranch;
     private bool _cacheModAssemblies;
     private bool _cacheScriptAssemblies;
+
+    private bool _showLocalSource;
+    private bool _useLocalSource;
 
     private bool _restartRequired;
     private bool _open = true;
@@ -54,12 +58,12 @@ internal class PluginListComponent : IRenderComponent
     private ImmutableHashSet<PackageSource>? _selectedSources;
     private readonly string _gameFolder;
     private ImmutableArray<PluginInstance> _plugins;
-    private (SearchResultEntry entry, NuGetClient client)? _selected;
+    private (SearchResultEntry entry, NuGetClient? client)? _selected;
     private (PackageSource source, int index)? _selectedSource;
     private readonly IImGuiImageService _imageService = GameServicesExtension.GameServices.GetRequiredService<IImGuiImageService>();
 
     public PluginListComponent(ConfigReference<PackagesConfig> packagesConfig, ConfigReference<LauncherConfig> launcherConfig,
-        PackageSourceMapping sourceMapping, string gameFolder, ImmutableArray<PluginInstance> plugins, DirectoryInfo dataDir)
+        PackageSourceMapping sourceMapping, string gameFolder, ImmutableArray<PluginInstance> plugins, DirectoryInfo dataDir, DirectoryInfo cacheDir)
     {
         _packagesConfig = packagesConfig;
         _launcherConfig = launcherConfig;
@@ -77,6 +81,7 @@ internal class PluginListComponent : IRenderComponent
         _cacheScriptAssemblies = _launcherConfig.Value.CacheScriptAssemblies;
 
         _dataDir = dataDir;
+        _cacheDir = cacheDir;
 
         MyScreenManager.ScreenAdded += ScreenChanged;
         MyScreenManager.ScreenRemoved += ScreenChanged;
@@ -616,8 +621,6 @@ internal class PluginListComponent : IRenderComponent
         EndGroup();
     }
 
-    // TODO sources editor
-    // TODO combobox with active sources (to limit search results to specific list of sources)
     private unsafe void AvailablePluginsTab()
     {
         if (_searchResults is null && _searchTask is null)
@@ -657,6 +660,13 @@ internal class PluginListComponent : IRenderComponent
                 }
             }
 
+            if (_showLocalSource && Selectable("Offline Packages", ref _useLocalSource))
+            {
+                _searchTask = RefreshAsync();
+                EndCombo();
+                return;
+            }
+
             EndCombo();
         }
 
@@ -681,9 +691,9 @@ internal class PluginListComponent : IRenderComponent
             }
         }
 
-        var searchResults = _searchResults ?? ImmutableDictionary<NuGetClient, SearchResult>.Empty;
+        var searchResults = _searchResults ?? [];
 
-        if (searchResults.IsEmpty || searchResults.Values.All(b => b.Entries.IsEmpty))
+        if (searchResults.IsEmpty || searchResults.All(b => b.Entry.Entries.IsEmpty))
         {
             TextDisabled("Nothing found");
             return;
@@ -704,17 +714,18 @@ internal class PluginListComponent : IRenderComponent
                 if (_searchResultsDirty || sortSpecs.SpecsDirty)
                 {
                     var builder = searchResults.ToBuilder();
-                    foreach (var kvp in builder.ToArray())
+                    for (var i = 0; i < builder.Count; i++)
                     {
-                        builder[kvp.Key] = kvp.Value with
+                        builder[i] = (searchResults[i].Client, searchResults[i].Entry with
                         {
-                            Entries = kvp.Value.Entries.Sort(
+                            Entries = searchResults[i].Entry.Entries.Sort(
                                 (x, y) => SortSearchResults(x, y, _packages.ContainsKey(x.Id), _packages.ContainsKey(y.Id), sortSpecs))
-                        };
+                        });
                     }
 
-                    _searchResults = builder.ToImmutable();
-                    searchResults = _searchResults;
+
+                    searchResults = builder.ToImmutable();
+                    _searchResults = searchResults;
 
                     _searchResultsDirty = false;
                     sortSpecs.SpecsDirty = false;
@@ -752,6 +763,8 @@ internal class PluginListComponent : IRenderComponent
                     }
                 }
 
+
+
                 EndTable();
             }
 
@@ -770,7 +783,9 @@ internal class PluginListComponent : IRenderComponent
 
             if (!string.IsNullOrEmpty(selected.IconUrl))
             {
-                var image = _imageService.GetFromUrl(new Uri(selected.IconUrl));
+                var image = selected.IconUrl.StartsWith("http", StringComparison.Ordinal) ?
+                    _imageService.GetFromUrl(new Uri(selected.IconUrl))
+                    : _imageService.GetFromPath(selected.IconUrl);
                 Image(image, new(64, 64));
                 SameLine();
             }
@@ -791,8 +806,12 @@ internal class PluginListComponent : IRenderComponent
                 {
                     Text("Pulled from");
                     SameLine();
-                    var url = _selected.Value.client.ToString();
-                    TextLinkOpenURL(_packagesConfig.Value.Sources.FirstOrDefault(b => b.Url == url)?.Name ?? url, url);
+                    var url = _selected.Value.client?.ToString();
+
+                    if (!string.IsNullOrEmpty(url))
+                        TextLinkOpenURL(_packagesConfig.Value.Sources.FirstOrDefault(b => b.Url == url)?.Name ?? url, url);
+                    else
+                        TextColored(new(1f, 1f, 0f, 1f), "Local Cache");
 
                     if (selected.Authors is not null)
                     {
@@ -843,24 +862,42 @@ internal class PluginListComponent : IRenderComponent
         _searchResults = null;
         _searchResultsDirty = true;
 
-        var builder = ImmutableDictionary.CreateBuilder<NuGetClient, SearchResult>();
+        var builder = ImmutableArray.CreateBuilder<(NuGetClient?, SearchResult)>();
+
+        var localSearch = _useLocalSource ? Task.Run(GetLocalPackages) : null;
 
         await foreach (var source in _sourceMapping)
         {
-            if (source == null || _selectedSources?.All(b => b.Url != source.ToString()) == true)
+            if (source == null)
+            {
+                if (!_showLocalSource)
+                {
+                    _showLocalSource = true;
+                    _useLocalSource = true;
+                    localSearch ??= Task.Run(GetLocalPackages);
+
+                    Log.Warn("Source missing, enabling local cache fallback");
+                }
+                continue;
+            }
+
+            if (_selectedSources?.All(b => b.Url != source.ToString()) == true)
                 continue;
 
             try
             {
                 var result = await source.SearchPackagesAsync(_searchQuery, take: 1000, packageType: "CringePlugin");
 
-                builder.Add(source, result);
+                builder.Add((source, result));
             }
             catch (Exception e)
             {
                 Log.Error(e, "Failed to get packages from source {Source}", source);
             }
         }
+
+        if (localSearch != null)
+            builder.Add((null, await localSearch));
 
         _searchResults = builder.ToImmutable();
     }
@@ -873,6 +910,97 @@ internal class PluginListComponent : IRenderComponent
         } : _packagesConfig;
 
         _restartRequired = true;
+    }
+
+    private SearchResult GetLocalPackages()
+    {
+        var serializer = new XmlSerializer(typeof(Nuspec));
+
+        var entries = 0;
+        var bag = new ConcurrentBag<SearchResultEntry>();
+
+        var searchText = _searchQuery;
+
+        void LoadDir(DirectoryInfo packageDir)
+        {
+            NuGetVersion? maxVersion = null;
+            DirectoryInfo? maxVersionDir = null;
+            foreach (var versionDir in packageDir.GetDirectories())
+            {
+                if (NuGetVersion.TryParse(versionDir.Name, out var version) && (maxVersion == null || version > maxVersion))
+                {
+                    maxVersion = version;
+                    maxVersionDir = versionDir;
+                }
+            }
+
+            if (maxVersionDir == null || maxVersion == null)
+                return;
+
+            var nuspecFile = Path.Join(maxVersionDir.FullName, $"{packageDir.Name}.nuspec");
+            using var reader = new IgnoreNamespaceXmlReader(File.OpenRead(nuspecFile));
+            Nuspec? nuspec;
+            try
+            {
+                nuspec = (Nuspec?)serializer.Deserialize(reader);
+            }
+            catch (Exception ex)
+            {
+                Log.Warn(ex, "Failed to parse nuspec {File}: {Message}", nuspecFile, ex.Message);
+                return;
+            }
+
+            if (nuspec == null)
+            {
+                Log.Warn("Failed to parse nuspec: {File}", nuspecFile);
+                return;
+            }
+
+            if (nuspec.Metadata.PackageTypes?.Any(b => b.Name == "CringePlugin") != true)
+                return;
+
+            if (!string.IsNullOrEmpty(searchText) && !nuspec.Metadata.Id.Contains(searchText, StringComparison.OrdinalIgnoreCase) &&
+                nuspec.Metadata.Title?.Contains(searchText, StringComparison.OrdinalIgnoreCase) != true &&
+                nuspec.Metadata.Authors?.Contains(searchText, StringComparison.OrdinalIgnoreCase) != true &&
+                nuspec.Metadata.Description?.Contains(searchText, StringComparison.OrdinalIgnoreCase) != true)
+            {
+                return;
+            }
+
+            Interlocked.Increment(ref entries);
+            var data = nuspec.Metadata;
+
+            string? icon = null;
+
+            if (!string.IsNullOrEmpty(data.Icon))
+            {
+                var iconPath = Path.Join(maxVersionDir.FullName, data.Icon);
+
+                if (Path.GetFullPath(iconPath).StartsWith(maxVersionDir.FullName, StringComparison.Ordinal) && File.Exists(iconPath))
+                    icon = iconPath;
+            }
+
+            bag.Add(new SearchResultEntry(
+                data.Id,
+                NuGetVersion.Parse(data.Version),
+                data.Description,
+                [],
+                data.Authors == null ? null : new(data.Authors, []),
+                icon,
+                null,
+                null,
+                data.ProjectUrl,
+                null,
+                null,
+                [],
+                data.Title,
+                null,
+                [.. data.PackageTypes.Select(x => new PackageType(x.Name))]));
+        }
+
+        Parallel.ForEach(_cacheDir.GetDirectories(), LoadDir);
+
+        return new SearchResult(entries, [.. bag]);
     }
 
     private static unsafe int ComparePlugins(PluginInstance x, PluginInstance y, ImGuiTableSortSpecsPtr specs)
