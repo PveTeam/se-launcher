@@ -1,53 +1,42 @@
-﻿using NLog;
+﻿using CringePlugins.Compatability;
+using CringePlugins.Utils;
+using NLog;
 using NuGet;
 using NuGet.Frameworks;
 using NuGet.Models;
 using NuGet.Versioning;
+using System.Collections.Concurrent;
 using System.Collections.Immutable;
 using System.IO.Compression;
+using System.Xml.Serialization;
 
 namespace CringePlugins.Resolver;
 
 public class PackageResolver(NuGetFramework runtimeFramework, ImmutableArray<PackageReference> references, PackageSourceMapping packageSources)
 {
     private static readonly ILogger Log = LogManager.GetCurrentClassLogger();
-    public async Task<ImmutableSortedSet<ResolvedPackage>> ResolveAsync(DirectoryInfo baseDir, bool disableUpdates, List<PackageReference> invalidPackages)
+    public async Task<ImmutableSortedSet<ResolvedPackage>> ResolveAsync(DirectoryInfo baseDir, bool disableUpdates, IReadOnlySet<string> builtinPackages, List<PackageReference> invalidPackages)
     {
         var order = 0;
         var packages = new Dictionary<Package, CatalogEntry>();
 
         foreach (var reference in references)
         {
-            var client = await packageSources.GetClientAsync(reference.Id);
+            (var items, var client, var removed) = await ResolvePackageEntriesAsync(baseDir, packageSources, reference.Id);
 
-            if (client == null)
-                continue; //todo: check cached files. test with Internet disconnected
+            if (removed)
+                invalidPackages.Add(reference);
 
-            RegistrationRoot? registrationRoot;
-
-            try
+            if (items == null || items.Count == 0)
             {
-                registrationRoot = await client.GetPackageRegistrationRootAsync(reference.Id);
-            }
-            catch (HttpRequestException ex)
-            {
-                if (ex.StatusCode == System.Net.HttpStatusCode.NotFound)
-                {
-                    //package isn't on this source, and should be removed from the config
-                    invalidPackages.Add(reference);
-                }
-
-                Log.Warn("Failed to resolve package {Package}: {Message}", reference.Id, ex.Message);
+                Log.Warn("No valid package entries found for {Package}, skipping", reference.Id);
                 continue;
             }
 
-            var items = registrationRoot.Items.SelectMany(page =>
-                page.Items!.Where(b => b.CatalogEntry.PackageTypes is ["CringePlugin"]))
-                    .ToImmutableDictionary(b => b.CatalogEntry.Version);
+            var version = items.Values.Where(b => b.CatalogEntry.PackageTypes is ["CringePlugin"])
+                .Select(b => b.CatalogEntry.Version).OrderDescending().First(reference.Range.Satisfies);
 
-            var version = items.Values.Select(b => b.CatalogEntry.Version).OrderDescending().First(reference.Range.Satisfies);
-
-            if (disableUpdates)
+            if (client != null && disableUpdates)
             {
                 if (GetLatestInstalledVersion(baseDir, reference.Id, reference.Range) is { } installedVersion && items.ContainsKey(installedVersion))
                 {
@@ -60,16 +49,13 @@ public class PackageResolver(NuGetFramework runtimeFramework, ImmutableArray<Pac
                 }
                 else
                 {
-                    Log.Warn("No valid installed version found for package {Package}", reference.Id);
+                    Log.Warn("No valid installed version found for package {Package}. Updating to {Version}", reference.Id, version);
                 }
             }
 
-            if (version is null)
-                throw new NotSupportedException($"Unable to find version for package {reference.Id}");
-
             var catalogEntry = items[version].CatalogEntry;
 
-            var package = new Package(order, reference.Id, version);
+            var package = new Package(order, reference.Id, catalogEntry.Version);
 
             if (packages.TryAdd(package, catalogEntry))
                 continue;
@@ -91,11 +77,12 @@ public class PackageResolver(NuGetFramework runtimeFramework, ImmutableArray<Pac
         {
             var client = await packageSources.GetClientAsync(package.Id);
 
-            if (client == null || !catalogEntry.DependencyGroups.HasValue)
+            if (!catalogEntry.DependencyGroups.HasValue)
                 continue;
 
             var nearestGroup = NuGetFrameworkUtility.GetNearest(catalogEntry.DependencyGroups.Value, runtimeFramework,
                 g => g.TargetFramework);
+
 
             if (nearestGroup is null)
                 throw new NotSupportedException($"Unable to find compatible dependency group for package {package.Id}");
@@ -115,31 +102,20 @@ public class PackageResolver(NuGetFramework runtimeFramework, ImmutableArray<Pac
 
             foreach (var (id, versionRange) in dependencies)
             {
-                var client = await packageSources.GetClientAsync(id);
-
-                if (client == null)
+                if (builtinPackages.Contains(id))
                     continue;
 
-                RegistrationRoot? registrationRoot;
+                (var items, var client, _) = await ResolvePackageEntriesAsync(baseDir, packageSources, id);
 
-                try
-                {
-                    registrationRoot = await client.GetPackageRegistrationRootAsync(id);
-                }
-                catch (HttpRequestException ex)
-                {
-                    throw new InvalidOperationException($"Failed to resolve dependency {id} for {package.Package}", ex);
-                }
-
-                var items = registrationRoot.Items.SelectMany(page => page.Items!)
-                    .ToImmutableDictionary(b => b.CatalogEntry.Version);
+                if (items == null || items.Count == 0)
+                    throw new NotSupportedException($"Missing required dependency {id} {versionRange} for {package.Package}");
 
                 var version = items.Values.Select(b => b.CatalogEntry.Version).OrderDescending().FirstOrDefault(versionRange.Satisfies);
 
                 if (version is null)
                     throw new NotSupportedException($"Unable to find version for package {id} as dependency of {package.Package}");
 
-                if (disableUpdates)
+                if (client != null && disableUpdates)
                 {
                     if (GetLatestInstalledVersion(baseDir, id, versionRange) is { } installedVersion && items.ContainsKey(installedVersion))
                     {
@@ -150,7 +126,10 @@ public class PackageResolver(NuGetFramework runtimeFramework, ImmutableArray<Pac
                         }
                         version = installedVersion;
                     }
-                    //todo: warnings here? we'd need to check against builtin packages
+                    else
+                    {
+                        Log.Warn("No valid installed version found for dependency {Package}. Updating to {Version}",id, version);
+                    }
                 }
 
                 var catalogEntry = items[version].CatalogEntry;
@@ -217,6 +196,104 @@ public class PackageResolver(NuGetFramework runtimeFramework, ImmutableArray<Pac
         return set.ToImmutable();
     }
 
+    private static async Task<(ImmutableDictionary<NuGetVersion, RegistrationEntry>? Items, NuGetClient? Client, bool Removed)> ResolvePackageEntriesAsync(DirectoryInfo baseDir, PackageSourceMapping packageSources, string id)
+    {
+        var client = await packageSources.GetClientAsync(id);
+
+        if (client == null)
+            return (await GetCachedVersionsAsync(baseDir, id), null, false);
+
+        RegistrationRoot? registrationRoot;
+
+        try
+        {
+            registrationRoot = await client.GetPackageRegistrationRootAsync(id);
+        }
+        catch (HttpRequestException ex)
+        {
+            Log.Warn("Failed to resolve remote package {Package}: {Message}", id, ex.Message);
+
+            if (ex.StatusCode == System.Net.HttpStatusCode.NotFound)
+            {
+                //package isn't on this source, and should be removed from the config
+                Log.Warn("Remote package {Package}: is not on {Client} and will be removed", id, client.ToString());
+                return (null, client, true);
+            }
+
+            return (await GetCachedVersionsAsync(baseDir, id), null, false);
+        }
+
+        return (registrationRoot.Items.SelectMany(page => page.Items!)
+                    .ToImmutableDictionary(b => b.CatalogEntry.Version), client, false);
+    }
+
+
+    private static async Task<ImmutableDictionary<NuGetVersion, RegistrationEntry>?> GetCachedVersionsAsync(DirectoryInfo baseDir, string id)
+    {
+        var dir = new DirectoryInfo(Path.Join(baseDir.FullName, id));
+
+        if (!dir.Exists)
+        {
+            Log.Warn("No cached version of package {Package} found in {Directory}", id, dir.FullName);
+            return null;
+        }
+
+        var serializer = new XmlSerializer(typeof(Nuspec));
+
+        var bag = new ConcurrentBag<RegistrationEntry>();
+        ValueTask LoadVersionAsync(DirectoryInfo info, CancellationToken _)
+        {
+            if (!NuGetVersion.TryParse(info.Name, out var version))
+                return ValueTask.CompletedTask;
+
+            var nuspecFile = Path.Join(info.FullName, $"{id}.nuspec");
+
+            if (!File.Exists(nuspecFile))
+                return ValueTask.CompletedTask;
+
+            //dependency group, package type, package entry
+
+            using var reader = new IgnoreNamespaceXmlReader(File.OpenRead(nuspecFile));
+            Nuspec? nuspec;
+            try
+            {
+                nuspec = (Nuspec?)serializer.Deserialize(reader);
+            }
+            catch (Exception ex)
+            {
+                Log.Warn(ex, "Failed to parse nuspec {File}: {Message}", nuspecFile, ex.Message);
+                return ValueTask.CompletedTask;
+            }
+
+            if (nuspec == null)
+            {
+                Log.Warn("Failed to parse nuspec: {File}", nuspecFile);
+                return ValueTask.CompletedTask;
+            }
+
+            var depsBuilder = ImmutableArray.CreateBuilder<DependencyGroup>();
+            if (nuspec.Metadata.Dependencies is { } dependencies)
+            {
+                foreach (var dep in dependencies.Groups)
+                {
+                    var deps = dep.Dependencies?.Select(d => new Dependency(d.Id, new(new(d.Version)))).ToImmutableArray();
+                    depsBuilder.Add(new(NuGetRuntimeFramework.Parse(dep.TargetFramework).Framework, deps));
+                }
+            }
+
+            var packageTypes = nuspec.Metadata.PackageTypes?.Select(b => b.Name).ToImmutableArray() ?? [];
+
+            bag.Add(new(new(id, version, depsBuilder.ToImmutable(), packageTypes, null)));
+
+            return ValueTask.CompletedTask;
+        }
+
+
+        await Parallel.ForEachAsync(dir.GetDirectories(), LoadVersionAsync);
+
+        return bag.ToImmutableDictionary(x => x.CatalogEntry.Version);
+    }
+
     private static NuGetVersion? GetLatestInstalledVersion(DirectoryInfo baseDirectory, string id, VersionRange range)
     {
         var dir = new DirectoryInfo(Path.Join(baseDirectory.FullName, id));
@@ -257,7 +334,8 @@ public class PackageResolver(NuGetFramework runtimeFramework, ImmutableArray<Pac
                     {
                         dir.Create();
 
-                        var client = (package as RemoteDependencyPackage)?.Client ?? ((RemotePackage)package).Client;
+                        var client = (package as RemoteDependencyPackage)?.Client ?? ((RemotePackage)package).Client
+                                ?? throw new InvalidOperationException("Attempted to download a package with no client (no cached folder)");
 
                         await using var stream = await client.GetPackageContentStreamAsync(package.Package.Id, package.Package.Version);
                         await using var memStream = new MemoryStream();
@@ -285,13 +363,13 @@ public class PackageResolver(NuGetFramework runtimeFramework, ImmutableArray<Pac
 }
 
 public record CachedPackage(Package Package, NuGetFramework ResolvedFramework, DirectoryInfo Directory, CatalogEntry Entry) : ResolvedPackage(Package, ResolvedFramework, Entry);
-public record RemotePackage(Package Package, NuGetFramework ResolvedFramework, NuGetClient Client, CatalogEntry Entry) : ResolvedPackage(Package, ResolvedFramework, Entry);
+public record RemotePackage(Package Package, NuGetFramework ResolvedFramework, NuGetClient? Client, CatalogEntry Entry) : ResolvedPackage(Package, ResolvedFramework, Entry);
 
 // should not inherit from RemotePackage
 public record RemoteDependencyPackage(
     Package Package,
     NuGetFramework ResolvedFramework,
-    NuGetClient Client,
+    NuGetClient? Client,
     RemotePackage Parent,
     CatalogEntry Entry) : ResolvedPackage(Package, ResolvedFramework, Entry);
 

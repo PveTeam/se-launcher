@@ -18,7 +18,7 @@ public record SearchResultEntry(
     [property: JsonConverter(typeof(StringOrStringArrayConverter))]
     ImmutableArray<string>? Owners,
     string? ProjectUrl,
-    Uri Registration,
+    Uri? Registration,
     string? Summary,
     [property: JsonConverter(typeof(StringOrStringArrayConverter))]
     ImmutableArray<string>? Tags,
