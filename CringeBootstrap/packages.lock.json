@@ -331,10 +331,13 @@
         "resolved": "4.2.0-keen-cringe",
         "contentHash": "LaJN3h1Gi1FWVdef2I5WtOH9gwzKCBniH0CragarbkN2QheYY6Lqm+91PcOfp1w/4wdVb+k8Kjv3sO393Tphtw=="
       },
-      "SixLabors.Core": {
+      "SixLabors.ImageSharp": {
         "type": "Transitive",
-        "resolved": "1.0.0-beta0007",
-        "contentHash": "s9aPl6yxwcvoKRD0u0zjkCISZCCifbUi9/XVFjdvlx5Pt7vRYmGV0anq1EEftUjIEHbEu5aNBipbUSBIV2CE7w=="
+        "resolved": "4.0.0-compat",
+        "contentHash": "aFnFB5ulnffN/p35/B1Aq62TQ991LA5Id2NaOAGWxsSl54hyVGJROu2qvaxuIeBVyFvY7fmKgUPYISOIAfXdLw==",
+        "dependencies": {
+          "System.IO.Hashing": "9.0.8"
+        }
       },
       "SpaceEngineersDedicated.ReferenceAssemblies": {
         "type": "Transitive",
@@ -377,6 +380,11 @@
           "System.Configuration.ConfigurationManager": "9.0.7"
         }
       },
+      "System.IO.Hashing": {
+        "type": "Transitive",
+        "resolved": "9.0.8",
+        "contentHash": "5TJUS9EIYrp0VEcm06EPYxXmLmsVUakewFnM/CAxQfvlasI9fGkTKM9afSf2dodZcMCzFna/o7Fn+gYRt3uTiA=="
+      },
       "System.Linq.Async": {
         "type": "Transitive",
         "resolved": "6.0.3",
@@ -404,14 +412,6 @@
         "resolved": "9.0.7",
         "contentHash": "OAiDZTyzIzgbtrjzbMlprCxvlXpFW7q+JVOSEc/v4jgLBF4hVSey0MQ06MyctGjspKyJBdGj6k6MuqjiZV9c5Q=="
       },
-      "Torch.SixLabors.ImageSharp": {
-        "type": "Transitive",
-        "resolved": "1.0.0-beta6",
-        "contentHash": "WJ7ocT79HgmuKi0+ltpvXTiMI80UcI3DeS8XSfYwJtTB1tcQws6zLPGuUwra6qe6qRrFfpABeDP3xvHV1rJgfg==",
-        "dependencies": {
-          "SixLabors.Core": "1.0.0-beta0007"
-        }
-      },
       "cringebootstrap.abstractions": {
         "type": "Project"
       },
@@ -426,11 +426,11 @@
           "Microsoft.Extensions.DependencyInjection": "[9.0.7, )",
           "Microsoft.Extensions.Http.Polly": "[9.0.7, )",
           "NLog": "[6.0.2, )",
+          "SixLabors.ImageSharp": "[4.0.0-compat, )",
           "SpaceEngineersDedicated.ReferenceAssemblies": "[1.206.32, )",
           "System.Diagnostics.PerformanceCounter": "[9.0.7, )",
           "System.Management": "[9.0.7, )",
           "System.Private.ServiceModel": "[4.10.3, )",
-          "Torch.SixLabors.ImageSharp": "[1.0.0-beta6, )",
           "Velopack": "[0.0.1298, )",
           "dnlib": "[4.5.0, )"
         }

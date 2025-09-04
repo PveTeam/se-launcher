@@ -1,76 +1,32 @@
 ﻿using System.Collections.Immutable;
-using System.Diagnostics;
-using System.IO.Compression;
 using System.Security.Cryptography;
-using System.Text;
-using NuGet;
+using CringeBootstrap.Transformers;
 using NuGet.Deps;
-using NuGet.Versioning;
 
 namespace CringeBootstrap.CrossGen;
 
-internal class CrossGenService(string gameDirectoryPath, string cachePath)
+internal abstract class CrossGenService(string gameDirectoryPath, string cachePath, ITransformationService transformationService)
 {
+    private const string FormatVersion = "1";
+    
     private readonly ImmutableHashSet<string> _excludedAssemblies =
     [
-        "VRage.NativeAftermath.dll" // managed C++ is not supported
-    ];
-    
-    private readonly ImmutableHashSet<string> _includedAssemblies =
-    [
-        "CppNet.dll",
-        "DirectShowLib.dll",
-        "EmptyKeys.UserInterface.Core.dll",
-        "EmptyKeys.UserInterface.dll",
-        "GameAnalytics.Mono.dll",
-        "HavokWrapper.dll",
-        "Microsoft.CodeAnalysis.CSharp.dll",
-        "Microsoft.CodeAnalysis.dll",
-        "netstandard.dll",
-        "ProtoBuf.Net.Core.dll",
-        "ProtoBuf.Net.dll",
-        "RecastDetourWrapper.dll",
-        "RestSharp.dll",
-        "Sandbox.Common.dll",
-        "Sandbox.Game.dll",
-        "Sandbox.Game.XmlSerializers.dll",
+        "VRage.NativeAftermath.dll", // managed C++ is not supported
+        "Sandbox.Common.dll", // game assemblies are kept excluded from crossgen to avoid harmony patches failing from JIT inlining
+        "Sandbox.Game.dll", // TODO move patches to be ahead of time (long-term)
         "Sandbox.Graphics.dll",
         "Sandbox.RenderDirect.dll",
-        "SharpDX.D3DCompiler.dll",
-        "SharpDX.Desktop.dll",
-        "SharpDX.Direct3D11.dll",
-        "SharpDX.DirectInput.dll",
-        "SharpDX.dll",
-        "SharpDX.DXGI.dll",
-        "SharpDX.XAudio2.dll",
-        "SharpDX.XInput.dll",
         "SpaceEngineers.Game.dll",
         "SpaceEngineers.ObjectBuilders.dll",
-        "SpaceEngineers.ObjectBuilders.XmlSerializers.dll",
-        "Steamworks.NET.dll",
-        "System.Buffers.dll",
-        "System.Collections.Immutable.dll",
-        "System.ComponentModel.Annotations.dll",
-        "System.Data.SQLite.dll",
-        "System.Memory.dll",
-        "System.Numerics.Vectors.dll",
-        "System.Reflection.Metadata.dll",
-        "System.Runtime.CompilerServices.Unsafe.dll",
-        "System.Text.Encoding.CodePages.dll",
-        "System.Threading.Tasks.Extensions.dll",
         "VRage.Ansel.dll",
         "VRage.Audio.dll",
         "VRage.dll",
         "VRage.EOS.dll",
-        "VRage.EOS.XmlSerializers.dll",
         "VRage.Game.dll",
-        "VRage.Game.XmlSerializers.dll",
         "VRage.Input.dll",
         "VRage.Library.dll",
         "VRage.Math.dll",
-        "VRage.Math.XmlSerializers.dll",
         "VRage.Mod.Io.dll",
-        "VRage.NativeAftermath.dll",
         "VRage.NativeWrapper.dll",
         "VRage.Network.dll",
         "VRage.Platform.Windows.dll",
@@ -79,17 +35,46 @@ internal class CrossGenService(string gameDirectoryPath, string cachePath)
         "VRage.Scripting.dll",
         "VRage.Steam.dll",
         "VRage.UserInterface.dll",
+    ];
+
+    private readonly ImmutableHashSet<string> _includedAssemblies =
+    [
+        "CppNet.dll",
+        "DirectShowLib.dll",
+        "EmptyKeys.UserInterface.Core.dll",
+        "EmptyKeys.UserInterface.dll",
+        "GameAnalytics.Mono.dll",
+        "HavokWrapper.dll",
+        "netstandard.dll",
+        "ProtoBuf.Net.Core.dll",
+        "ProtoBuf.Net.dll",
+        "RecastDetourWrapper.dll",
+        "RestSharp.dll",
+        "Sandbox.Game.XmlSerializers.dll",
+        "SharpDX.D3DCompiler.dll",
+        "SharpDX.Desktop.dll",
+        "SharpDX.Direct3D11.dll",
+        "SharpDX.DirectInput.dll",
+        "SharpDX.dll",
+        "SharpDX.DXGI.dll",
+        "SharpDX.XAudio2.dll",
+        "SharpDX.XInput.dll",
+        "SpaceEngineers.ObjectBuilders.XmlSerializers.dll",
+        "System.Data.SQLite.dll",
+        "VRage.EOS.XmlSerializers.dll",
+        "VRage.Game.XmlSerializers.dll",
+        "VRage.Math.XmlSerializers.dll",
         "VRage.XmlSerializers.dll",
-    ]; 
-    
+    ];
+
     // assembly with game version constant so hash always changes with game updates
     private const string CacheKeyFileName = "SpaceEngineers.Game.dll";
-    
-    private readonly string _crossGenCachePath = Directory.CreateDirectory(Path.Join(cachePath, "R2R")).FullName;
+
+    protected abstract string CrossGenCachePath { get; }
 
     public void CleanCache()
     {
-        foreach (var directory in Directory.EnumerateDirectories(_crossGenCachePath))
+        foreach (var directory in Directory.EnumerateDirectories(CrossGenCachePath))
         {
             try
             {
@@ -109,104 +94,77 @@ internal class CrossGenService(string gameDirectoryPath, string cachePath)
     /// Run crossgen and return path to game assemblies directory
     /// </summary>
     /// <returns>The path to game assemblies directory either original or R2R</returns>
-    public string RunCrossGen()
+    public async ValueTask<CrossGenResult> RunCrossGenAsync()
     {
-        var cacheDirectory = Path.Join(_crossGenCachePath, GetCacheKey());
+        var cacheDirectory = Path.Join(CrossGenCachePath, GetCacheKey());
         if (Directory.Exists(cacheDirectory))
         {
             Console.WriteLine("Crossgen cache hit");
-            return cacheDirectory;
+            return new(cacheDirectory, CacheHit: true);
         }
-        
+
         Console.WriteLine("Starting coldstart crossgen");
-        
+
         CleanCache();
-        
-        var crossGenPath = DownloadCrossGenAsync().GetAwaiter().GetResult();
+
+        var crossGenPath = await DownloadCrossGenAsync();
         if (crossGenPath is null)
-            return gameDirectoryPath;
-        
+            return new(gameDirectoryPath, Failed: true);
+
         var inputAssemblies = CollectInputAssemblies();
-        ImmutableHashSet<string> references = [..CollectFrameworkReferencesAsync().GetAwaiter().GetResult(), ..inputAssemblies];
+        ImmutableHashSet<string> references =
+            [..await CollectFrameworkReferencesAsync(), ..inputAssemblies];
         references = references.WithComparer(StringComparer.OrdinalIgnoreCase);
-        
+
         Directory.CreateDirectory(cacheDirectory);
 
         for (var index = 0; index < inputAssemblies.Length; index++)
         {
             var inputAssembly = inputAssemblies[index];
             var inputReferences = references.Remove(inputAssembly);
-
-            var startInfo = new ProcessStartInfo(crossGenPath, [
-                "--targetos:windows",
-                "--targetarch:x64",
-                "--Ot",
-                ..inputReferences.SelectMany(x => new [] { "-r", x }),
-                "--out", Path.Join(cacheDirectory, Path.GetFileName(inputAssembly)),
-                inputAssembly
-            ])
-            {
-                RedirectStandardOutput = true,
-                RedirectStandardError = true
-            };
             
-            Console.WriteLine($"Running crossgen... {index/(inputAssemblies.Length-1.0):P0}");
-            
-            using var process = Process.Start(startInfo);
+            TransformInputAssembly(ref inputAssembly);
 
-            var outputStringBuilder = new StringBuilder();
-            var errorStringBuilder = new StringBuilder();
-            if (process is not null)
-            {
-                process.OutputDataReceived += (_, args) =>
-                {
-                    if (!string.IsNullOrEmpty(args.Data))
-                        outputStringBuilder.AppendLine(args.Data);
-                };
-                
-                process.ErrorDataReceived += (_, args) =>
-                {
-                    if (!string.IsNullOrEmpty(args.Data))
-                        errorStringBuilder.AppendLine(args.Data);
-                };
-                
-                process.BeginOutputReadLine();
-                process.BeginErrorReadLine();
-                process.WaitForExit();
-            }
+            var success = await RunCrossGenAsync(crossGenPath, inputReferences, cacheDirectory, inputAssembly,
+                index / (inputAssemblies.Length - 1.0));
 
-            if (process is not null && process.ExitCode == 0) continue;
+            if (success) continue;
             
-            string? logFilePath = null;
-            if (process is not null)
-            {
-                logFilePath = Path.Join(cachePath, $"{Path.GetFileName(inputAssembly)}.log");
-                File.WriteAllText(logFilePath, outputStringBuilder.ToString());
-                File.AppendAllText(logFilePath, errorStringBuilder.ToString());
-            }
-                
-            LogCrossGenException($"Crossgen failed! {(logFilePath is not null ? $"Log saved to: {logFilePath}" : string.Empty)} Skipping crossgen", new Exception($"Crossgen failed for {inputAssembly}"));
             CleanCache();
-            return gameDirectoryPath;
+            return new(gameDirectoryPath, Failed: true);
         }
-        
+
         foreach (var excludedAssembly in _excludedAssemblies)
         {
-            var gameAssemblyPath = Path.Join(gameDirectoryPath, excludedAssembly);
-            var cacheAssemblyPath = Path.Join(cacheDirectory, excludedAssembly);
-            if (File.Exists(gameAssemblyPath))
-                File.Copy(gameAssemblyPath, cacheAssemblyPath, true);
+            var inputAssemblyPath = Path.Join(gameDirectoryPath, excludedAssembly);
+            if (!File.Exists(inputAssemblyPath)) continue;
+
+            TransformInputAssembly(ref inputAssemblyPath);
+            
+            File.Copy(inputAssemblyPath, Path.Join(cacheDirectory, excludedAssembly), true);
         }
-        
+
         Console.ForegroundColor = ConsoleColor.Green;
         Console.WriteLine("Crossgen finished");
         Console.ResetColor();
-        return cacheDirectory;
+        return new(cacheDirectory);
+    }
+
+    protected abstract Task<string?> DownloadCrossGenAsync();
+
+    private void TransformInputAssembly(ref string inputAssemblyPath)
+    {
+        var token = transformationService.PrepareTransformation(inputAssemblyPath);
+        if (token is null) return;
+
+        inputAssemblyPath = Path.Join(Path.GetTempPath(), Path.GetRandomFileName() + ".dll");
+        transformationService.Transform(token, inputAssemblyPath);
     }
 
     private static async Task<ImmutableArray<string>> CollectFrameworkReferencesAsync()
     {
-        var dotnetPacksPath = Path.Join(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles), "dotnet", "shared");
+        var dotnetPacksPath = Path.Join(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles), "dotnet",
+            "shared");
         if (!Directory.Exists(dotnetPacksPath))
             throw new Exception($"Dotnet shared packs not found in {dotnetPacksPath}");
 
@@ -220,7 +178,8 @@ internal class CrossGenService(string gameDirectoryPath, string cachePath)
         ];
     }
 
-    private static async ValueTask<ImmutableArray<string>> CollectFrameworkReferencesFromPackAsync(string packsPath, string packId)
+    private static async ValueTask<ImmutableArray<string>> CollectFrameworkReferencesFromPackAsync(string packsPath,
+        string packId)
     {
         var packDirPath = Path.Join(packsPath, packId, Environment.Version.ToString());
         var packPath = Path.Join(packDirPath, $"{packId}.deps.json");
@@ -230,67 +189,21 @@ internal class CrossGenService(string gameDirectoryPath, string cachePath)
         await using var stream = File.OpenRead(packPath);
         var ((runtimeFramework, _), _, targets, _) = await DependencyManifestSerializer.DeserializeAsync(stream);
         var (_, runtime, _) = targets[runtimeFramework].Values.First();
-        
+
         return [..runtime!.Keys.Select(b => Path.Join(packDirPath, b))];
     }
 
     private ImmutableArray<string> CollectInputAssemblies()
     {
-        return [
+        return
+        [
             .._includedAssemblies.Except(_excludedAssemblies)
                 .Select(s => Path.Join(gameDirectoryPath, s))
                 .Where(File.Exists)
         ];
     }
 
-    private async Task<string?> DownloadCrossGenAsync()
-    {
-        const string nugetUrl = "https://api.nuget.org/v3/index.json";
-        const string toolName = "crossgen2.exe";
-        const string packageId = "Microsoft.NETCore.App.Crossgen2.win-x64";
-        var nugetCachePath = Path.Join(cachePath, "x64", $"net{Environment.Version.Major}.{Environment.Version.Minor}");
-
-        var packagePath = Directory.CreateDirectory(Path.Join(nugetCachePath, packageId, Environment.Version.ToString()));
-        var toolPath = Path.Join(packagePath.FullName, "tools", toolName);
-        if (File.Exists(toolPath))
-            return toolPath;
-        
-        using var httpClient = new HttpClient();
-        try
-        {
-            var client = await NuGetClient.CreateFromIndexUrlAsync(nugetUrl, httpClient);
-
-            if (!packagePath.Exists) packagePath.Create();
-
-            await using var stream =
-                await client!.GetPackageContentStreamAsync(packageId, new NuGetVersion(Environment.Version));
-            await using var memStream = new MemoryStream();
-            await stream.CopyToAsync(memStream);
-            memStream.Position = 0;
-            using var archive = new ZipArchive(memStream, ZipArchiveMode.Read);
-            archive.ExtractToDirectory(packagePath.FullName);
-            
-            if (!File.Exists(toolPath))
-            {
-                LogCrossGenException("Failed to find crossgen", new FileNotFoundException("Failed to find crossgen", toolPath));
-                return null;
-            }
-        }
-        catch (IOException e)
-        {
-            LogCrossGenException("Failed to extract crossgen", e);
-            return null;
-        }
-        catch (Exception e)
-        {
-            LogCrossGenException("Failed to download crossgen", e);
-            return null;
-        }
-        
-        return toolPath;
-    }
-
-    private static void LogCrossGenException(string message, Exception e)
+    protected static void LogCrossGenException(string message, Exception e)
     {
         Console.ForegroundColor = ConsoleColor.Red;
         Console.WriteLine(message);
@@ -301,6 +214,9 @@ internal class CrossGenService(string gameDirectoryPath, string cachePath)
     private string GetCacheKey()
     {
         using var stream = File.OpenRead(Path.Join(gameDirectoryPath, CacheKeyFileName));
-        return Convert.ToHexStringLower(SHA256.HashData(stream));
+        return Convert.ToHexStringLower(SHA256.HashData(stream)) + FormatVersion;
     }
+
+    protected abstract ValueTask<bool> RunCrossGenAsync(string crossGenPath, ImmutableHashSet<string> inputReferences, string cacheDirectory,
+        string inputAssembly, double percent);
 }

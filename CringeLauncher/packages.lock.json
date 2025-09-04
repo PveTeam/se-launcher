@@ -79,6 +79,15 @@
         "resolved": "6.0.2",
         "contentHash": "kfjfjcjh/hHXLJ0TbEUH6ajb2jQFmwk/23nyYW9iPZ6cj5769SyeDTbUwGI7LSVUk5iTRJoC6CTKKmWrXK79oA=="
       },
+      "SixLabors.ImageSharp": {
+        "type": "Direct",
+        "requested": "[4.0.0-compat, )",
+        "resolved": "4.0.0-compat",
+        "contentHash": "aFnFB5ulnffN/p35/B1Aq62TQ991LA5Id2NaOAGWxsSl54hyVGJROu2qvaxuIeBVyFvY7fmKgUPYISOIAfXdLw==",
+        "dependencies": {
+          "System.IO.Hashing": "9.0.8"
+        }
+      },
       "SpaceEngineersDedicated.ReferenceAssemblies": {
         "type": "Direct",
         "requested": "[1.206.32, )",
@@ -115,15 +124,6 @@
         "dependencies": {
           "Microsoft.Bcl.AsyncInterfaces": "5.0.0",
           "Microsoft.Extensions.ObjectPool": "5.0.10"
-        }
-      },
-      "Torch.SixLabors.ImageSharp": {
-        "type": "Direct",
-        "requested": "[1.0.0-beta6, )",
-        "resolved": "1.0.0-beta6",
-        "contentHash": "WJ7ocT79HgmuKi0+ltpvXTiMI80UcI3DeS8XSfYwJtTB1tcQws6zLPGuUwra6qe6qRrFfpABeDP3xvHV1rJgfg==",
-        "dependencies": {
-          "SixLabors.Core": "1.0.0-beta0007"
         }
       },
       "Velopack": {
@@ -408,11 +408,6 @@
         "resolved": "4.2.0-keen-cringe",
         "contentHash": "LaJN3h1Gi1FWVdef2I5WtOH9gwzKCBniH0CragarbkN2QheYY6Lqm+91PcOfp1w/4wdVb+k8Kjv3sO393Tphtw=="
       },
-      "SixLabors.Core": {
-        "type": "Transitive",
-        "resolved": "1.0.0-beta0007",
-        "contentHash": "s9aPl6yxwcvoKRD0u0zjkCISZCCifbUi9/XVFjdvlx5Pt7vRYmGV0anq1EEftUjIEHbEu5aNBipbUSBIV2CE7w=="
-      },
       "Steamworks.NET": {
         "type": "Transitive",
         "resolved": "20.1.0",
@@ -436,6 +431,11 @@
         "type": "Transitive",
         "resolved": "9.0.7",
         "contentHash": "AJ+9fyCtQUImntxAJ9l4PZiCd4iepuk4pm7Qcno7PBIWQnfXlvwKuFsGk2H+QyY69GUVzDP2heELW6ho5BCXUg=="
+      },
+      "System.IO.Hashing": {
+        "type": "Transitive",
+        "resolved": "9.0.8",
+        "contentHash": "5TJUS9EIYrp0VEcm06EPYxXmLmsVUakewFnM/CAxQfvlasI9fGkTKM9afSf2dodZcMCzFna/o7Fn+gYRt3uTiA=="
       },
       "System.Linq.Async": {
         "type": "Transitive",

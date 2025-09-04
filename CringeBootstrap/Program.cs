@@ -4,6 +4,8 @@ using System.Runtime.Loader;
 using CringeBootstrap;
 using CringeBootstrap.Abstractions;
 using CringeBootstrap.CrossGen;
+using CringeBootstrap.Transformers;
+using CringeBootstrap.Transformers.Impl;
 using Velopack;
 
 #if DEBUG
@@ -45,22 +47,38 @@ var gameDir = dir;
 
 var customEntrypoint = Environment.GetEnvironmentVariable("DOTNET_BOOTSTRAP_ENTRYPOINT");
 
-// TODO figure out aggressive inlining from crossgen affecting patches 
-/*if (
+var transformationService = new TransformationService(gameDir, [new ImageSharpTransformer()]);
+var cacheDir = Directory.CreateDirectory(Path.Join(
+    Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
+    "CringeLauncher", "cache"));
+CrossGenResult? result = null;
+if (
 #if !DEBUG // disable crossgen for plugins userdev, but leave for debug
     customEntrypoint is null &&
 #endif 
     !args.Contains("--skip-crossgen", StringComparer.OrdinalIgnoreCase))
 {
-    var cacheDir = Directory.CreateDirectory(Path.Join(
-        Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
-        "CringeLauncher", "cache"));
-    
-    var crossGenService = new CrossGenService(gameDir, cacheDir.FullName);
+    var crossGenService = new CrossGenServiceImpl(gameDir, cacheDir.FullName, transformationService);
 
+    result = RunCrossGen(crossGenService);
+}
+if (result is null or { Failed: true })
+{
+    var crossGen = new NoOpCrossGenService(gameDir, cacheDir.FullName, transformationService);
+        
+    result = RunCrossGen(crossGen);
+}
+dir = result.CacheDirectory;
+
+CrossGenResult RunCrossGen(CrossGenService crossGen)
+{
+    CrossGenResult crossGenResult;
     try
     {
-        dir = crossGenService.RunCrossGen();
+        var crossGenTask = crossGen.RunCrossGenAsync();
+        crossGenResult = crossGenTask.IsCompletedSuccessfully
+            ? crossGenTask.Result
+            : crossGenTask.AsTask().GetAwaiter().GetResult();
     }
     catch (Exception e)
     {
@@ -68,10 +86,12 @@ var customEntrypoint = Environment.GetEnvironmentVariable("DOTNET_BOOTSTRAP_ENTR
         Console.WriteLine("Crossgen encountered a fatal error and will be skipped for this session.");
         Console.ResetColor();
         Console.WriteLine(e);
-        
-        crossGenService.CleanCache();
+
+        crossGenResult = new(gameDir, Failed: true);
     }
-}*/
+
+    return crossGenResult;
+}
 
 var context = new GameDirectoryAssemblyLoadContext(dir, gameDir);
 
