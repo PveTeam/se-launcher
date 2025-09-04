@@ -131,6 +131,8 @@ public class Launcher : ICorePlugin
         _renderThread.Surrogate.OnExit += _game.OnExit;
         _renderThread.Surrogate.OnManualWindowCloseRequest += _game.Window_OnManualWindowCloseRequest;
 
+        MyRenderProxy.EnableAppEventsCall = false;
+
         OnResize(null, EventArgs.Empty);
 
         return true;
