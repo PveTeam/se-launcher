@@ -26,10 +26,11 @@ internal class PlatformRender(VRageWindowSurrogate surrogate) : IVRageRender
         [UnscopedRef] out object? swapChain)
     {
         deviceInstance = MyPlatformRender.DeviceInstance = surrogate.Window.DeviceInstance?.QueryInterface<Device1>();
-        swapChain = MyPlatformRender.m_swapchain = surrogate.Window.SwapChainInstance;
+        swapChain = MyPlatformRender.m_swapchain = surrogate.Window.SwapChainInstance?.QueryInterface<SwapChain>();
         MyPlatformRender.m_factory = surrogate.Window.SwapChainInstance?.GetParent<Factory>();
         
         var settingsValue = settings ?? MyPlatformRender.GetDefaultDeviceSettings();
+        settingsValue.NewAdapterOrdinal = settingsValue.AdapterOrdinal = MyPlatformRender.ValidateAdapterIndex(settingsValue.AdapterOrdinal);
         MyPlatformRender.GetAdapter(settingsValue.AdapterOrdinal, out var adapter, out var adapterInfo);
         MyPlatformRender.FixSettings(ref settingsValue, adapter, adapterInfo, MyPlatformRender.GetAdaptersList());
 
@@ -67,16 +68,12 @@ internal class PlatformRender(VRageWindowSurrogate surrogate) : IVRageRender
         if (_currentSettings.HasValue && _currentSettings.Value.Equals(ref settingsValue)) return;
         _currentSettings = settings;
 
-        var desktopBounds = MyPlatformRender.GetAdaptersList()[settingsValue.AdapterOrdinal].DesktopBounds;
+        var desktopBounds = MyPlatformRender.GetAdaptersList()[settingsValue.NewAdapterOrdinal].DesktopBounds;
         surrogate.Window.ReflectResize = false;
-        surrogate.Window.ResizeFullScreen((FullScreenMode)settingsValue.WindowMode);
-        surrogate.Window.ClientSize = settingsValue.WindowMode == MyWindowModeEnum.Window
-            ? new(settingsValue.BackBufferWidth, settingsValue.BackBufferHeight)
-            : new(desktopBounds.Width, desktopBounds.Height);
-
+        surrogate.Window.ResizeFullScreen((FullScreenMode)settingsValue.WindowMode,
+            new Rectangle(desktopBounds.X, desktopBounds.Y, desktopBounds.Width, desktopBounds.Height));
         if (settingsValue.WindowMode == MyWindowModeEnum.Window)
-            surrogate.Window.Location = new(desktopBounds.Center.X - settingsValue.BackBufferWidth / 2,
-                desktopBounds.Center.Y - settingsValue.BackBufferHeight / 2);
+            surrogate.Window.ClientSize = new(settingsValue.BackBufferWidth, settingsValue.BackBufferHeight);
     }
 
     public object? CreateRenderAnnotation(object deviceContext)

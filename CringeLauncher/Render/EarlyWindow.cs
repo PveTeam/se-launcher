@@ -128,7 +128,7 @@ internal sealed class EarlyWindow : Form
         _renderLoop = new(this);
     }
 
-    public void ResizeFullScreen(FullScreenMode mode = FullScreenMode.Borderless)
+    public void ResizeFullScreen(FullScreenMode mode = FullScreenMode.Borderless, Rectangle? clientBounds = null)
     {
         CurrentMode = mode;
         SizeGripStyle = SizeGripStyle.Hide;
@@ -138,12 +138,26 @@ internal sealed class EarlyWindow : Form
             FormBorderStyle = FormBorderStyle.FixedSingle;
             TopMost = false;
             WindowState = FormWindowState.Normal;
+            if (clientBounds.HasValue)
+            {
+                var center = clientBounds.Value.Size / 2;
+                Location = new Point(center.Width - ClientSize.Width / 2, center.Height - ClientSize.Height / 2);
+            }
             return;
         }
         
         FormBorderStyle = FormBorderStyle.None;
+        if (!clientBounds.HasValue)
+        {
+            WindowState = FormWindowState.Maximized;
+            return;
+        }
+        
+        var bounds = clientBounds.Value;
+        SetDesktopBounds(bounds.X, bounds.Y, bounds.Width, bounds.Height);
+        
+        WindowState = FormWindowState.Normal;
         WindowState = FormWindowState.Maximized;
-        Location = new Point(0, 0);
     }
 
     protected override void OnMouseMove(MouseEventArgs e)
