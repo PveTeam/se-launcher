@@ -68,7 +68,6 @@ internal sealed class ImGuiHandler : IGuiHandler, IDisposable
         io.ConfigFlags |= ImGuiConfigFlags.DockingEnable | ImGuiConfigFlags.ViewportsEnable;
 
         ImGui_ImplWin32_Init(windowHandle);
-        ImGui_ImplWin32_EnableAlphaCompositing(windowHandle);
         ImGui_ImplDX11_Init(device.NativePointer, deviceContext.NativePointer);
         _init = true;
 

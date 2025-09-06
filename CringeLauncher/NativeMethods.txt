@@ -1,5 +1,10 @@
 ﻿GetWindowLongPtr
 SetWindowLongPtr
+DwmIsCompositionEnabled
+DwmEnableBlurBehindWindow
+CreateRectRgn
+DWM_BB_ENABLE
+DWM_BB_BLURREGION
 WM_COPYDATA
 WM_INPUTLANGCHANGE
 WM_KEYDOWN

@@ -1,4 +1,10 @@
-﻿using NLog;
+﻿using System.Runtime.InteropServices;
+using Windows.Win32;
+using Windows.Win32.Foundation;
+using Windows.Win32.Graphics.Dwm;
+using Windows.Win32.Graphics.Gdi;
+using Windows.Win32.UI.WindowsAndMessaging;
+using NLog;
 using SharpDX.Direct3D;
 using SharpDX.Direct3D11;
 using SharpDX.DXGI;
@@ -96,6 +102,36 @@ internal sealed class EarlyWindow : Form
         Handle = base.Handle;
         CreateD3D11Device();
         CreateImGui();
+        ConfigureComposition();
+    }
+
+    public void ConfigureComposition(bool enableBlurBehind = true)
+    {
+        if (!OperatingSystem.IsWindowsVersionAtLeast(8) ||
+            PInvoke.DwmIsCompositionEnabled(out var compositionEnabled).Failed || !compositionEnabled)
+            return;
+
+        if (enableBlurBehind)
+        {
+            using var region = PInvoke.CreateRectRgn_SafeHandle(0, 0, -1, -1);
+
+            var blurBehind = new DWM_BLURBEHIND
+            {
+                dwFlags = PInvoke.DWM_BB_ENABLE | PInvoke.DWM_BB_BLURREGION,
+                hRgnBlur = (HRGN)region.DangerousGetHandle(),
+                fEnable = true
+            };
+
+            PInvoke.DwmEnableBlurBehindWindow((HWND)Handle, in blurBehind).ThrowOnFailure();
+            return;
+        }
+        
+        var blurBehindDisable = new DWM_BLURBEHIND
+        {
+            dwFlags = PInvoke.DWM_BB_ENABLE,
+            fEnable = false
+        };
+        PInvoke.DwmEnableBlurBehindWindow((HWND)Handle, in blurBehindDisable).ThrowOnFailure();
     }
 
     private void CreateImGui()

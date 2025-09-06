@@ -8,6 +8,8 @@ using VRage.Platform.Windows.IME;
 using VRageMath;
 using Windows.Win32;
 using Windows.Win32.System.DataExchange;
+using CringeLauncher.Patches;
+using NLog;
 using VRage.Platform.Windows.Render;
 using VRageRender;
 using Message = System.Windows.Forms.Message;
@@ -17,6 +19,7 @@ namespace CringeLauncher.Render;
 
 internal class VRageWindowSurrogate : IVRageWindow, IVRageInput
 {
+    private static readonly Logger Log = LogManager.GetCurrentClassLogger();
     public EarlyWindow Window { get; }
     private readonly RenderLoop _renderLoop;
 
@@ -37,6 +40,21 @@ internal class VRageWindowSurrogate : IVRageWindow, IVRageInput
         Window.GotFocus += WindowOnGotFocus;
         Window.LostFocus += WindowOnLostFocus;
         Window.KeyPress += WindowOnKeyPress;
+        
+        GameReadyHandlerPatch.GameReady += OnGameReady;
+    }
+
+    private async void OnGameReady()
+    {
+        try
+        {
+            await Task.Delay(2000); // transition is actually 1500
+            Window.ConfigureComposition(false);
+        }
+        catch (Exception e)
+        {
+            Log.Warn(e, "Failed to disable composition");
+        }
     }
 
     private void WindowOnKeyPress(object? sender, KeyPressEventArgs e)
