@@ -12,12 +12,13 @@ using Device1 = SharpDX.Direct3D11.Device1;
 
 namespace CringeLauncher.Platform;
 
-internal class PlatformRender(VRageWindowSurrogate surrogate) : IVRageRender 
+internal class PlatformRender(VRageWindowSurrogate surrogate) : IVRageRender
 {
+    private const ulong RwTexturesVRamPool = 104857600 /*0x06400000*/;
     private static readonly Logger Log = LogManager.GetCurrentClassLogger();
 
     private ulong _streamedResourcesMemoryBudget = MyVRage.Platform.System.GetTotalPhysicalMemory() / 5UL;
-    private ulong _generatedTexturesMemoryBudget = MyVRage.Platform.System.GetTotalPhysicalMemory() / 32UL;
+    private readonly ulong _generatedTexturesMemoryBudget = MyVRage.Platform.System.GetTotalPhysicalMemory() / 32UL;
     private ulong _voxelTextureArraysMemoryBudget = MyVRage.Platform.System.GetTotalPhysicalMemory() / 10UL;
     
     private MyRenderDeviceSettings? _currentSettings;
@@ -38,6 +39,8 @@ internal class PlatformRender(VRageWindowSurrogate surrogate) : IVRageRender
         ImGuiHandler.Rtv = null;
         MyPlatformRender.m_swapchain!.ResizeBuffers(2, settingsValue.BackBufferWidth, settingsValue.BackBufferHeight,
             Format.Unknown, SwapChainFlags.AllowModeSwitch);
+        
+        AdjustMemoryBudgets(adapterInfo);
         
         settings = settingsValue;
     }
@@ -69,11 +72,31 @@ internal class PlatformRender(VRageWindowSurrogate surrogate) : IVRageRender
         if (_currentSettings.HasValue && _currentSettings.Value.Equals(ref settingsValue)) return;
         _currentSettings = settings;
 
-        var desktopBounds = MyPlatformRender.GetAdaptersList()[settingsValue.NewAdapterOrdinal].DesktopBounds;
+        var adapterInfo = MyPlatformRender.GetAdaptersList()[settingsValue.NewAdapterOrdinal];
+        var desktopBounds = adapterInfo.DesktopBounds;
         surrogate.Window.ResizeFullScreen((FullScreenMode)settingsValue.WindowMode,
             new Rectangle(desktopBounds.X, desktopBounds.Y, desktopBounds.Width, desktopBounds.Height));
         if (settingsValue.WindowMode == MyWindowModeEnum.Window)
             surrogate.Window.ClientSize = new(settingsValue.BackBufferWidth, settingsValue.BackBufferHeight);
+        
+        AdjustMemoryBudgets(adapterInfo);
+    }
+
+    private void AdjustMemoryBudgets(MyAdapterInfo adapter)
+    {
+        var totalPhysicalMemory = MyVRage.Platform.System.GetTotalPhysicalMemory();
+        if (adapter.VendorId == VendorIds.Intel && !adapter.DeviceName.Contains("Arc"))
+        {
+            _voxelTextureArraysMemoryBudget = MyRenderProxy.Settings.VoxelTexturesStreamingPool = (ulong) (totalPhysicalMemory / 10.0);
+            var leftOver = adapter.SVRAM - MyRenderProxy.Settings.VoxelTexturesStreamingPool - RwTexturesVRamPool;
+            _streamedResourcesMemoryBudget = MyRenderProxy.Settings.ResourceStreamingPool = (ulong) (leftOver * 0.25);
+        }
+        else
+        {
+            _voxelTextureArraysMemoryBudget = MyRenderProxy.Settings.VoxelTexturesStreamingPool = (ulong) Math.Min(adapter.VRAM * 0.4, totalPhysicalMemory / 10.0);
+            var leftOver = adapter.VRAM - MyRenderProxy.Settings.VoxelTexturesStreamingPool - RwTexturesVRamPool;
+            _streamedResourcesMemoryBudget = MyRenderProxy.Settings.ResourceStreamingPool = Math.Min(leftOver, totalPhysicalMemory / 2UL);
+        }
     }
 
     public object? CreateRenderAnnotation(object deviceContext)
