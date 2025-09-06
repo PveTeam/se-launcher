@@ -1,4 +1,5 @@
 ﻿using Windows.Win32;
+using Sandbox.Engine.Utils;
 using VRage;
 using VRageRender;
 
@@ -78,6 +79,7 @@ internal class EarlyRenderThread
         }
 
         MyRenderProxy.BeforeRender(null);
+        MyFpsManager.Update();
         MyRenderProxy.Draw();
         MyRenderProxy.AfterRender();
         
