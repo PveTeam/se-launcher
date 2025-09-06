@@ -35,10 +35,15 @@ internal class PlatformRender(VRageWindowSurrogate surrogate) : IVRageRender
         MyPlatformRender.GetAdapter(settingsValue.AdapterOrdinal, out var adapter, out var adapterInfo);
         MyPlatformRender.FixSettings(ref settingsValue, adapter, adapterInfo, MyPlatformRender.GetAdaptersList());
 
-        ImGuiHandler.Rtv?.Dispose();
-        ImGuiHandler.Rtv = null;
-        MyPlatformRender.m_swapchain!.ResizeBuffers(2, settingsValue.BackBufferWidth, settingsValue.BackBufferHeight,
-            Format.Unknown, SwapChainFlags.AllowModeSwitch);
+        if (settingsValue.WindowMode != MyWindowModeEnum.FullscreenWindow || surrogate.Window.ClientSize !=
+            new Size(settingsValue.BackBufferWidth, settingsValue.BackBufferHeight))
+        {
+            ImGuiHandler.Rtv?.Dispose();
+            ImGuiHandler.Rtv = null;
+            MyPlatformRender.m_swapchain!.ResizeBuffers(2, settingsValue.BackBufferWidth,
+                settingsValue.BackBufferHeight,
+                Format.Unknown, SwapChainFlags.AllowModeSwitch);
+        }
         
         AdjustMemoryBudgets(adapterInfo);
         
@@ -75,9 +80,8 @@ internal class PlatformRender(VRageWindowSurrogate surrogate) : IVRageRender
         var adapterInfo = MyPlatformRender.GetAdaptersList()[settingsValue.NewAdapterOrdinal];
         var desktopBounds = adapterInfo.DesktopBounds;
         surrogate.Window.ResizeFullScreen((FullScreenMode)settingsValue.WindowMode,
-            new Rectangle(desktopBounds.X, desktopBounds.Y, desktopBounds.Width, desktopBounds.Height));
-        if (settingsValue.WindowMode == MyWindowModeEnum.Window)
-            surrogate.Window.ClientSize = new(settingsValue.BackBufferWidth, settingsValue.BackBufferHeight);
+            new Rectangle(desktopBounds.X, desktopBounds.Y, desktopBounds.Width, desktopBounds.Height),
+            new Size(settingsValue.BackBufferWidth, settingsValue.BackBufferHeight));
         
         AdjustMemoryBudgets(adapterInfo);
     }

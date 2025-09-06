@@ -164,7 +164,7 @@ internal sealed class EarlyWindow : Form
         _renderLoop = new(this);
     }
 
-    public void ResizeFullScreen(FullScreenMode mode = FullScreenMode.Borderless, Rectangle? clientBounds = null)
+    public void ResizeFullScreen(FullScreenMode mode = FullScreenMode.Borderless, Rectangle? clientBounds = null, Size? windowedClientSize = null)
     {
         CurrentMode = mode;
         SizeGripStyle = SizeGripStyle.Hide;
@@ -174,10 +174,11 @@ internal sealed class EarlyWindow : Form
             FormBorderStyle = FormBorderStyle.FixedSingle;
             TopMost = false;
             WindowState = FormWindowState.Normal;
-            if (clientBounds.HasValue)
+            if (clientBounds.HasValue && windowedClientSize.HasValue)
             {
                 var center = clientBounds.Value.Size / 2;
-                Location = new Point(center.Width - ClientSize.Width / 2, center.Height - ClientSize.Height / 2);
+                Location = new Point(center.Width - windowedClientSize.Value.Width / 2, center.Height - windowedClientSize.Value.Height / 2);
+                ClientSize = windowedClientSize.Value;
             }
             return;
         }
