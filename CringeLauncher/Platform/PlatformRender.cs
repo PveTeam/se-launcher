@@ -61,6 +61,7 @@ internal class PlatformRender(VRageWindowSurrogate surrogate) : IVRageRender
 
     public void ApplyRenderSettings(MyRenderDeviceSettings? settings)
     {
+        surrogate.Window.ReflectResize = false;
         MyPlatformRender.ApplySettings(settings);
         if (settings is null) return;
         
@@ -69,7 +70,6 @@ internal class PlatformRender(VRageWindowSurrogate surrogate) : IVRageRender
         _currentSettings = settings;
 
         var desktopBounds = MyPlatformRender.GetAdaptersList()[settingsValue.NewAdapterOrdinal].DesktopBounds;
-        surrogate.Window.ReflectResize = false;
         surrogate.Window.ResizeFullScreen((FullScreenMode)settingsValue.WindowMode,
             new Rectangle(desktopBounds.X, desktopBounds.Y, desktopBounds.Width, desktopBounds.Height));
         if (settingsValue.WindowMode == MyWindowModeEnum.Window)
