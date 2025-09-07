@@ -35,7 +35,15 @@ internal sealed class EarlyWindow : Form
 
     public new nint Handle { get; private set; }
 
-    public bool ReflectResize { get; set; } = true;
+    public bool OwnsSwapChain
+    {
+        get;
+        set
+        {
+            if (!value) Region = null;
+            field = value;
+        }
+    } = true;
 
     public Point LastMousePosition
     {
@@ -92,6 +100,10 @@ internal sealed class EarlyWindow : Form
         Draw();
 
         _swapChain.Present(0, PresentFlags.None);
+        
+        var region = _guiHandler.GetWindowRegions();
+        if (region is null) return;
+        Region = region;
     }
 
     public void Draw() => _guiHandler!.Render();
@@ -103,6 +115,7 @@ internal sealed class EarlyWindow : Form
         CreateD3D11Device();
         CreateImGui();
         ConfigureComposition();
+        Region = new Region(Rectangle.Empty);
     }
 
     public void ConfigureComposition(bool enableBlurBehind = true)
@@ -218,7 +231,7 @@ internal sealed class EarlyWindow : Form
     protected override void OnResize(EventArgs e)
     {
         base.OnResize(e);
-        if (ReflectResize)
+        if (OwnsSwapChain)
             _newSize = ClientSize;
     }
 

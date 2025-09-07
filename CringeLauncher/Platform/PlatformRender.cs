@@ -69,7 +69,7 @@ internal class PlatformRender(VRageWindowSurrogate surrogate) : IVRageRender
 
     public void ApplyRenderSettings(MyRenderDeviceSettings? settings)
     {
-        surrogate.Window.ReflectResize = false;
+        surrogate.Window.OwnsSwapChain = false;
         MyPlatformRender.ApplySettings(settings);
         if (settings is null) return;
         

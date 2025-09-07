@@ -1,6 +1,7 @@
 ﻿using SharpDX.Direct3D11;
 using SharpDX.DXGI;
 using Windows.Win32.Foundation;
+using ImGuiNET;
 using Device = SharpDX.Direct3D11.Device;
 
 namespace CringeLauncher.Render;
@@ -33,7 +34,22 @@ internal class EarlyImGuiHandler
         ImGuiHandler.Rtv = null;
     }
 
-    public void Render() => ImGuiHandler.Instance!.DoRender();
+    public void Render()
+    {
+        ImGuiHandler.Instance!.DoRender();
+    }
+
+    public unsafe Region? GetWindowRegions()
+    {
+        // todo fix ImGuiContext layout to include all visible windows in the region
+        var windowPtr = ImGui.FindWindowByName("Splash");
+        if (windowPtr.NativePtr == null) return null;
+        var windowRegion = new RectangleF(windowPtr.Pos.X, windowPtr.Pos.Y, windowPtr.Size.X, windowPtr.Size.Y);
+        if (_previousWindowRegion == windowRegion) return null;
+        return new(_previousWindowRegion = windowRegion);
+    }
     
+    private RectangleF _previousWindowRegion;
+
     public RenderTargetView RenderTarget => ImGuiHandler.Rtv!;
 }
