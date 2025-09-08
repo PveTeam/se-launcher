@@ -217,6 +217,7 @@ public class Launcher : ICorePlugin
 
     public void Dispose()
     {
+        _renderThread?.Dispose();
         _game?.Dispose();
         MyGameService.ShutDown();
         MyInitializer.InvokeAfterRun();

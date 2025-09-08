@@ -19,7 +19,6 @@ namespace CringeLauncher.Render;
 
 internal class VRageWindowSurrogate : IVRageWindow, IVRageInput
 {
-    private static readonly Logger Log = LogManager.GetCurrentClassLogger();
     public EarlyWindow Window { get; }
     private readonly RenderLoop _renderLoop;
 
@@ -30,6 +29,8 @@ internal class VRageWindowSurrogate : IVRageWindow, IVRageInput
     private MyGuiControlIme? _imeControl;
     private List<char> _textBuffer = [];
     private MyRenderDeviceSettings? _pendingSettings;
+
+    private bool _shouldUpdateWindowFrame = true;
 
     public VRageWindowSurrogate(EarlyWindow window, RenderLoop renderLoop)
     {
@@ -42,19 +43,18 @@ internal class VRageWindowSurrogate : IVRageWindow, IVRageInput
         Window.KeyPress += WindowOnKeyPress;
         
         GameReadyHandlerPatch.GameReady += OnGameReady;
+        GameReadyHandlerPatch.GameReadyTransitionStarted += OnGameReadyTransitionStarted;
     }
 
-    private async void OnGameReady()
+    private void OnGameReady()
     {
-        try
-        {
-            await Task.Delay(2000); // transition is actually 1500
-            Window.ConfigureComposition(false);
-        }
-        catch (Exception e)
-        {
-            Log.Warn(e, "Failed to disable composition");
-        }
+        Window.Invoke(() => Window.ConfigureComposition(false));
+    }
+
+    private void OnGameReadyTransitionStarted()
+    {
+        _shouldUpdateWindowFrame = false;
+        Window.Invoke(() => Window.Region = null);
     }
 
     private void WindowOnKeyPress(object? sender, KeyPressEventArgs e)
@@ -150,6 +150,8 @@ internal class VRageWindowSurrogate : IVRageWindow, IVRageInput
             MyRenderProxy.ApplySettings(_pendingSettings.Value);
             _pendingSettings = null;
         }
+        if (_shouldUpdateWindowFrame)
+            Window.UpdateFrame();
         return _renderLoop.NextFrame();
     }
     

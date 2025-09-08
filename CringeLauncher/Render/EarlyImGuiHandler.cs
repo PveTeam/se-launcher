@@ -1,4 +1,5 @@
-﻿using SharpDX.Direct3D11;
+﻿using System.Drawing.Drawing2D;
+using SharpDX.Direct3D11;
 using SharpDX.DXGI;
 using Windows.Win32.Foundation;
 using ImGuiNET;
@@ -39,17 +40,36 @@ internal class EarlyImGuiHandler
         ImGuiHandler.Instance!.DoRender();
     }
 
-    public unsafe Region? GetWindowRegions()
+    public Region? GetWindowRegions()
     {
-        // todo fix ImGuiContext layout to include all visible windows in the region
-        var windowPtr = ImGui.FindWindowByName("Splash");
-        if (windowPtr.NativePtr == null) return null;
-        var windowRegion = new RectangleF(windowPtr.Pos.X, windowPtr.Pos.Y, windowPtr.Size.X, windowPtr.Size.Y);
-        if (_previousWindowRegion == windowRegion) return null;
-        return new(_previousWindowRegion = windowRegion);
+        var contextPtr = ImGui.GetCurrentContext();
+        
+        var hash = new HashCode();
+        
+        foreach (var windowPtr in contextPtr.Windows)
+        {
+            var windowRegion = new RectangleF(windowPtr.Pos.X, windowPtr.Pos.Y, windowPtr.Size.X, windowPtr.Size.Y);
+            hash.Add(windowRegion);
+        }
+        
+        var regionHash = hash.ToHashCode();
+        if (_previousWindowRegionHash == regionHash) return null;
+        _previousWindowRegionHash = regionHash;
+        
+        _windowRegion ??= new();
+        _windowRegion.MakeEmpty();
+        
+        foreach (var windowPtr in contextPtr.Windows)
+        {
+            var windowRegion = new RectangleF(windowPtr.Pos.X, windowPtr.Pos.Y, windowPtr.Size.X, windowPtr.Size.Y);
+            _windowRegion.Union(windowRegion);
+        }
+
+        return _windowRegion.Clone();
     }
     
-    private RectangleF _previousWindowRegion;
+    private int _previousWindowRegionHash;
+    private Region? _windowRegion;
 
     public RenderTargetView RenderTarget => ImGuiHandler.Rtv!;
 }

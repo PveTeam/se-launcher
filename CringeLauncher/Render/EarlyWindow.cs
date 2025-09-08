@@ -35,15 +35,7 @@ internal sealed class EarlyWindow : Form
 
     public new nint Handle { get; private set; }
 
-    public bool OwnsSwapChain
-    {
-        get;
-        set
-        {
-            if (!value) Region = null;
-            field = value;
-        }
-    } = true;
+    public bool OwnsSwapChain { get; set; } = true;
 
     public Point LastMousePosition
     {
@@ -101,12 +93,18 @@ internal sealed class EarlyWindow : Form
 
         _swapChain.Present(0, PresentFlags.None);
         
-        var region = _guiHandler.GetWindowRegions();
+        UpdateFrame();
+    }
+
+    public void UpdateFrame()
+    {
+        if (CurrentMode != FullScreenMode.Borderless) return;
+        var region = _guiHandler!.GetWindowRegions();
         if (region is null) return;
         Region = region;
     }
 
-    public void Draw() => _guiHandler!.Render();
+    public void Draw() => _guiHandler?.Render();
 
     protected override void CreateHandle()
     {
@@ -182,6 +180,9 @@ internal sealed class EarlyWindow : Form
         CurrentMode = mode;
         SizeGripStyle = SizeGripStyle.Hide;
         
+        // reset region if not borderless aka input transparent
+        if (mode != FullScreenMode.Borderless) Region = null;
+        
         if (mode == FullScreenMode.Windowed)
         {
             FormBorderStyle = FormBorderStyle.FixedSingle;
@@ -241,7 +242,8 @@ internal sealed class EarlyWindow : Form
 
     protected override void Dispose(bool disposing)
     {
-        _renderLoop?.Dispose();
+        // render loop wants to listen to dispose event to dispose itself
+        // _renderLoop?.Dispose();
         SwapChainInstance?.Dispose();
         DeviceInstance?.Dispose();
         _guiHandler = null;

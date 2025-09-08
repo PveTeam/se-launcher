@@ -5,7 +5,7 @@ using VRageRender;
 
 namespace CringeLauncher.Render;
 
-internal class EarlyRenderThread
+internal class EarlyRenderThread : IDisposable
 {
     private readonly bool _keepConsole;
     public EarlyWindow? Window { get; private set; }
@@ -86,5 +86,12 @@ internal class EarlyRenderThread
         Window!.Draw();
         
         MyRenderProxy.Present();
+    }
+
+    public void Dispose()
+    {
+        // if is null or the game renderer has not yet taken ownership of the swap chain
+        if (Window is null or { OwnsSwapChain: true }) return;
+        Surrogate.Exit();
     }
 }
