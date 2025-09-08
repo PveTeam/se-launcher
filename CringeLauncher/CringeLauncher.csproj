@@ -24,6 +24,8 @@
         <Publicize Include="VRage.Render;VRage.Render11;VRage.Platform.Windows;VRage.Scripting;VRage.Input" IncludeCompilerGeneratedMembers="false" />
 		<Publicize Include="VRage.Scripting:VRage.Scripting.Rewriters.ProtoTagRewriter" />
 		<Publicize Include="Sandbox.Game:Sandbox.Game.World.MyScriptManager.m_compatibilityChanges" />
+		<Publicize Include="Sandbox.Game:Sandbox.Game.World.MyScriptManager.UpdateCompatibility" />
+		<Publicize Include="Sandbox.Game:Sandbox.Game.World.MyScriptManager.COMPATIBILITY_USINGS" />
 	</ItemGroup>
 
     <ItemGroup>
@@ -47,7 +49,7 @@
         </PackageReference>
         <PackageReference Include="NLog" Version="6.0.2" />
         <PackageReference Include="Microsoft.CodeAnalysis.CSharp" Version="4.14.0" />
-        <PackageReference Include="SpaceEngineersDedicated.ReferenceAssemblies" Version="1.206.32" ExcludeAssets="runtime" />
+        <PackageReference Include="SpaceEngineersDedicated.ReferenceAssemblies" Version="1.207.20" ExcludeAssets="runtime" />
     </ItemGroup>
 
     <ItemGroup>

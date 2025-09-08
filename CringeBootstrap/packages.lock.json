@@ -341,8 +341,8 @@
       },
       "SpaceEngineersDedicated.ReferenceAssemblies": {
         "type": "Transitive",
-        "resolved": "1.206.32",
-        "contentHash": "uFhkUUxmumct/turcfMeM2f+jJHxuiB6jAE4JMGa/AOFKCsWIr+ZWTX9hW2muEoJpUNKrzCbGrxH8ssaJUZpig==",
+        "resolved": "1.207.20",
+        "contentHash": "e/zK9xXtvpfAUPKa3ZdqJSjPb7kps4mTqCr5w8bzt28qx7aoe2XQ2BBx5P+A5oyLheC/cn5YHNVboiVYGDfr/Q==",
         "dependencies": {
           "SharpDX": "4.2.0-keen-cringe",
           "protobuf-net": "1.0.0"
@@ -427,7 +427,7 @@
           "Microsoft.Extensions.Http.Polly": "[9.0.7, )",
           "NLog": "[6.0.2, )",
           "SixLabors.ImageSharp": "[4.0.0-compat, )",
-          "SpaceEngineersDedicated.ReferenceAssemblies": "[1.206.32, )",
+          "SpaceEngineersDedicated.ReferenceAssemblies": "[1.207.20, )",
           "System.Diagnostics.PerformanceCounter": "[9.0.7, )",
           "System.Management": "[9.0.7, )",
           "System.Private.ServiceModel": "[4.10.3, )",
@@ -445,7 +445,7 @@
           "Newtonsoft.Json": "[13.0.3, )",
           "NuGet": "[1.0.0, )",
           "SharedCringe": "[1.0.0, )",
-          "SpaceEngineersDedicated.ReferenceAssemblies": "[1.206.32, )",
+          "SpaceEngineersDedicated.ReferenceAssemblies": "[1.207.20, )",
           "Steamworks.NET": "[20.1.0, 20.1.0]",
           "dnlib": "[4.5.0, )"
         }

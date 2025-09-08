@@ -410,6 +410,6 @@ public static class ModScriptCompilerPatch
             text = text.Replace(old, @new, StringComparison.Ordinal);
         }
 
-        return new(script.Name, text.Insert(0, MyScriptManager.CompatibilityUsings));
+        return new(script.Name, text.Insert(0, MyScriptManager.COMPATIBILITY_USINGS));
     }
 }
