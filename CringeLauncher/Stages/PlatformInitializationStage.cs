@@ -1,4 +1,5 @@
-﻿using CringeLauncher.Platform;
+﻿using System.Globalization;
+using CringeLauncher.Platform;
 using CringeLauncher.Render;
 using CringeLauncher.Utils;
 using CringePlugins.Splash;
@@ -57,6 +58,7 @@ internal class PlatformInitializationStage(EarlyRenderThread renderThread, strin
                 MyPlatformGameSettings.VOICE_CHAT_AUTOMATIC_ACTIVATION =
                     MySandboxGame.Config.AutomaticVoiceChatActivation;
             });
+        CultureInfo.DefaultThreadCurrentCulture = CultureInfo.InvariantCulture;
         MyVRage.Platform.Init();
         SpaceEngineersGame.SetupPerGameSettings();
         ConfigureSettings();
