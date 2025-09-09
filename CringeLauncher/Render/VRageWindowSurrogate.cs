@@ -9,7 +9,6 @@ using VRageMath;
 using Windows.Win32;
 using Windows.Win32.System.DataExchange;
 using CringeLauncher.Patches;
-using NLog;
 using VRage.Platform.Windows.Render;
 using VRageRender;
 using Message = System.Windows.Forms.Message;
@@ -333,7 +332,7 @@ internal class VRageWindowSurrogate : IVRageWindow, IVRageInput
             var previousValue = Interlocked.Exchange(ref field, value);
             if (previousValue != value)
             {
-                Window.Invoke(previousValue ? Cursor.Hide : Cursor.Show);
+                Window.Invoke(value ? Cursor.Show : Cursor.Hide);
             }
         }
     } = true;

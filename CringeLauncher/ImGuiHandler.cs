@@ -160,7 +160,7 @@ internal sealed class ImGuiHandler : IGuiHandler, IDisposable
     {
         var focusedScreen = MyScreenManager.GetScreenWithFocus(); //migrated logic from MyDX9Gui.Draw
 
-        if (DrawMouse || focusedScreen?.GetDrawMouseCursor() == true || (MyScreenManager.InputToNonFocusedScreens && MyScreenManager.GetScreensCount() > 1))
+        if (DrawMouse || focusedScreen?.GetDrawMouseCursor() == true)
         {
             MyGuiSandbox.SetMouseCursorVisibility(true, false);
         }

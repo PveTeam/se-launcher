@@ -731,6 +731,7 @@ internal class PluginListComponent : IRenderComponent
                     sortSpecs.SpecsDirty = false;
                 }
 
+                var idcounter = 0;
                 foreach (var (client, result) in searchResults)
                 {
                     foreach (var package in result.Entries.Take(100))
@@ -742,7 +743,7 @@ internal class PluginListComponent : IRenderComponent
                         var selected = _selected?.entry.Id.Equals(package.Id, StringComparison.OrdinalIgnoreCase) ==
                                        true;
 
-                        if (Selectable(package.Title ?? package.Id, ref selected, ImGuiSelectableFlags.SpanAllColumns))
+                        if (Selectable($"{package.Title ?? package.Id}##{idcounter++}", ref selected, ImGuiSelectableFlags.SpanAllColumns))
                         {
                             _selected = selected ? (package, client) : null;
                         }
