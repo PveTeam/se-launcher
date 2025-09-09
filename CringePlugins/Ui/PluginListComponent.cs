@@ -734,7 +734,7 @@ internal class PluginListComponent : IRenderComponent
                 var idcounter = 0;
                 foreach (var (client, result) in searchResults)
                 {
-                    foreach (var package in result.Entries.Take(100))
+                    foreach (var package in result.Entries)
                     {
                         TableNextRow();
 
