@@ -116,8 +116,10 @@ using var corePlugin = (ICorePlugin) launcher.CreateInstance(entrypointName.Full
 
 if (!corePlugin.Initialize(args) || !corePlugin.Run())
 {
+#if DEBUG
     Console.WriteLine("Press any key to exit...");
     Console.Read();
+#endif
     return 1;
 }
 

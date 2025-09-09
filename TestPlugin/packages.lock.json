@@ -5,16 +5,16 @@
       "CringePlugins": {
         "type": "Direct",
         "requested": "[*, )",
-        "resolved": "0.2.0",
-        "contentHash": "XiG1xJx3tzecF2FTwLTTxxaL6SajZAYWzkQ22Z1OALrzwBcINZw2LPiTBz0OoowSETkpSa6ARMOYh6Emtudq/Q==",
+        "resolved": "0.2.5",
+        "contentHash": "1i/xEsR5Ng5XdzvYU+CbBvTo/UOD23iSKjH5aySTlZ6IMhJuZBvKyGuxtNgUGTNzzh6XjzM6gzz57xCSzIx/MA==",
         "dependencies": {
           "ImGui.NET.DirectX": "1.92.1.5",
           "JsonSchema.Net.Generation": "5.0.4",
           "Lib.Harmony.Thin": "2.3.4-torch",
           "Microsoft.Extensions.DependencyInjection.Abstractions": "9.0.7",
           "Newtonsoft.Json": "13.0.3",
-          "NuGet": "0.2.0",
-          "SharedCringe": "0.2.0",
+          "NuGet": "0.2.5",
+          "SharedCringe": "0.2.5",
           "SpaceEngineersDedicated.ReferenceAssemblies": "1.207.20",
           "Steamworks.NET": "[20.1.0]",
           "dnlib": "4.5.0"
@@ -34,8 +34,8 @@
       },
       "CringeBootstrap.Abstractions": {
         "type": "Transitive",
-        "resolved": "0.2.0",
-        "contentHash": "6Jc7B/F0QelKAuY4O3x3B4Qy62RwKh/Jpd+I/oS//ZL7uPx9rTAjsSVXUvns3XRF8uDTcpoyF1mmEeaxURpe5Q=="
+        "resolved": "0.2.5",
+        "contentHash": "9cMLWQe5KVzMuVquoOkeNkaeSeECWBcy6E5/x1IMB5/Qh1OrPwRUqAkE19DBvzGahkxcuuuFHQbjldBM+CkWCA=="
       },
       "dnlib": {
         "type": "Transitive",
@@ -147,8 +147,8 @@
       },
       "NuGet": {
         "type": "Transitive",
-        "resolved": "0.2.0",
-        "contentHash": "+jLukziGQwn/OdRRTihgr+PsCx/iP296jOITxcFyn3Ws7qgfEjPSmNOjgosVzsOfGTw0Jxi6bDn57Ceu7xd1Pg==",
+        "resolved": "0.2.5",
+        "contentHash": "NPryl8KsOGTKRTCsnBQ/IaoxKvnxnV6iVok6770pRZVp9jyI99xBHg0O9tiStbuOXOVHImnWTVqqp944SiVD6A==",
         "dependencies": {
           "NLog": "6.0.2",
           "NuGet.Frameworks": "6.14.0",
@@ -173,10 +173,10 @@
       },
       "SharedCringe": {
         "type": "Transitive",
-        "resolved": "0.2.0",
-        "contentHash": "5S22y8vC/5TPX5V2u3+JHu6+xbokzReaTsAf6919lqElQuVEp+s+V8qssNeTSB6ZIDrLb0mNk4tO9dUnyWYzFg==",
+        "resolved": "0.2.5",
+        "contentHash": "OSzhYCYAiAOp8qV+l3cF/dkaxDu+4IhLTx5ANE8bU2Loy0U7UZ++Wun6xrfp8pdFqeGTwMwqIQDzWxXHhRG5hg==",
         "dependencies": {
-          "CringeBootstrap.Abstractions": "0.2.0",
+          "CringeBootstrap.Abstractions": "0.2.5",
           "NLog": "6.0.2",
           "SpaceEngineersDedicated.ReferenceAssemblies": "1.206.32"
         }
