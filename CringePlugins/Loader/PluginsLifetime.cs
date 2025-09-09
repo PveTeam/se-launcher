@@ -185,7 +185,7 @@ internal class PluginsLifetime(ConfigHandler configHandler, HttpClient client, D
 
             var sourceName = packageClient == null ? "Local Cache" : packagesConfig.Sources.First(b => b.Url == packageClient.ToString()).Name;
             LoadComponent(plugins, Path.Join(packageDir, $"{package.Package.Id}.dll"),
-                new(package.Package.Id, package.Package.Version, sourceName));
+                new(package.Entry.Title ?? package.Package.Id, package.Package.Version, sourceName));
         }
 
         _plugins = plugins.ToImmutable();

@@ -140,17 +140,24 @@ internal class PluginListComponent : IRenderComponent
                         TableNextRow();
 
                         TableNextColumn();
-                        BeginDisabled(!plugin.HasConfig);
                         if (plugin.WrappedInstance?.LastException is not null)
                         {
-                            PushStyleColor(plugin.HasConfig ? ImGuiCol.Text : ImGuiCol.TextDisabled,
-                                plugin.IsReloading ? Color.Yellow.ToFloat4() : plugin.HasConfig ? Color.Red.ToFloat4() : Color.DarkRed.ToFloat4());
+                            var color = plugin.IsReloading ? Color.Yellow : plugin.HasConfig ? Color.Red : Color.DarkRed;
+                            PushStyleColor(ImGuiCol.Text, color.ToFloat4());
+                        }
+                        else if (!plugin.HasConfig)
+                        {
+                            unsafe
+                            {
+                                PushStyleColor(ImGuiCol.Text, *GetStyleColorVec4(ImGuiCol.TextDisabled));
+                            }
                         }
 
-                        if (Selectable($"{plugin.Metadata.Name}##{++i}", false, ImGuiSelectableFlags.SpanAllColumns) && !plugin.IsReloading)
+                        if (Selectable($"{plugin.Metadata.Name}##{++i}", false, ImGuiSelectableFlags.SpanAllColumns) &&
+                            plugin is { IsReloading: false, HasConfig: true })
                             plugin.OpenConfig();
 
-                        if (!plugin.IsReloading && plugin.IsLocal && BeginPopupContextItem($"##{plugin.Metadata.Name}ContextMenu{i}"))
+                        if (plugin is { IsReloading: false, IsLocal: true } && BeginPopupContextItem($"##{plugin.Metadata.Name}ContextMenu{i}"))
                         {
                             if (Button($"Reload##{i}"))
                             {
@@ -159,15 +166,17 @@ internal class PluginListComponent : IRenderComponent
                             EndPopup();
                         }
 
-                        if (plugin.WrappedInstance?.LastException is not null && !plugin.IsReloading)
+                        if (plugin.WrappedInstance?.LastException is not null)
                         {
                             PopStyleColor();
-                            if (IsItemHovered(ImGuiHoveredFlags.ForTooltip))
+                            if (IsItemHovered(ImGuiHoveredFlags.ForTooltip) && !plugin.IsReloading)
                                 SetTooltip(
                                     $"{plugin.WrappedInstance.LastException.GetType()}: {plugin.WrappedInstance.LastException.Message}");
+                        } 
+                        else if (!plugin.HasConfig)
+                        {
+                            PopStyleColor();
                         }
-                        EndDisabled();
-
 
                         TableNextColumn();
                         Text(plugin.Metadata.Version.ToString());
@@ -632,7 +641,7 @@ internal class PluginListComponent : IRenderComponent
 
         SameLine();
 
-        if (Button("Search"))
+        if ((IsItemFocused() && IsKeyReleased(ImGuiKey.Enter)) || Button("Search"))
         {
             _searchTask = RefreshAsync();
             return;
