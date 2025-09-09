@@ -948,7 +948,11 @@ internal class PluginListComponent : IRenderComponent
                 return;
 
             var nuspecFile = Path.Join(maxVersionDir.FullName, $"{packageDir.Name}.nuspec");
-            using var reader = new IgnoreNamespaceXmlReader(File.OpenRead(nuspecFile));
+            if (!File.Exists(nuspecFile))
+                return;
+
+            using var fileStream = File.OpenRead(nuspecFile);
+            using var reader = new IgnoreNamespaceXmlReader(fileStream);
             Nuspec? nuspec;
             try
             {

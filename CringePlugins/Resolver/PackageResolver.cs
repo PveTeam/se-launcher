@@ -253,7 +253,8 @@ public class PackageResolver(NuGetFramework runtimeFramework, ImmutableArray<Pac
 
             //dependency group, package type, package entry
 
-            using var reader = new IgnoreNamespaceXmlReader(File.OpenRead(nuspecFile));
+            using var fileStream = File.OpenRead(nuspecFile);
+            using var reader = new IgnoreNamespaceXmlReader(fileStream);
             Nuspec? nuspec;
             try
             {
