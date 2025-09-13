@@ -68,7 +68,7 @@ internal class VRageWindowSurrogate : IVRageWindow, IVRageInput
         ActiveChanged?.Invoke();
         
         Cursor.Clip = Rectangle.Empty;
-        if (!ShowCursor) Cursor.Show();
+        if (!ShowCursor) CursorVisible = true;
     }
 
     private void WindowOnGotFocus(object? sender, EventArgs e)
@@ -76,7 +76,7 @@ internal class VRageWindowSurrogate : IVRageWindow, IVRageInput
         IsActive = true;
         ActiveChanged?.Invoke();
         
-        if (!ShowCursor) Cursor.Hide();
+        if (!ShowCursor) CursorVisible = false;
         
         if (Window.CurrentMode == FullScreenMode.Fullscreen)
             MyPlatformRender.RestoreFullscreenMode();
@@ -325,6 +325,12 @@ internal class VRageWindowSurrogate : IVRageWindow, IVRageInput
     }
 
     public bool ShowCursor
+    {
+        get => CursorVisible;
+        set => CursorVisible = value;
+    }
+
+    public bool CursorVisible
     {
         get;
         set
