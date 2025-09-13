@@ -3,6 +3,7 @@ using CringePlugins.Config;
 using CringePlugins.Splash;
 using NLog;
 using Velopack;
+using Velopack.Locators;
 
 namespace CringeLauncher.Stages;
 
@@ -37,7 +38,9 @@ internal class CheckUpdatesStage(
             AllowVersionDowngrade = true, // in case preview version is higher than stable
             ExplicitChannel = config?.UsePreviewBranch is true ? "win-preview" : "win"
         };
-        var mgr = new UpdateManager("https://dl.zznty.ru/CringeLauncher/", updateOptions);
+        var mgr = new UpdateManager("https://dl.zznty.ru/CringeLauncher/", updateOptions,
+            new WindowsVelopackLocator(Path.Join(AppContext.BaseDirectory, "CringeBoostrap.exe"),
+                (uint)Environment.ProcessId, null));
 
         if (mgr.CurrentVersion != null)
             crashPadService.NextInfo.Version.LauncherVersion = mgr.CurrentVersion.ToFullString();
