@@ -15,6 +15,8 @@ public class PackageSourceMapping(ImmutableArray<PackageSource> sources, HttpCli
             (b.Pattern,
                 NuGetClient.CreateFromIndexUrlAsync(b.Url, client)))
     ];
+    
+    public bool SomeSourcesAreUnavailable { get; private set; }
 
     public ValueTask<NuGetClient?> GetClientAsync(string packageId)
     {
@@ -22,9 +24,13 @@ public class PackageSourceMapping(ImmutableArray<PackageSource> sources, HttpCli
         return ResolveClientTask(clientTask);
     }
 
-    private static async ValueTask<NuGetClient?> ResolveClientTask(Task<NuGetClient> clientTask)
+    private async ValueTask<NuGetClient?> ResolveClientTask(Task<NuGetClient> clientTask)
     {
-        if (clientTask.Status is TaskStatus.Faulted or TaskStatus.Canceled) return null;
+        if (clientTask.Status is TaskStatus.Faulted or TaskStatus.Canceled)
+        {
+            SomeSourcesAreUnavailable = true;
+            return null;
+        }
         try
         {
             return await clientTask;
@@ -32,6 +38,7 @@ public class PackageSourceMapping(ImmutableArray<PackageSource> sources, HttpCli
         catch (Exception e)
         {
             Log.Error(e, "Failed to get client");
+            SomeSourcesAreUnavailable = true;
             return null;
         }
     }

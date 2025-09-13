@@ -1,11 +1,15 @@
-﻿using CringePlugins.Config;
+﻿using CringeLauncher.CrashPad;
+using CringePlugins.Config;
 using CringePlugins.Splash;
 using NLog;
 using Velopack;
 
 namespace CringeLauncher.Stages;
 
-public class CheckUpdatesStage(string[] args, Func<Logger, ValueTask<LauncherConfig?>> readUpdatesConfigAsync) : ILoadingStage
+internal class CheckUpdatesStage(
+    string[] args,
+    Func<Logger, ValueTask<LauncherConfig?>> readUpdatesConfigAsync,
+    CrashPadService crashPadService) : ILoadingStage
 {
     private static readonly Logger Log = LogManager.GetCurrentClassLogger();
     public string Name { get; } = "Check updates";
@@ -28,14 +32,33 @@ public class CheckUpdatesStage(string[] args, Func<Logger, ValueTask<LauncherCon
         
         var config = await readUpdatesConfigAsync(logger);
 
-        var mgr = new UpdateManager("https://dl.zznty.ru/CringeLauncher/", new()
+        var updateOptions = new UpdateOptions
         {
             AllowVersionDowngrade = true, // in case preview version is higher than stable
             ExplicitChannel = config?.UsePreviewBranch is true ? "win-preview" : "win"
-        });
+        };
+        var mgr = new UpdateManager("https://dl.zznty.ru/CringeLauncher/", updateOptions);
+
+        if (mgr.CurrentVersion != null)
+            crashPadService.NextInfo.Version.LauncherVersion = mgr.CurrentVersion.ToFullString();
+        crashPadService.NextInfo.Version.UpdatesChannel = updateOptions.ExplicitChannel;
 
         // check for new version
-        var newVersion = await mgr.CheckForUpdatesAsync();
+        UpdateInfo? newVersion;
+        try
+        {
+            newVersion = await mgr.CheckForUpdatesAsync();
+        }
+        catch (Exception e)
+        {
+            Log.Error(e, "Failed to check for updates");
+            crashPadService.NextInfo.Network.CheckUpdatesFailed = true;
+            return;
+        }
+        finally
+        {
+            crashPadService.MarkSavePoint();
+        }
         if (newVersion == null)
         {
             logger.Info("Up to date");

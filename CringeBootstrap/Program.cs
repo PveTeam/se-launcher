@@ -100,7 +100,7 @@ context.AddDependencyOverride("CringeLauncher");
 context.AddDependencyOverride("CringePlugins");
 context.AddDependencyOverride("EOSSDK");
 
-var entrypoint = customEntrypoint ?? "CringeLauncher.Launcher, CringeLauncher";
+var entrypoint = customEntrypoint ?? "CringeLauncher.CrashPad.CrashPadLauncher, CringeLauncher";
 if (!TypeName.TryParse(entrypoint, out var entrypointName) || 
     entrypointName.AssemblyName is null)
 {
@@ -116,10 +116,11 @@ using var corePlugin = (ICorePlugin) launcher.CreateInstance(entrypointName.Full
 
 if (!corePlugin.Initialize(args) || !corePlugin.Run())
 {
-#if DEBUG
-    Console.WriteLine("Press any key to exit...");
-    Console.Read();
-#endif
+    if (!Console.IsInputRedirected)
+    {
+        Console.WriteLine("Press any key to exit...");
+        Console.Read();
+    }
     return 1;
 }
 

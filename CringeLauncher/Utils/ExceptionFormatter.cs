@@ -1,5 +1,6 @@
 ﻿using System.Collections.Frozen;
 using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
 using System.Runtime.Loader;
 using System.Text;
@@ -9,6 +10,8 @@ namespace CringeLauncher.Utils;
 
 public static class ExceptionFormatter
 {
+    internal const string EndOfStackTraceFromPreviousLocation = "   --- End of stack trace from previous location ---";
+
     private static readonly FrozenDictionary<Type, string> TypeKeywords = FrozenDictionary.ToFrozenDictionary([
         new KeyValuePair<Type, string>(typeof(int), "int"),
         new(typeof(uint), "uint"),
@@ -27,13 +30,13 @@ public static class ExceptionFormatter
         new(typeof(void), "void")
     ]);
 
-    private static readonly AccessTools.FieldRef<Exception, string> RemoteStackTraceField =
-        AccessTools.FieldRefAccess<Exception, string>("_remoteStackTraceString");
-    
-    private static readonly AccessTools.FieldRef<Exception, string> StackTraceField =
-        AccessTools.FieldRefAccess<Exception, string>("_stackTraceString");
-    
-    private static readonly AccessTools.FieldRef<StackFrame, bool> IsLastFrameFromForeignExceptionStackTraceField =
+    private static readonly AccessTools.FieldRef<Exception, string?> RemoteStackTraceField =
+        AccessTools.FieldRefAccess<Exception, string?>("_remoteStackTraceString");
+
+    internal static readonly AccessTools.FieldRef<Exception, string?> StackTraceField =
+        AccessTools.FieldRefAccess<Exception, string?>("_stackTraceString");
+
+    internal static readonly AccessTools.FieldRef<StackFrame, bool> IsLastFrameFromForeignExceptionStackTraceField =
         AccessTools.FieldRefAccess<StackFrame, bool>("_isLastFrameFromForeignExceptionStackTrace");
 
     public static void FormatStackTrace(this Exception exception)
@@ -47,30 +50,17 @@ public static class ExceptionFormatter
 
         var sb = new StringBuilder();
 
-        const string pad = "   ";
-
         var i = 0;
         while (stackTrace.GetFrame(i++) is { } frame)
         {
-            var method = frame.GetMethod();
-            if (method is null)
-                continue;
-            if (method is MethodInfo methodInfo && Harmony.GetOriginalMethod(methodInfo) is { } originalMethod)
-                method = originalMethod;
-
-            sb.Append(pad + "at ");
-            sb.AppendMethod(method);
-
-            sb.AppendFileInfo(frame);
-            
-            sb.AppendPatchInformation(method);
+            if (!AppendStackFrame(sb, frame, out _)) continue;
 
             sb.AppendLine();
             
             ref var isLastFrameFromForeignExceptionStackTrace = ref IsLastFrameFromForeignExceptionStackTraceField(frame);
             
             if (isLastFrameFromForeignExceptionStackTrace)
-                sb.AppendLine("   --- End of stack trace from previous location ---");
+                sb.AppendLine(EndOfStackTraceFromPreviousLocation);
         }
         
         if (sb.Length > 0)
@@ -86,6 +76,25 @@ public static class ExceptionFormatter
         }
 
         exception.InnerException?.FormatStackTrace();
+    }
+
+    internal static bool AppendStackFrame(this StringBuilder sb, StackFrame frame, [NotNullWhen(true)] out MethodBase? method)
+    {
+        method = frame.GetMethod();
+        if (method is null)
+            return false;
+        if (method is MethodInfo methodInfo && Harmony.GetOriginalMethod(methodInfo) is { } originalMethod)
+            method = originalMethod;
+
+        const string pad = "   ";
+            
+        sb.Append(pad + "at ");
+        sb.AppendMethod(method);
+
+        sb.AppendFileInfo(frame);
+            
+        sb.AppendPatchInformation(method);
+        return true;
     }
 
     private static StringBuilder AppendPatchInformation(this StringBuilder sb, MethodBase method)

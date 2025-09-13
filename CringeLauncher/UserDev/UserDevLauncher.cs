@@ -11,7 +11,7 @@ public class UserDevLauncher() : Launcher(Environment.GetEnvironmentVariable("DO
 {
     protected override void InitUgc(Splash splash)
     {
-        var gameService = new UserDevGameService(AppId);
+        var gameService = new UserDevGameService(LauncherConstants.AppId);
         MyServiceManager.Instance.AddService<IMyGameService>(gameService);
         MyServiceManager.Instance.AddService<IMyNetworking>(new MyNullNetworking(gameService));
         MyServiceManager.Instance.AddService<IMyLobbyDiscovery>(new MyNullLobbyDiscovery());

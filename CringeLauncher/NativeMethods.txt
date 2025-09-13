@@ -14,3 +14,4 @@ WM_SYSKEYUP
 WM_CHAR
 COPYDATASTRUCT
 FreeConsole
+SetStdHandle

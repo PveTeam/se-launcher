@@ -1,4 +1,5 @@
-﻿using CringePlugins.Ui;
+﻿using System.Diagnostics.CodeAnalysis;
+using CringePlugins.Ui;
 using ImGuiNET;
 using NLog;
 using VRage.Plugins;
@@ -8,6 +9,7 @@ namespace CringePlugins.Loader;
 //todo maybe we could unload the plugin if there's an error?
 internal sealed class PluginWrapper(PluginMetadata metadata, IPlugin plugin) : IHandleInputPlugin
 {
+    [MemberNotNullWhen(true, nameof(LastException))]
     public bool HasError => LastException != null;
     public Exception? LastException { get; private set; } //todo: show exception when hovered in plugin menu?
 

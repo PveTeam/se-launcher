@@ -1,4 +1,5 @@
 ﻿using System.Globalization;
+using CringeLauncher.CrashPad;
 using CringeLauncher.Platform;
 using CringeLauncher.Render;
 using CringeLauncher.Utils;
@@ -16,22 +17,34 @@ using VRageRender;
 
 namespace CringeLauncher.Stages;
 
-internal class PlatformInitializationStage(EarlyRenderThread renderThread, string? gameDataDirectoryPathOverride) : ILoadingStage
+internal class PlatformInitializationStage(
+    EarlyRenderThread renderThread,
+    string? gameDataDirectoryPathOverride,
+    CrashPadService crashPadService) : ILoadingStage
 {
     public string Name { get; } = "Platform initialization";
     public ValueTask Load(ISplashProgress progress)
     {
         progress.DefineStepsCount(2);
         progress.Report("Initializing platform");
+        
         InitTexts();
+        
         SpaceEngineersGame.SetupBasicGameInfo();
+        
         MyFinalBuildConstants.APP_VERSION = MyPerGameSettings.BasicGameInfo.GameVersion.GetValueOrDefault();
+        
+        crashPadService.NextInfo.Version.GameVersion = MyFinalBuildConstants.APP_VERSION.ToString();
+        crashPadService.MarkSavePoint();
+        
         MyShaderCompiler.Init(MyShaderCompiler.TargetPlatform.PC, false);
+        
         MyVRage.Init(new VRageLauncherPlatform(MyPerGameSettings.BasicGameInfo.ApplicationName,
             gameDataDirectoryPathOverride is null
                 ? null
                 : Path.Join(gameDataDirectoryPathOverride, MyPerGameSettings.BasicGameInfo.ApplicationName),
             renderThread.Surrogate));
+        
         MyPlatformGameSettings.SAVE_TO_CLOUD_OPTION_AVAILABLE = true;
         MyXAudio2.DEVICE_DETAILS_SUPPORTED = false;
 
@@ -42,7 +55,7 @@ internal class PlatformInitializationStage(EarlyRenderThread renderThread, strin
         
         progress.Report("Loading configuration");
 
-        MyInitializer.InvokeBeforeRun(Launcher.AppId, MyPerGameSettings.BasicGameInfo.ApplicationName,
+        MyInitializer.InvokeBeforeRun(LauncherConstants.AppId, MyPerGameSettings.BasicGameInfo.ApplicationName,
             MyVRage.Platform.System.GetRootPath(), MyVRage.Platform.System.GetAppDataPath(), true, 3, () =>
             {
                 if (MySandboxGame.Config.ExperimentalMode)

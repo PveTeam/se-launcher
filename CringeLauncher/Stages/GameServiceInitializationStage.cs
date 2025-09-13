@@ -21,7 +21,7 @@ public class GameServiceInitializationStage() : ILoadingStage
         
         progress.Report("Steam game service initialization");
         
-        var steamGameService = MySteamGameService.Create(false, Launcher.AppId);
+        var steamGameService = MySteamGameService.Create(false, LauncherConstants.AppId);
         MyServiceManager.Instance.AddService(steamGameService);
 
         var aggregator = new MyServerDiscoveryAggregator();
@@ -40,7 +40,7 @@ public class GameServiceInitializationStage() : ILoadingStage
 
         MyServiceManager.Instance.AddService(MySteamGameService.CreateMicrophone());
 
-        MyGameService.WorkshopService.AddAggregate(MySteamUgcService.Create(Launcher.AppId, steamGameService));
+        MyGameService.WorkshopService.AddAggregate(MySteamUgcService.Create(LauncherConstants.AppId, steamGameService));
 
         var modUgc = MyModIoService.Create(MyServiceManager.Instance.GetService<IMyGameService>(), "spaceengineers",
             "264",

@@ -49,7 +49,7 @@ internal class EarlyRenderThread : IDisposable
         {
             if (!_gameRendererInitialized)
             {
-                Window.Frame();
+                if (!Window.Frame()) break;
                 continue;
             }
             

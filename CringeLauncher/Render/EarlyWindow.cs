@@ -1,9 +1,7 @@
-﻿using System.Runtime.InteropServices;
-using Windows.Win32;
+﻿using Windows.Win32;
 using Windows.Win32.Foundation;
 using Windows.Win32.Graphics.Dwm;
 using Windows.Win32.Graphics.Gdi;
-using Windows.Win32.UI.WindowsAndMessaging;
 using NLog;
 using SharpDX.Direct3D;
 using SharpDX.Direct3D11;
@@ -72,13 +70,13 @@ internal sealed class EarlyWindow : Form
             Icon = icon;
     }
 
-    public void Frame()
+    public bool Frame()
     {
         if (!_renderLoop!.NextFrame())
-            return;
+            return false;
 
         if (_swapChain!.Present(0, PresentFlags.Test) == (int)DXGIStatus.Occluded)
-            return;
+            return true;
 
         if (_newSize.HasValue)
         {
@@ -94,6 +92,8 @@ internal sealed class EarlyWindow : Form
         _swapChain.Present(0, PresentFlags.None);
         
         UpdateFrame();
+        
+        return true;
     }
 
     public void UpdateFrame()

@@ -18,6 +18,7 @@
         <EnableUnsafeBinaryFormatterSerialization>true</EnableUnsafeBinaryFormatterSerialization>
         
         <ApplicationIcon>..\icon.ico</ApplicationIcon>
+        <ActualHostName>SpaceEngineers</ActualHostName>
     </PropertyGroup>
 
     <ItemGroup>
@@ -37,5 +38,17 @@
         <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
       </Content>
     </ItemGroup>
+    
+    <Target Name="ComputeMainHostOutputFile" AfterTargets="_ComputeNETCoreBuildOutputFiles" Condition="'$(ComputeNETCoreBuildOutputFiles)' == 'true'">
+        <!-- Due to applications and system expecting fixed process name we must copy second instance of host to be launched as main from crashpad host -->
+
+        <ItemGroup Condition="'$(AppHostIntermediatePath)' != ''">
+            <None Include="$(AppHostIntermediatePath)">
+                <Link>$(ActualHostName)$(_NativeExecutableExtension)</Link>
+                <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+                <CopyToPublishDirectory>Always</CopyToPublishDirectory>
+            </None>
+        </ItemGroup>
+    </Target>
     
 </Project>

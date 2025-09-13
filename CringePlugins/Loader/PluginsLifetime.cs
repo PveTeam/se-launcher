@@ -24,7 +24,8 @@ internal class PluginsLifetime(ConfigHandler configHandler, HttpClient client, D
 
     public string Name => "Loading Plugins";
 
-    private ImmutableArray<PluginInstance> _plugins = [];
+    internal ImmutableArray<PluginInstance> Plugins = [];
+    internal bool SomeSourcesAreUnavailable { get; private set; }
 
     private readonly NuGetRuntimeFramework _runtimeFramework =
         new(NuGetFramework.ParseFolder("net9.0-windows10.0.19041.0"), RuntimeInformation.RuntimeIdentifier);
@@ -93,7 +94,9 @@ internal class PluginsLifetime(ConfigHandler configHandler, HttpClient client, D
         await LoadPlugins(cachedPackages, sourceMapping, packagesConfig, builtInPackages);
 
         RenderHandler.Current.RegisterComponent(new PluginListComponent(_configReference, _launcherConfig,
-            sourceMapping, MyFileSystem.ExePath, _plugins, dir, cacheDir));
+            sourceMapping, MyFileSystem.ExePath, Plugins, dir, cacheDir));
+
+        SomeSourcesAreUnavailable = sourceMapping.SomeSourcesAreUnavailable;
     }
 
     public static async Task ReloadPlugin(PluginInstance instance)
@@ -116,7 +119,7 @@ internal class PluginsLifetime(ConfigHandler configHandler, HttpClient client, D
     public void RegisterLifetime()
     {
         var contextBuilder = Contexts.ToBuilder();
-        foreach (var instance in _plugins)
+        foreach (var instance in Plugins)
         {
             try
             {
@@ -135,7 +138,7 @@ internal class PluginsLifetime(ConfigHandler configHandler, HttpClient client, D
     private async Task LoadPlugins(IReadOnlyCollection<CachedPackage> packages, PackageSourceMapping sourceMapping,
         PackagesConfig packagesConfig, ImmutableDictionary<string, ResolvedPackage> builtInPackages)
     {
-        var plugins = _plugins.ToBuilder();
+        var plugins = Plugins.ToBuilder();
 
         var resolvedPackages = builtInPackages.ToDictionary();
         foreach (var package in packages)
@@ -188,7 +191,7 @@ internal class PluginsLifetime(ConfigHandler configHandler, HttpClient client, D
                 new(package.Entry.Title ?? package.Package.Id, package.Package.Version, sourceName));
         }
 
-        _plugins = plugins.ToImmutable();
+        Plugins = plugins.ToImmutable();
     }
 
     private void DiscoverLocalPlugins(DirectoryInfo dir)
@@ -208,7 +211,7 @@ internal class PluginsLifetime(ConfigHandler configHandler, HttpClient client, D
             LoadComponent(plugins, path, null, true);
         }
 
-        _plugins = plugins.ToImmutable();
+        Plugins = plugins.ToImmutable();
     }
 
     private static void LoadComponent(ImmutableArray<PluginInstance>.Builder plugins, string path,

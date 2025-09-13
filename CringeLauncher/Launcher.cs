@@ -21,6 +21,10 @@ using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Runtime.Loader;
 using System.Text.Json;
+using Windows.Win32;
+using Windows.Win32.System.Console;
+using CringeLauncher.CrashPad;
+using CringeLauncher.Patches;
 using CringeLauncher.Stages;
 using VRage;
 using VRage.FileSystem;
@@ -31,7 +35,6 @@ namespace CringeLauncher;
 public class Launcher : ICorePlugin
 {
     private readonly string? _gameDataDirectoryPathOverride;
-    public const uint AppId = 244850U;
     private SpaceEngineersGame? _game;
     private IPluginsLifetime? _lifetime;
 
@@ -52,6 +55,14 @@ public class Launcher : ICorePlugin
 
     public bool Initialize(string[] args)
     {
+        var stdErrRedirectIndex = args.IndexOf("--crashpad-stderr-redirect");
+        if (stdErrRedirectIndex != -1)
+        {
+            var redirectPath = args[stdErrRedirectIndex + 1];
+            var handle = File.OpenHandle(redirectPath, FileMode.Create, FileAccess.Write);
+            PInvoke.SetStdHandle(STD_HANDLE.STD_ERROR_HANDLE, handle);
+        }
+        
         if (Type.GetType("GameAnalyticsSDK.Net.Logging.GALogger, GameAnalytics.Mono") is { } gaLoggerType)
             RuntimeHelpers.RunClassConstructor(gaLoggerType.TypeHandle);
 
@@ -73,18 +84,20 @@ public class Launcher : ICorePlugin
         var logger = LogManager.GetLogger("CringeBootstrap");
         logger.Info("Bootstrapping");
 
+        var crashPadService = new CrashPadService();
+
         var serviceProvider = SetupServices();
 
         Application.SetHighDpiMode(HighDpiMode.PerMonitorV2);
         ImGuiHandler.Instance = new(_configDir);
 
-        var keepConsole = Debugger.IsAttached || args.Contains("-keepconsole", StringComparer.OrdinalIgnoreCase);
+        var keepConsole = Debugger.IsAttached || args.Contains("--keep-console", StringComparer.OrdinalIgnoreCase);
         _renderThread = new EarlyRenderThread(keepConsole);
         
         using var splash = new Splash();
         RenderHandler.Current.RegisterComponent(splash);
         
-        splash.DefineStage(new CheckUpdatesStage(args, ReadUpdateConfigAsync));
+        splash.DefineStage(new CheckUpdatesStage(args, ReadUpdateConfigAsync, crashPadService));
         splash.DefineStage(new LauncherPatchesStage());
 
         //environment variable for viktor's plugins
@@ -100,7 +113,7 @@ public class Launcher : ICorePlugin
         MyFileSystem.ExePath = Path.GetDirectoryName(args.ElementAtOrDefault(0) ?? Assembly.GetExecutingAssembly().Location)!;
         MyFileSystem.RootPath = new DirectoryInfo(MyFileSystem.ExePath).Parent!.FullName;
         
-        splash.DefineStage(new PlatformInitializationStage(_renderThread, _gameDataDirectoryPathOverride));
+        splash.DefineStage(new PlatformInitializationStage(_renderThread, _gameDataDirectoryPathOverride, crashPadService));
         splash.DefineStage(new RenderInitializationStage(_renderThread));
         splash.DefineStage(_lifetime = serviceProvider.GetRequiredService<IPluginsLifetime>());
 
@@ -112,6 +125,9 @@ public class Launcher : ICorePlugin
         MyFileSystem.InitUserSpecific(MyGameService.UserId.ToString());
 
         _lifetime.RegisterLifetime();
+        crashPadService.PullPluginInfo((PluginsLifetime)_lifetime);
+        
+        GameReadyHandlerPatch.GameReady += () => crashPadService.PullPluginInfo((PluginsLifetime)_lifetime);
 
         _renderThread.WaitForInit();
 
