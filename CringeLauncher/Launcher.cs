@@ -90,9 +90,8 @@ public class Launcher : ICorePlugin
 
         Application.SetHighDpiMode(HighDpiMode.PerMonitorV2);
         ImGuiHandler.Instance = new(_configDir);
-
-        var keepConsole = Debugger.IsAttached || args.Contains("--keep-console", StringComparer.OrdinalIgnoreCase);
-        _renderThread = new EarlyRenderThread(keepConsole);
+        
+        _renderThread = new EarlyRenderThread(ConsoleHandler.ShouldKeepConsole(args));
         
         using var splash = new Splash();
         RenderHandler.Current.RegisterComponent(splash);

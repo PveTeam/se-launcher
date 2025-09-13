@@ -52,11 +52,7 @@ var cacheDir = Directory.CreateDirectory(Path.Join(
     Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
     "CringeLauncher", "cache"));
 CrossGenResult? result = null;
-if (
-#if !DEBUG // disable crossgen for plugins userdev, but leave for debug
-    customEntrypoint is null &&
-#endif 
-    !args.Contains("--skip-crossgen", StringComparer.OrdinalIgnoreCase))
+if (!args.Contains("--skip-crossgen", StringComparer.OrdinalIgnoreCase))
 {
     var crossGenService = new CrossGenServiceImpl(gameDir, cacheDir.FullName, transformationService);
 
@@ -64,6 +60,9 @@ if (
 }
 if (result is null or { Failed: true })
 {
+    if (result is null) Console.WriteLine("Running without crossgen as it has been skipped");
+    else if (result.Failed) Console.WriteLine("Running without crossgen as it has failed");
+    
     var crossGen = new NoOpCrossGenService(gameDir, cacheDir.FullName, transformationService);
         
     result = RunCrossGen(crossGen);

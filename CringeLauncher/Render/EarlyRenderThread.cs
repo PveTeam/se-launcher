@@ -1,4 +1,4 @@
-﻿using Windows.Win32;
+﻿using CringeLauncher.Utils;
 using Sandbox.Engine.Utils;
 using VRage;
 using VRageRender;
@@ -38,13 +38,7 @@ internal class EarlyRenderThread : IDisposable
         Window.Show();
         Window.Activate();
         _initEvent.Set();
-        if (!_keepConsole)
-        {
-            Console.SetOut(new StreamWriter(Stream.Null));
-            Console.SetError(new StreamWriter(Stream.Null));
-            Console.SetIn(new StreamReader(Stream.Null));
-            PInvoke.FreeConsole();
-        }
+        if (!_keepConsole) ConsoleHandler.FreeConsole();
         while (true)
         {
             if (!_gameRendererInitialized)

@@ -4,6 +4,7 @@ using System.Net;
 using System.Text.Json;
 using CringeBootstrap.Abstractions;
 using CringeLauncher.Render;
+using CringeLauncher.Utils;
 using CringePlugins.Render;
 using CringePlugins.Services;
 using Microsoft.Extensions.DependencyInjection;
@@ -50,6 +51,9 @@ public sealed class CrashPadLauncher : ICorePlugin
                 }
             });
             
+            // detach from console, the window would be closed when actual host process also detaches from it
+            if (!ConsoleHandler.ShouldKeepConsole(args)) ConsoleHandler.FreeConsole();
+            
             return _actualHostProcess is not null;
         }
         catch (Exception e)
@@ -73,7 +77,7 @@ public sealed class CrashPadLauncher : ICorePlugin
                 return true;
             }
 
-            Log.Error("Actual host process exited with code {ExitCode}", _actualHostProcess.ExitCode);
+            Log.Error("Actual host process exited with code {ExitCode:x8}", _actualHostProcess.ExitCode);
             
             RunCrashInfoDialog(_actualHostProcess.ExitCode, path);
         }
