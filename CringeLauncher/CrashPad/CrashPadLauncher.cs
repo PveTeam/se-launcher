@@ -149,7 +149,7 @@ public sealed class CrashPadLauncher : ICorePlugin
         
         _actualHostProcess.WaitForExit();
         
-        return _actualHostProcess.ExitCode == 0;
+        return _actualHostProcess.ExitCode is 0 or -1;
     }
 
     private static string FindStderrRedirectPath(string basePath)
