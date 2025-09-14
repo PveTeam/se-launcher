@@ -98,7 +98,13 @@ internal class CheckUpdatesStage(
         // reset entrypoint
         Environment.SetEnvironmentVariable("DOTNET_BOOTSTRAP_ENTRYPOINT", null);
 
+        var newArgs = args;
+        var index = args.IndexOf("--crashpad-stderr-redirect");
+        if (index != -1)
+            // remove --crashpad-stderr-redirect and path
+            newArgs = [..args.AsSpan(..index), ..args.AsSpan(index + 2)];
+
         // install new version and restart app
-        mgr.ApplyUpdatesAndRestart(newVersion, args);
+        mgr.ApplyUpdatesAndRestart(newVersion, newArgs);
     }
 }
