@@ -103,10 +103,13 @@ var entrypoint = customEntrypoint ?? "CringeLauncher.CrashPad.CrashPadLauncher, 
 if (!TypeName.TryParse(entrypoint, out var entrypointName) || 
     entrypointName.AssemblyName is null)
 {
-    Console.Error.WriteLine($"Invalid entrypoint name: {entrypoint}");
-    Console.Error.WriteLine("Bootstrap encountered a fatal error and will shutdown.");
-    Console.Read();
-    return -1;
+    if (!Console.IsInputRedirected)
+    {
+        Console.Error.WriteLine($"Invalid entrypoint name: {entrypoint}");
+        Console.Error.WriteLine("Bootstrap encountered a fatal error and will shutdown.");
+        Console.Read();
+    }
+    return 1;
 }
 
 var launcher = context.LoadFromAssemblyName(entrypointName.AssemblyName.ToAssemblyName());

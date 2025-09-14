@@ -94,6 +94,9 @@ internal class CheckUpdatesStage(
 
         logger.Info("Done! Restarting...");
         progress.Report("Done! Restarting...");
+        
+        // reset entrypoint
+        Environment.SetEnvironmentVariable("DOTNET_BOOTSTRAP_ENTRYPOINT", null);
 
         // install new version and restart app
         mgr.ApplyUpdatesAndRestart(newVersion, args);
