@@ -87,6 +87,9 @@ internal class PlatformInitializationStage(
         ParallelTasks.Parallel.Scheduler = new ThreadPoolScheduler();
 #else
         MySandboxGame.InitMultithreading();
+
+        ParallelTasks.Parallel.StartOnEachWorker(() =>
+            ThreadInformationTracker.MarkCurrentThreadType(ExceptionInformation.ThreadType.GamePool));
 #endif
     }
 

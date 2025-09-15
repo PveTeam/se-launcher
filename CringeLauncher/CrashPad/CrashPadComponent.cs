@@ -66,7 +66,7 @@ internal class CrashPadComponent : IRenderComponent
                            $"Current host: {UploadUri.Host}");
             }
             
-            TextWrapped(_crashReport);
+            TextUnformatted(_crashReport);
         }
 
         End();

@@ -29,17 +29,21 @@ public record ExceptionInformation(ExceptionInformation.ThreadInformation? Threa
         : ExceptionStackFrame(ExceptionFormatter.EndOfStackTraceFromPreviousLocation, null);
 
     public record MethodFrame(
-        AssemblyContextInformation DeclaringContext,
         MethodFrameType Type,
-        string Name,
-        string? DeclaringType,
-        bool IsDynamicMethod,
-        MethodFrameSignature Signature,
+        MethodInformation Information,
         int IlOffset,
         MethodFrameFileInfo? FileInfo,
         ImmutableArray<MethodFramePatch> Patches);
 
-    public record MethodFramePatch(string Owner, MethodFramePatchType Type);
+    public record MethodInformation(
+        string StringRepresentation,
+        AssemblyContextInformation DeclaringContext,
+        string Name,
+        string? DeclaringType,
+        bool IsDynamicMethod,
+        MethodFrameSignature Signature);
+
+    public record MethodFramePatch(string Owner, MethodFramePatchType Type, MethodInformation PatchMethod);
     
     public enum MethodFramePatchType
     {

@@ -41,6 +41,7 @@ public class Launcher : ICorePlugin
     private readonly DirectoryInfo _configDir;
     private readonly DirectoryInfo _dir;
     private EarlyRenderThread? _renderThread;
+    private CrashPadService? _crashPadService;
 
     public Launcher() : this(null) { }
 
@@ -84,7 +85,7 @@ public class Launcher : ICorePlugin
         var logger = LogManager.GetLogger("CringeBootstrap");
         logger.Info("Bootstrapping");
 
-        var crashPadService = new CrashPadService();
+        _crashPadService = new CrashPadService();
 
         var serviceProvider = SetupServices();
 
@@ -96,7 +97,7 @@ public class Launcher : ICorePlugin
         using var splash = new Splash();
         RenderHandler.Current.RegisterComponent(splash);
         
-        splash.DefineStage(new CheckUpdatesStage(args, ReadUpdateConfigAsync, crashPadService));
+        splash.DefineStage(new CheckUpdatesStage(args, ReadUpdateConfigAsync, _crashPadService));
         splash.DefineStage(new LauncherPatchesStage());
 
         //environment variable for viktor's plugins
@@ -112,7 +113,7 @@ public class Launcher : ICorePlugin
         MyFileSystem.ExePath = Path.GetDirectoryName(args.ElementAtOrDefault(0) ?? Assembly.GetExecutingAssembly().Location)!;
         MyFileSystem.RootPath = new DirectoryInfo(MyFileSystem.ExePath).Parent!.FullName;
         
-        splash.DefineStage(new PlatformInitializationStage(_renderThread, _gameDataDirectoryPathOverride, crashPadService));
+        splash.DefineStage(new PlatformInitializationStage(_renderThread, _gameDataDirectoryPathOverride, _crashPadService));
         splash.DefineStage(new RenderInitializationStage(_renderThread));
         splash.DefineStage(_lifetime = serviceProvider.GetRequiredService<IPluginsLifetime>());
 
@@ -124,9 +125,9 @@ public class Launcher : ICorePlugin
         MyFileSystem.InitUserSpecific(MyGameService.UserId.ToString());
 
         _lifetime.RegisterLifetime();
-        crashPadService.PullPluginInfo((PluginsLifetime)_lifetime);
+        _crashPadService.PullPluginInfo((PluginsLifetime)_lifetime);
         
-        GameReadyHandlerPatch.GameReady += () => crashPadService.PullPluginInfo((PluginsLifetime)_lifetime);
+        GameReadyHandlerPatch.GameReady += () => _crashPadService.PullPluginInfo((PluginsLifetime)_lifetime);
 
         _renderThread.WaitForInit();
 
@@ -161,6 +162,7 @@ public class Launcher : ICorePlugin
         }
         catch (Exception e)
         {
+            _crashPadService?.CaptureCurrentThreadException(e);
             LogManager.GetLogger("Game").Fatal(e, "Fatal exception in game loop");
             return false;
         }

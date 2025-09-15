@@ -126,7 +126,7 @@ public static class ExceptionFormatter
         return sb;
     }
 
-    private static StringBuilder AppendMethod(this StringBuilder sb, MethodBase method)
+    public static StringBuilder AppendMethod(this StringBuilder sb, MethodBase method)
     {
         if (method.DeclaringType is { } declaringType &&
             AssemblyLoadContext.GetLoadContext(declaringType.Assembly) is { } assemblyLoadContext)

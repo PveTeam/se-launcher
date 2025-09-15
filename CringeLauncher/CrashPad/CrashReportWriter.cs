@@ -23,10 +23,22 @@ public class CrashReportWriter(CrashInformation information, string? redirectPat
         if (information.UnhandledException is { } unhandledException)
         {
             writer.Write("Unhandled exception: ");
-            WriteFrame(writer, unhandledException.TopFrame);
+            var wrotePatchesHead = false;
+            WriteFrame(writer, unhandledException.TopFrame, ref wrotePatchesHead);
             writer.WriteLine();
             writer.Write("Original representation: ");
             writer.WriteLine(unhandledException.TopFrame.StringRepresentation);
+            if (unhandledException.Thread is not null)
+            {
+                writer.WriteLine();
+                writer.WriteLine("-- Exception Thread Information --");
+                writer.Write("Name: ");
+                writer.WriteLine(unhandledException.Thread.Name ?? "unnamed");
+                writer.Write("ID: ");
+                writer.WriteLine(unhandledException.Thread.ManagedId);
+                writer.Write("Type: ");
+                writer.WriteLine(unhandledException.Thread.Type);
+            }
         }
         else
         {
@@ -50,8 +62,20 @@ public class CrashReportWriter(CrashInformation information, string? redirectPat
         WritePluginDetails(writer);
         
         writer.WriteLine();
+        writer.WriteLine("-- Network Information --");
+        WriteNetworkInformation(writer);
+        
+        writer.WriteLine();
         writer.WriteLine("-- System Details --");
         WriteSystemDetails(writer);
+    }
+
+    private void WriteNetworkInformation(StreamWriter writer)
+    {
+        writer.Write("Check Updates Failed: ");
+        writer.WriteLine(information.Network.CheckUpdatesFailed);
+        writer.Write("Nuget Source Failed: ");
+        writer.WriteLine(information.Network.NugetSourceFailed);
     }
 
     private static void WriteSystemDetails(StreamWriter writer)
@@ -101,7 +125,7 @@ public class CrashReportWriter(CrashInformation information, string? redirectPat
         writer.WriteLine(information.Version.GameVersion);
     }
 
-    private static void WriteFrame(StreamWriter writer, ExceptionInformation.ExceptionFrame frame)
+    private static void WriteFrame(StreamWriter writer, ExceptionInformation.ExceptionFrame frame, ref bool wrotePatchesHead)
     {
         var typeName = TypeName.Parse(frame.TypeName);
         writer.Write(typeName.FullName);
@@ -109,29 +133,35 @@ public class CrashReportWriter(CrashInformation information, string? redirectPat
         writer.WriteLine(frame.Message);
         foreach (var exceptionStackFrame in frame.StackFrames)
         {
-            writer.Write(exceptionStackFrame.StringRepresentation);
-            if (exceptionStackFrame.Method?.Patches is { IsEmpty: false } patches)
-            {
-                writer.Write(" {");
-                foreach (var patchGroup in patches.GroupBy(b => b.Type))
-                {
-                    writer.Write($" {patchGroup.Key}: ");
-                    foreach (var methodFramePatch in patchGroup)
-                    {
-                        writer.Write(methodFramePatch.Owner);
-                        writer.Write(' ');
-                    }
-                }
-                writer.Write('}');
-            }
-            
-            writer.WriteLine();
+            writer.WriteLine(exceptionStackFrame.StringRepresentation);
         }
         
         foreach (var inner in frame.InnerFrames)
         {
             writer.Write("Caused by: ");
-            WriteFrame(writer, inner);
+            WriteFrame(writer, inner, ref wrotePatchesHead);
+        }
+
+        foreach (var stackFrame in frame.StackFrames.Where(b => b.Method?.Patches is { IsEmpty: false }))
+        {
+            writer.WriteLine();
+            
+            if (!wrotePatchesHead)
+            {
+                writer.WriteLine("Patched methods in stack trace:");
+                wrotePatchesHead = true;
+            }
+            
+            writer.WriteLine(stackFrame.StringRepresentation);
+            foreach (var patch in stackFrame.Method!.Patches)
+            {
+                writer.Write("    ");
+                writer.Write(patch.Type);
+                writer.Write(" from ");
+                writer.Write(patch.Owner);
+                writer.Write(" via ");
+                writer.WriteLine(patch.PatchMethod.StringRepresentation);
+            }
         }
     }
 

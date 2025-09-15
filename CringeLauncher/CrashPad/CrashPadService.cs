@@ -62,9 +62,14 @@ internal class CrashPadService
 
     private void CurrentDomainOnUnhandledException(object sender, UnhandledExceptionEventArgs e)
     {
+        CaptureCurrentThreadException((Exception)e.ExceptionObject);
+    }
+
+    public void CaptureCurrentThreadException(Exception exception)
+    {
         using var scope = _lock.EnterScope();
         
-        NextInfo.UnhandledException = CaptureExceptionInformation((Exception)e.ExceptionObject, Thread.CurrentThread);
+        NextInfo.UnhandledException = CaptureExceptionInformation(exception, Thread.CurrentThread);
         MarkSavePoint();
     }
 
@@ -129,8 +134,6 @@ internal class CrashPadService
 
     private static ExceptionInformation.MethodFrame CaptureMethodFrame(StackFrame frame, MethodBase method)
     {
-        var contextInformation = CaptureAssemblyContextInformation(method.Module.Assembly);
-
         var methodType = method switch
         {
             MethodInfo { Attributes: MethodAttributes.PinvokeImpl } => ExceptionInformation.MethodFrameType.Extern,
@@ -141,10 +144,18 @@ internal class CrashPadService
             _ => ExceptionInformation.MethodFrameType.Unknown
         };
 
-        return new(contextInformation, methodType, method.Name,
-            method.GetRealDeclaringType() is { } declaringType ? CaptureTypeFullName(declaringType) : null,
-            method.IsDynamicMethod(), CaptureMethodFrameSignature(method), frame.GetILOffset(),
+        return new(methodType, CaptureMethodInformation(method), frame.GetILOffset(),
             CaptureMethodFrameFileInfo(frame), CaptureMethodFramePatches(method));
+    }
+
+    private static ExceptionInformation.MethodInformation CaptureMethodInformation(MethodBase method)
+    {
+        var stringRepresentation = new StringBuilder().AppendMethod(method).ToString();
+        
+        var contextInformation = CaptureAssemblyContextInformation(method.Module.Assembly);
+        return new(stringRepresentation, contextInformation, method.Name,
+            method.GetRealDeclaringType() is { } declaringType ? CaptureTypeFullName(declaringType) : null,
+            method.IsDynamicMethod(), CaptureMethodFrameSignature(method));
     }
 
     private static ImmutableArray<ExceptionInformation.MethodFramePatch> CaptureMethodFramePatches(MethodBase method)
@@ -153,18 +164,22 @@ internal class CrashPadService
 
         var builder = ImmutableArray.CreateBuilder<ExceptionInformation.MethodFramePatch>(patchInfo.Prefixes.Count +
             patchInfo.Postfixes.Count + patchInfo.Transpilers.Count + patchInfo.Finalizers.Count);
-        
+
         foreach (var prefix in patchInfo.Prefixes)
-            builder.Add(new ExceptionInformation.MethodFramePatch(prefix.owner, ExceptionInformation.MethodFramePatchType.Prefix));
-        
+            builder.Add(new ExceptionInformation.MethodFramePatch(prefix.owner,
+                ExceptionInformation.MethodFramePatchType.Prefix, CaptureMethodInformation(prefix.PatchMethod)));
+
         foreach (var postfix in patchInfo.Postfixes)
-            builder.Add(new ExceptionInformation.MethodFramePatch(postfix.owner, ExceptionInformation.MethodFramePatchType.Postfix));
-        
+            builder.Add(new ExceptionInformation.MethodFramePatch(postfix.owner,
+                ExceptionInformation.MethodFramePatchType.Postfix, CaptureMethodInformation(postfix.PatchMethod)));
+
         foreach (var transpiler in patchInfo.Transpilers)
-            builder.Add(new ExceptionInformation.MethodFramePatch(transpiler.owner, ExceptionInformation.MethodFramePatchType.Transpiler));
-        
+            builder.Add(new ExceptionInformation.MethodFramePatch(transpiler.owner,
+                ExceptionInformation.MethodFramePatchType.Transpiler, CaptureMethodInformation(transpiler.PatchMethod)));
+
         foreach (var finalizer in patchInfo.Finalizers)
-            builder.Add(new ExceptionInformation.MethodFramePatch(finalizer.owner, ExceptionInformation.MethodFramePatchType.Finalizer));
+            builder.Add(new ExceptionInformation.MethodFramePatch(finalizer.owner,
+                ExceptionInformation.MethodFramePatchType.Finalizer, CaptureMethodInformation(finalizer.PatchMethod)));
         
         return builder.ToImmutable();
     }
