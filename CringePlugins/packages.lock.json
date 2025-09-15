@@ -19,9 +19,14 @@
       },
       "ImGui.NET.DirectX": {
         "type": "Direct",
-        "requested": "[1.92.1.5, )",
-        "resolved": "1.92.1.5",
-        "contentHash": "QkBfwenYOlr1Rdg33J6yMjFBTTF57eGfnMBHguU3lU2gpqs4/VUJjO7fQ5RG1arSxdc7aPqsbJhz0h2BFPTI+g=="
+        "requested": "[1.92.1.6, )",
+        "resolved": "1.92.1.6",
+        "contentHash": "3Y3lVU+G+bUwFOZklQFeqDH39xJzAIDRYl0QcCi/PwsXg1q9aMCvYfTOZiFJ+58MgrmbaReEMxva1dwuNPzRxg==",
+        "dependencies": {
+          "System.Buffers": "4.5.1",
+          "System.Numerics.Vectors": "4.5.0",
+          "System.Runtime.CompilerServices.Unsafe": "6.0.0"
+        }
       },
       "JsonSchema.Net.Generation": {
         "type": "Direct",
@@ -183,6 +188,11 @@
         "resolved": "4.2.0-keen-cringe",
         "contentHash": "LaJN3h1Gi1FWVdef2I5WtOH9gwzKCBniH0CragarbkN2QheYY6Lqm+91PcOfp1w/4wdVb+k8Kjv3sO393Tphtw=="
       },
+      "System.Buffers": {
+        "type": "Transitive",
+        "resolved": "4.5.1",
+        "contentHash": "Rw7ijyl1qqRS0YQD/WycNst8hUUMgrMH4FCn1nNm27M4VxchZ1js3fVjQaANHO5f3sN4isvP4a+Met9Y4YomAg=="
+      },
       "System.Collections.Immutable": {
         "type": "Transitive",
         "resolved": "8.0.0",
@@ -193,6 +203,11 @@
         "resolved": "6.0.3",
         "contentHash": "hSHiq2m1ky7zUQgTp+/2h1K3lABIQ+GltRixoclHPg/Sc1vnfeS6g/Uy5moOVZKrZJdQiFPFZd6OobBp3tZcFg=="
       },
+      "System.Numerics.Vectors": {
+        "type": "Transitive",
+        "resolved": "4.5.0",
+        "contentHash": "QQTlPTl06J/iiDbJCiepZ4H//BVraReU4O4EoRw1U02H5TLUIT7xn3GnDp9AXPSlJUDyFs4uWjWafNX6WrAojQ=="
+      },
       "System.Reflection.Metadata": {
         "type": "Transitive",
         "resolved": "8.0.0",
@@ -200,6 +215,11 @@
         "dependencies": {
           "System.Collections.Immutable": "8.0.0"
         }
+      },
+      "System.Runtime.CompilerServices.Unsafe": {
+        "type": "Transitive",
+        "resolved": "6.0.0",
+        "contentHash": "/iUeP3tq1S0XdNNoMz5C9twLSrM/TH+qElHkXWaPvuNOt+99G75NrV0OS2EqHx5wMN7popYjpc8oTjC1y16DLg=="
       },
       "System.Text.Json": {
         "type": "Transitive",
@@ -230,9 +250,14 @@
     "net9.0-windows7.0/win-x64": {
       "ImGui.NET.DirectX": {
         "type": "Direct",
-        "requested": "[1.92.1.5, )",
-        "resolved": "1.92.1.5",
-        "contentHash": "QkBfwenYOlr1Rdg33J6yMjFBTTF57eGfnMBHguU3lU2gpqs4/VUJjO7fQ5RG1arSxdc7aPqsbJhz0h2BFPTI+g=="
+        "requested": "[1.92.1.6, )",
+        "resolved": "1.92.1.6",
+        "contentHash": "3Y3lVU+G+bUwFOZklQFeqDH39xJzAIDRYl0QcCi/PwsXg1q9aMCvYfTOZiFJ+58MgrmbaReEMxva1dwuNPzRxg==",
+        "dependencies": {
+          "System.Buffers": "4.5.1",
+          "System.Numerics.Vectors": "4.5.0",
+          "System.Runtime.CompilerServices.Unsafe": "6.0.0"
+        }
       },
       "Steamworks.NET": {
         "type": "Direct",

@@ -148,8 +148,13 @@
       },
       "ImGui.NET.DirectX": {
         "type": "Transitive",
-        "resolved": "1.92.1.5",
-        "contentHash": "QkBfwenYOlr1Rdg33J6yMjFBTTF57eGfnMBHguU3lU2gpqs4/VUJjO7fQ5RG1arSxdc7aPqsbJhz0h2BFPTI+g=="
+        "resolved": "1.92.1.6",
+        "contentHash": "3Y3lVU+G+bUwFOZklQFeqDH39xJzAIDRYl0QcCi/PwsXg1q9aMCvYfTOZiFJ+58MgrmbaReEMxva1dwuNPzRxg==",
+        "dependencies": {
+          "System.Buffers": "4.5.1",
+          "System.Numerics.Vectors": "4.5.0",
+          "System.Runtime.CompilerServices.Unsafe": "6.0.0"
+        }
       },
       "Json.More.Net": {
         "type": "Transitive",
@@ -422,6 +427,11 @@
         "resolved": "20.1.0",
         "contentHash": "+GntwnyJ5tCNvUIaQxv2+ehDvZJzGUqlSB5xRBk1hTj1qqBJ6s4vK/OfGD/jae7aTmXiGSm8wpJORosNtQevJQ=="
       },
+      "System.Buffers": {
+        "type": "Transitive",
+        "resolved": "4.5.1",
+        "contentHash": "Rw7ijyl1qqRS0YQD/WycNst8hUUMgrMH4FCn1nNm27M4VxchZ1js3fVjQaANHO5f3sN4isvP4a+Met9Y4YomAg=="
+      },
       "System.CodeDom": {
         "type": "Transitive",
         "resolved": "9.0.7",
@@ -476,6 +486,11 @@
         "resolved": "9.0.0",
         "contentHash": "ANiqLu3DxW9kol/hMmTWbt3414t9ftdIuiIU7j80okq2YzAueo120M442xk1kDJWtmZTqWQn7wHDvMRipVOEOQ=="
       },
+      "System.Runtime.CompilerServices.Unsafe": {
+        "type": "Transitive",
+        "resolved": "6.0.0",
+        "contentHash": "/iUeP3tq1S0XdNNoMz5C9twLSrM/TH+qElHkXWaPvuNOt+99G75NrV0OS2EqHx5wMN7popYjpc8oTjC1y16DLg=="
+      },
       "System.Security.AccessControl": {
         "type": "Transitive",
         "resolved": "6.0.0",
@@ -519,7 +534,7 @@
       "cringeplugins": {
         "type": "Project",
         "dependencies": {
-          "ImGui.NET.DirectX": "[1.92.1.5, )",
+          "ImGui.NET.DirectX": "[1.92.1.6, )",
           "JsonSchema.Net.Generation": "[5.0.4, )",
           "Lib.Harmony.Thin": "[2.3.4-torch, )",
           "Microsoft.Extensions.DependencyInjection.Abstractions": "[9.0.7, )",
@@ -579,8 +594,13 @@
       },
       "ImGui.NET.DirectX": {
         "type": "Transitive",
-        "resolved": "1.92.1.5",
-        "contentHash": "QkBfwenYOlr1Rdg33J6yMjFBTTF57eGfnMBHguU3lU2gpqs4/VUJjO7fQ5RG1arSxdc7aPqsbJhz0h2BFPTI+g=="
+        "resolved": "1.92.1.6",
+        "contentHash": "3Y3lVU+G+bUwFOZklQFeqDH39xJzAIDRYl0QcCi/PwsXg1q9aMCvYfTOZiFJ+58MgrmbaReEMxva1dwuNPzRxg==",
+        "dependencies": {
+          "System.Buffers": "4.5.1",
+          "System.Numerics.Vectors": "4.5.0",
+          "System.Runtime.CompilerServices.Unsafe": "6.0.0"
+        }
       },
       "Steamworks.NET": {
         "type": "Transitive",
