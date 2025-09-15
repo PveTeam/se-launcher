@@ -41,7 +41,7 @@ public sealed class CrashPadLauncher : ICorePlugin
         {
             Directory.CreateDirectory(_logsDir);
             _stderrPath = FindStderrRedirectPath(_logsDir);
-            var appHost = FindValidAppHostPath();
+            var appHost = FindValidAppHostPath(args);
 
             _actualHostProcess = Process.Start(new ProcessStartInfo(appHost, [..args, "--crashpad-stderr-redirect", _stderrPath])
             {
@@ -165,10 +165,13 @@ public sealed class CrashPadLauncher : ICorePlugin
         throw new InvalidOperationException("Unable to find free stderr redirect path");
     }
 
-    private static string FindValidAppHostPath()
+    private static string FindValidAppHostPath(string[] args)
     {
-        var appHostPath = Path.Join(AppContext.BaseDirectory, LauncherConstants.AppName + ".exe");
-        if (File.Exists(appHostPath)) return appHostPath;
+        if (!args.Contains("--no-mask", StringComparer.OrdinalIgnoreCase))
+        {
+            var appHostPath = Path.Join(AppContext.BaseDirectory, LauncherConstants.AppName + ".exe");
+            if (File.Exists(appHostPath)) return appHostPath;
+        }
 
         // maybe support launching via dotnet/dnx later
         return Environment.ProcessPath ?? throw new FileNotFoundException("Unable to find app host path");
