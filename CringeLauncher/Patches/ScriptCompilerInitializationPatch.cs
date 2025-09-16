@@ -1,4 +1,5 @@
-﻿using System.Collections.Concurrent;
+﻿using System.Collections;
+using System.Collections.Concurrent;
 using System.Collections.Immutable;
 using System.Reflection;
 using HarmonyLib;
@@ -23,6 +24,7 @@ public static class ScriptCompilerInitializationPatch
 
         using var batch = MyScriptCompiler.Static.Whitelist.OpenBatch();
         batch.AllowTypes(MyWhitelistTarget.ModApi, typeof(ConcurrentQueue<>));
+        batch.AllowTypes(MyWhitelistTarget.Both, typeof(BitArray));
         batch.AllowNamespaceOfTypes(MyWhitelistTarget.Both, typeof(ImmutableArray));
 
         return false;

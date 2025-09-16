@@ -86,6 +86,7 @@ public static class ModScriptCompilerPatch
         MyScriptManager.m_compatibilityChanges.Remove("using Sandbox.Common.Input;");
         MyScriptManager.m_compatibilityChanges.Remove("using Sandbox.Common.ModAPI;");
         MyScriptManager.m_compatibilityChanges.Add("FirstOrDefault(null)", "FirstOrDefault()");
+        MyScriptManager.m_compatibilityChanges.Add("using System.Numerics;", "using VRageMath;"); //todo: investigate
 
         MyModWatchdog.ModInfo = [new("Unknown")];
     }
