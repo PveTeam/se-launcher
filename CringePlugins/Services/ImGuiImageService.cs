@@ -4,6 +4,7 @@ using System.Net.Http.Headers;
 using System.Numerics;
 using System.Security.Cryptography;
 using System.Text;
+using ImGuiNET;
 using NLog;
 using SharpDX.Direct3D11;
 using SharpDX.DXGI;
@@ -175,7 +176,7 @@ internal sealed class ImGuiImageService(HttpClient client) : IImGuiImageService
         public ImGuiImage? Image;
         public ImGuiImage? ErrorImage;
 
-        public override nint TextureId => Image ?? ErrorImage ?? placeholderImage;
+        public override ImTextureRef TextureId => Image ?? ErrorImage ?? placeholderImage;
         public override Vector2 Size => Image ?? ErrorImage ?? placeholderImage;
 
         public override void Dispose()
@@ -190,12 +191,15 @@ internal sealed class ImGuiImageService(HttpClient client) : IImGuiImageService
         private bool _disposed;
         private long _lastUse = Stopwatch.GetTimestamp();
 
-        public override nint TextureId
+        public override ImTextureRef TextureId
         {
             get
             {
                 OnUse();
-                return srv.NativePointer;
+                return new()
+                {
+                    _TexID = srv.NativePointer
+                };
             }
         }
 
@@ -236,10 +240,10 @@ internal sealed class ImGuiImageService(HttpClient client) : IImGuiImageService
 
 public abstract class ImGuiImage : IDisposable
 {
-    public abstract nint TextureId { get; }
+    public abstract ImTextureRef TextureId { get; }
     public abstract Vector2 Size { get; }
 
-    public static implicit operator nint(ImGuiImage image) => image.TextureId;
+    public static implicit operator ImTextureRef(ImGuiImage image) => image.TextureId;
     public static implicit operator Vector2(ImGuiImage image) => image.Size;
     public abstract void Dispose();
 }

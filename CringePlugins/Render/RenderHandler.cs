@@ -52,7 +52,7 @@ public sealed class RenderHandler : IRootRenderComponent
         ImGui.ShowDemoWindow();
 #endif
         
-        ImGui.PushFont(ImFontVariants.Regular);
+        ImGui.PushFont(ImFontVariants.Regular, 0);
 
         using (_componentsLock.EnterScope())
         {

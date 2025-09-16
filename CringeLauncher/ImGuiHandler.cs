@@ -78,7 +78,9 @@ internal sealed class ImGuiHandler : IGuiHandler, IDisposable
 
     private static unsafe void BuildFonts(ImGuiIOPtr io)
     {
-        ImFontGlyphRangesBuilderPtr builder = ImGuiNative.ImFontGlyphRangesBuilder_ImFontGlyphRangesBuilder();
+        ImFontVariants.LoadFonts(io, Path.Join(AppContext.BaseDirectory, "Resources", "Fonts"), "SourceCodePro",
+            0, Enum.GetValues<FontVariant>());
+        /*ImFontGlyphRangesBuilderPtr builder = ImGuiNative.ImFontGlyphRangesBuilder_ImFontGlyphRangesBuilder();
 
         try
         {
@@ -90,7 +92,6 @@ internal sealed class ImGuiHandler : IGuiHandler, IDisposable
                 ImFontVariants.LoadFonts(io, Path.Join(AppContext.BaseDirectory, "Resources", "Fonts"), "SourceCodePro",
                     ranges.Data,
                     Enum.GetValues<FontVariant>());
-                io.Fonts.Build();
             }
             finally
             {
@@ -100,7 +101,7 @@ internal sealed class ImGuiHandler : IGuiHandler, IDisposable
         finally
         {
             builder.Destroy();
-        }
+        }*/
     }
 
     public static void HookWindow(HWND windowHandle)
