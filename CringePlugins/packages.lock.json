@@ -19,9 +19,9 @@
       },
       "ImGui.NET.DirectX": {
         "type": "Direct",
-        "requested": "[1.92.1.7, )",
-        "resolved": "1.92.1.7",
-        "contentHash": "X28xQBKDQasBeHlzUn57/mgFq2XvjSMWvRz+cYgt8/oZCBcIsxg8Ii6fY6LgQctDBp9jY2XRcoB/TT4iGOXBCA==",
+        "requested": "[1.92.3, )",
+        "resolved": "1.92.3",
+        "contentHash": "1GFD4bYNqbGBnLmfmmaM2nLngmPcj+GKDJmRYJki8xjsMmH6Tim5meKmliLfsWm4at7F1y16xWxeN3qalVQL9g==",
         "dependencies": {
           "System.Buffers": "4.5.1",
           "System.Numerics.Vectors": "4.5.0",
@@ -250,9 +250,9 @@
     "net9.0-windows7.0/win-x64": {
       "ImGui.NET.DirectX": {
         "type": "Direct",
-        "requested": "[1.92.1.7, )",
-        "resolved": "1.92.1.7",
-        "contentHash": "X28xQBKDQasBeHlzUn57/mgFq2XvjSMWvRz+cYgt8/oZCBcIsxg8Ii6fY6LgQctDBp9jY2XRcoB/TT4iGOXBCA==",
+        "requested": "[1.92.3, )",
+        "resolved": "1.92.3",
+        "contentHash": "1GFD4bYNqbGBnLmfmmaM2nLngmPcj+GKDJmRYJki8xjsMmH6Tim5meKmliLfsWm4at7F1y16xWxeN3qalVQL9g==",
         "dependencies": {
           "System.Buffers": "4.5.1",
           "System.Numerics.Vectors": "4.5.0",
