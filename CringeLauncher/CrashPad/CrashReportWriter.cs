@@ -9,13 +9,13 @@ namespace CringeLauncher.CrashPad;
 public class CrashReportWriter(CrashInformation information, string? redirectPath)
 {
     private static readonly Logger Log = LogManager.GetCurrentClassLogger();
-    
+
     public void Write(Stream stream, int exitCode)
     {
         using var writer = new StreamWriter(stream);
-        
+
         writer.WriteLine("---- CringeLauncher crash report ----");
-        
+
         writer.Write("// ");
         writer.WriteLine(_wittyStuffs[TimeSpan.FromTicks(Stopwatch.GetTimestamp()).Microseconds % _wittyStuffs.Length]);
         writer.WriteLine();
@@ -60,7 +60,14 @@ public class CrashReportWriter(CrashInformation information, string? redirectPat
         writer.WriteLine();
         writer.WriteLine("-- Plugin Details --");
         WritePluginDetails(writer);
-        
+
+        if (information.ModScripts.Count > 0)
+        {
+            writer.WriteLine();
+            writer.WriteLine("-- Mod Scripts --");
+            WriteModDetails(writer);
+        }
+
         writer.WriteLine();
         writer.WriteLine("-- Network Information --");
         WriteNetworkInformation(writer);
@@ -108,10 +115,24 @@ public class CrashReportWriter(CrashInformation information, string? redirectPat
         foreach (var plugin in information.Plugins)
         {
             var (name, version, source) = plugin;
-            
+
             if (plugin.Exception is not null)
                 writer.Write("[Faulted] ");
             writer.WriteLine($"{name} - {version} ({source})");
+        }
+    }
+
+    private void WriteModDetails(StreamWriter writer)
+    {
+        foreach (var mod in information.ModScripts)
+        {
+            var (name, cached, exception) = mod;
+
+            if (cached)
+                writer.Write("[Cached] ");
+            else if (exception is not null)
+                writer.Write("[Faulted] ");
+            writer.WriteLine(name);
         }
     }
 

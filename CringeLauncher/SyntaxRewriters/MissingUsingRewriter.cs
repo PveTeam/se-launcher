@@ -19,7 +19,7 @@ internal sealed class MissingUsingRewriter : ProtoTagRewriter //use existing rew
         _debug = debug;
     }
 
-    public static new SyntaxTree Rewrite(CSharpCompilation compilation, SyntaxTree tree, bool debug)
+    public static SyntaxTree Rewrite(CSharpCompilation compilation, SyntaxTree tree, bool debug)
     {
         SyntaxNode syntaxNode = new MissingUsingRewriter(compilation, tree, debug).Visit(tree.GetRoot());
         return tree.WithRootAndOptions(syntaxNode, tree.Options);

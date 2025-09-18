@@ -22,6 +22,7 @@ internal class CrashPadService
     {
         Network = new(),
         Plugins = [],
+        ModScripts = [],
         Version = new()
     };
     
@@ -52,6 +53,18 @@ internal class CrashPadService
         NextInfo.Network.NugetSourceFailed = lifetime.SomeSourcesAreUnavailable;
         
         MarkSavePoint();
+    }
+
+    public void RegisterModScript(string modName, bool loadedFromCache, string? compilationError = null)
+    {
+        using var scope = _lock.EnterScope();
+        NextInfo.ModScripts.Add(new CrashInformation.ModScript(modName, loadedFromCache, compilationError));
+    }
+
+    public void ClearModScripts()
+    {
+        using var scope = _lock.EnterScope();
+        NextInfo.ModScripts.Clear();
     }
 
     public void MarkSavePoint()

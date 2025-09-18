@@ -29,6 +29,7 @@ internal class CrashPadComponent : IRenderComponent
         {
             Network = new(),
             Plugins = [],
+            ModScripts = [],
             Version = new()
         }, redirectPath).Write(memStream, exitCode);
 

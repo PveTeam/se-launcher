@@ -195,7 +195,9 @@ public class Launcher : ICorePlugin
         services.AddSingleton(_ => RenderHandler.Current)
             .AddSingleton<IPluginsLifetime>(s => s.GetRequiredService<PluginsLifetime>())
             .AddSingleton<IImGuiImageService>(s => s.GetRequiredService<ImGuiImageService>())
-            .AddSingleton(_ => new ConfigHandler(_configDir));
+            .AddSingleton(_ => new ConfigHandler(_configDir))
+            .AddSingleton(_crashPadService!);
+
         return GameServicesExtension.GameServices = services.BuildServiceProvider();
     }
 

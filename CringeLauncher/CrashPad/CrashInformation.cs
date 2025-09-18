@@ -5,7 +5,9 @@ public class CrashInformation
     public required NetworkConnectivity Network { get; init; }
     
     public required HashSet<InstalledPlugin> Plugins { get; init; }
-    
+
+    public required List<ModScript> ModScripts { get; init; }
+
     public required VersionInformation Version { get; init; }
     
     public ExceptionInformation? UnhandledException { get; set; }
@@ -27,4 +29,6 @@ public class CrashInformation
     {
         public ExceptionInformation.ExceptionFrame? Exception { get; set; }
     };
+
+    public record ModScript(string Name, bool Cached, string? CompilationError);
 }

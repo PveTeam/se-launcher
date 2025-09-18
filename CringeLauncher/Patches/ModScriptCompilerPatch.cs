@@ -1,4 +1,5 @@
 ﻿using CringeBootstrap.Abstractions;
+using CringeLauncher.CrashPad;
 using CringeLauncher.Loader;
 using CringeLauncher.SyntaxRewriters;
 using CringePlugins.Config;
@@ -7,13 +8,13 @@ using HarmonyLib;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.Diagnostics;
-using Microsoft.CodeAnalysis.Emit;
 using Microsoft.Extensions.DependencyInjection;
 using NLog;
 using Sandbox;
 using Sandbox.Game;
 using Sandbox.Game.Entities.Blocks;
 using Sandbox.Game.EntityComponents;
+using Sandbox.Game.GameSystems.TextSurfaceScripts;
 using Sandbox.Game.Gui;
 using Sandbox.Game.Localization;
 using Sandbox.Game.World;
@@ -21,6 +22,7 @@ using Sandbox.Graphics.GUI;
 using Sandbox.ModAPI;
 using Sandbox.ModAPI.Ingame;
 using Steamworks;
+using System.Collections.Concurrent;
 using System.Diagnostics;
 using System.Reflection;
 using System.Runtime.CompilerServices;
@@ -38,6 +40,7 @@ namespace CringeLauncher.Patches;
 [HarmonyPatch]
 public static class ModScriptCompilerPatch
 {
+    public static readonly ConcurrentDictionary<Assembly, string> AssemblyCacheLookup = [];
     internal static readonly MyConcurrentHashSet<MyProgrammableBlock> CompilingPbs = [];
 
     private static readonly Logger Log = LogManager.GetCurrentClassLogger();
@@ -58,6 +61,8 @@ public static class ModScriptCompilerPatch
 
     private static readonly string CrossGenCacheKey = MySandboxGame.Services.GetRequiredService<ICrossGenService>()
         .CacheKey;
+
+    private static readonly CrashPadService CrashPad = MySandboxGame.Services.GetRequiredService<CrashPadService>();
 
     static ModScriptCompilerPatch()
     {
@@ -109,6 +114,10 @@ public static class ModScriptCompilerPatch
     private static void OnUnloaded()
     {
         LoadedModAssemblyNames.Clear();
+        AssemblyCacheLookup.Clear();
+        CrashPad.ClearModScripts();
+        CrashPad.MarkSavePoint();
+
         if (!_modContext.Assemblies.Any())
             return;
 
@@ -162,6 +171,10 @@ public static class ModScriptCompilerPatch
             enableDebugInformation);
         return false;
     }
+
+    [HarmonyPatch(typeof(MyTextSurfaceScriptFactory), nameof(MyTextSurfaceScriptFactory.LoadScripts))]
+    [HarmonyPrefix]
+    private static void FinishLoadingScripts() => CrashPad.MarkSavePoint();
 
     private static async Task CompileAsync(MyGuiScreenEditor editor, List<string> errors, string program, MyGuiScreenProgress progress)
     {
@@ -289,7 +302,13 @@ public static class ModScriptCompilerPatch
                                 try
                                 {
                                     await using var ms = new MemoryStream(await File.ReadAllBytesAsync(cachePath));
-                                    return context.LoadFromStream(ms);
+                                    var assembly = context.LoadFromStream(ms);
+
+                                    AssemblyCacheLookup[assembly] = cachePath;
+
+                                    CrashPad.RegisterModScript(assemblyFileName, true);
+
+                                    return assembly;
                                 }
                                 catch (IOException) //retry if file is in use
                                 {
@@ -323,7 +342,11 @@ public static class ModScriptCompilerPatch
                             try
                             {
                                 await using var ms = new MemoryStream(await File.ReadAllBytesAsync(cachePath));
-                                return context.LoadFromStream(ms);
+                                var assembly = context.LoadFromStream(ms);
+
+                                AssemblyCacheLookup[assembly] = cachePath;
+
+                                return assembly;
                             }
                             catch (IOException) //retry if file is in use
                             {
@@ -365,6 +388,9 @@ public static class ModScriptCompilerPatch
             {
                 Log.Warn(e);
                 injectionFailed = true;
+
+                if (target == MyApiTarget.Mod)
+                    CrashPad.RegisterModScript(assemblyFileName, false, e.ToString());
             }
 
             if (newSyntaxTrees is not null)
@@ -407,12 +433,23 @@ public static class ModScriptCompilerPatch
 
                     assemblyStream.Seek(0, SeekOrigin.Begin);
                 }
-                return context.LoadFromStream(assemblyStream);
+                var assembly = context.LoadFromStream(assemblyStream);
+
+                if (cachePath is not null)
+                    AssemblyCacheLookup[assembly] = cachePath;
+
+                if (target == MyApiTarget.Mod)
+                    CrashPad.RegisterModScript(assemblyFileName, false);
+
+                return assembly;
             }
 
             await MyScriptCompiler.Static.EmitDiagnostics(analyticCompilation!, compilationWithoutInjection.Emit(assemblyStream), messages,
                 false).ConfigureAwait(false);
         }
+
+        if (target == MyApiTarget.Mod)
+            CrashPad.RegisterModScript(assemblyFileName, false, string.Join("\n", messages.Where(b => b.IsError).Select(b => b.Text)));
 
         return null;
     }
