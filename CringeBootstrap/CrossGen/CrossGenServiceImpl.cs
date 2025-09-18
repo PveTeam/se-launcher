@@ -63,9 +63,9 @@ internal class CrossGenServiceImpl(string gameDirectoryPath, string cachePath, I
         return toolPath;
     }
 
-    protected override async ValueTask<bool> RunCrossGenAsync(string crossGenPath, ImmutableHashSet<string> inputReferences,
+    protected override async ValueTask<bool> RunCrossGenAsync(string crossGenPath, IEnumerable<string> inputReferences,
         string cacheDirectory,
-        string inputAssembly, double percent)
+        string inputAssembly)
     {
         var startInfo = new ProcessStartInfo(crossGenPath, [
             "--targetos:windows",
@@ -79,8 +79,6 @@ internal class CrossGenServiceImpl(string gameDirectoryPath, string cachePath, I
             RedirectStandardOutput = true,
             RedirectStandardError = true
         };
-
-        Console.WriteLine($"Running crossgen... {percent:P0}");
 
         var process = Process.Start(startInfo);
 

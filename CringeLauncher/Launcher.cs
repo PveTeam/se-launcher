@@ -55,7 +55,7 @@ public class Launcher : ICorePlugin
         _configDir = _dir.CreateSubdirectory("config");
     }
 
-    public bool Initialize(string[] args)
+    public bool Initialize(string[] args, ServiceCollection services)
     {
         var stdErrRedirectIndex = args.IndexOf("--crashpad-stderr-redirect");
         if (stdErrRedirectIndex != -1)
@@ -88,7 +88,7 @@ public class Launcher : ICorePlugin
 
         _crashPadService = new CrashPadService();
 
-        var serviceProvider = SetupServices();
+        var serviceProvider = SetupServices(services);
 
         Application.SetHighDpiMode(HighDpiMode.PerMonitorV2);
         ImGuiHandler.Instance = new(_configDir);
@@ -172,10 +172,8 @@ public class Launcher : ICorePlugin
         return true;
     }
 
-    private IServiceProvider SetupServices()
+    private IServiceProvider SetupServices(ServiceCollection services)
     {
-        var services = new ServiceCollection();
-
         var retryPolicy = HttpPolicyExtensions.HandleTransientHttpError()
             .WaitAndRetryAsync(5, _ => TimeSpan.FromSeconds(1));
 
@@ -198,7 +196,6 @@ public class Launcher : ICorePlugin
             .AddSingleton<IPluginsLifetime>(s => s.GetRequiredService<PluginsLifetime>())
             .AddSingleton<IImGuiImageService>(s => s.GetRequiredService<ImGuiImageService>())
             .AddSingleton(_ => new ConfigHandler(_configDir));
-
         return GameServicesExtension.GameServices = services.BuildServiceProvider();
     }
 

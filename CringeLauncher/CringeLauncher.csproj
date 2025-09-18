@@ -27,6 +27,7 @@
 		<Publicize Include="Sandbox.Game:Sandbox.Game.World.MyScriptManager.UpdateCompatibility" />
 		<Publicize Include="Sandbox.Game:Sandbox.Game.World.MyScriptManager.COMPATIBILITY_USINGS" />
 		<Publicize Include="Sandbox.Game:Sandbox.Engine.Platform.Game.m_gameTimer" />
+		<Publicize Include="VRage.Scripting:VRage.Scripting.MyScriptCompiler" />
 	</ItemGroup>
 
     <ItemGroup>

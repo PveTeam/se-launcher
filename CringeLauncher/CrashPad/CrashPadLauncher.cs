@@ -35,7 +35,7 @@ public sealed class CrashPadLauncher : ICorePlugin
         _actualHostProcess?.Dispose();
     }
 
-    public bool Initialize(string[] args)
+    public bool Initialize(string[] args, ServiceCollection services)
     {
         try
         {

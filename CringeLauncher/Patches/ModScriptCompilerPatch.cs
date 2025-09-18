@@ -53,32 +53,26 @@ public static class ModScriptCompilerPatch
     private static readonly MethodInfo SetDetailedInfoMethod = AccessTools.Method(typeof(MyProgrammableBlock), "SetDetailedInfo");
     private static readonly ICoreLoadContext CoreContext = (ICoreLoadContext)AssemblyLoadContext.GetLoadContext(typeof(MySession).Assembly)!;
 
-    private static readonly DiagnosticAnalyzer ModWhitelistAnalyzer = AccessTools.FieldRefAccess<MyScriptCompiler, DiagnosticAnalyzer>(
-                MyScriptCompiler.Static, "m_modApiWhitelistDiagnosticAnalyzer");
-
-    private static readonly DiagnosticAnalyzer ScriptWhitelistAnalyzer =
-            AccessTools.FieldRefAccess<MyScriptCompiler, DiagnosticAnalyzer>(MyScriptCompiler.Static, "m_inGameWhitelistDiagnosticAnalyzer");
-
-    private static readonly Func<CSharpCompilation, SyntaxTree, bool, SyntaxTree> InjectResourceMonitoring = AccessTools.MethodDelegate<Func<CSharpCompilation, SyntaxTree, bool, SyntaxTree>>(
-            AccessTools.Method(typeof(MyScriptCompiler), "InjectResourceMonitoring"), MyScriptCompiler.Static);
-
-    private static readonly Func<CompilationWithAnalyzers, EmitResult, List<Message>, bool, Task<bool>> EmitDiagnostics = AccessTools.MethodDelegate<Func<CompilationWithAnalyzers, EmitResult, List<Message>, bool, Task<bool>>>(
-            AccessTools.Method(typeof(MyScriptCompiler), "EmitDiagnostics"), MyScriptCompiler.Static);
-
-    private static readonly Func<string, string> MakeAssemblyName = AccessTools.MethodDelegate<Func<string, string>>(AccessTools.Method(typeof(MyScriptCompiler),
-                "MakeAssemblyName"));
-
-    private static readonly Func<MyScriptCompiler, string, IEnumerable<Script>, bool, CSharpCompilation> CreateCompilation =
-            AccessTools.MethodDelegate<Func<MyScriptCompiler, string, IEnumerable<Script>, bool, CSharpCompilation>>(AccessTools.Method(typeof(MyScriptCompiler),
-                "CreateCompilation"));
-
     private static readonly ConfigReference<LauncherConfig> LauncherConfigRef =
         MySandboxGame.Services.GetRequiredService<ConfigHandler>().RegisterConfig("launcher", LauncherConfig.Default);
 
+    private static readonly string CrossGenCacheKey = MySandboxGame.Services.GetRequiredService<ICrossGenService>()
+        .CacheKey;
+
     static ModScriptCompilerPatch()
     {
-        MySession.OnUnloaded += OnUnloaded;
         _modContext = new(CoreContext);
+    }
+
+    [HarmonyPrepare]
+    private static void Prepare(MethodBase original)
+    {
+        if (original is not null)
+            return;
+
+        MySession.OnUnloaded += OnUnloaded;
+
+        Console.WriteLine("ModScriptCompiler Prepare");
 
         MyScriptManager.m_compatibilityChanges.Remove("using VRage.Common.Voxels;");
         MyScriptManager.m_compatibilityChanges.Remove("using Sandbox.Common.ObjectBuilders.Serializer;");
@@ -89,6 +83,27 @@ public static class ModScriptCompilerPatch
         MyScriptManager.m_compatibilityChanges.Add("using System.Numerics;", "using VRageMath;"); //todo: investigate
 
         MyModWatchdog.ModInfo = [new("Unknown")];
+
+        var modDir = Path.Join(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
+                                "CringeLauncher", "cache", "mods");
+        var scriptDir = Path.Join(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
+                                "CringeLauncher", "cache", "scripts");
+
+        if (LauncherConfigRef.Value.CacheModAssemblies && !Directory.Exists(Path.Join(modDir, CrossGenCacheKey)))
+        {
+            if (Directory.Exists(modDir))
+                ClearOldCache(modDir);
+
+            Directory.CreateDirectory(Path.Join(modDir, CrossGenCacheKey));
+        }
+
+        if (LauncherConfigRef.Value.CacheScriptAssemblies && !Directory.Exists(Path.Join(scriptDir, CrossGenCacheKey)))
+        {
+            if (Directory.Exists(scriptDir))
+                ClearOldCache(scriptDir);
+
+            Directory.CreateDirectory(Path.Join(scriptDir, CrossGenCacheKey));
+        }
     }
 
     private static void OnUnloaded()
@@ -235,7 +250,7 @@ public static class ModScriptCompilerPatch
                                                       bool enableDebugInformation = false)
     {
         friendlyName ??= "<No Name>";
-        var assemblyFileName = MakeAssemblyName(assemblyName);
+        var assemblyFileName = MyScriptCompiler.MakeAssemblyName(assemblyName);
         Func<CSharpCompilation, SyntaxTree, bool, SyntaxTree>? syntaxTreeInjector;
         DiagnosticAnalyzer? whitelistAnalyzer;
 
@@ -265,7 +280,7 @@ public static class ModScriptCompilerPatch
                     if (LauncherConfigRef.Value.CacheModAssemblies && ulong.TryParse(idStr, out var id) && SteamUGC.GetItemInstallInfo((PublishedFileId_t)id, out _, out _, 260U, out var timestamp))
                     {
                         cachePath = Path.Join(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
-                                "CringeLauncher", "cache", "mods", $"{assemblyFileName}-{timestamp}.cache");
+                                "CringeLauncher", "cache", "mods", CrossGenCacheKey, $"{assemblyFileName}-{timestamp}.cache");
 
                         if (File.Exists(cachePath))
                         {
@@ -284,7 +299,7 @@ public static class ModScriptCompilerPatch
                         }
                     }
 
-                    whitelistAnalyzer = ModWhitelistAnalyzer;
+                    whitelistAnalyzer = MyScriptCompiler.Static.m_modApiWhitelistDiagnosticAnalyzer;
                     syntaxTreeInjector = MissingUsingRewriter.Rewrite;
 
                     scripts = await Task.WhenAll(scripts.Select(LoadModScript));
@@ -299,7 +314,7 @@ public static class ModScriptCompilerPatch
                     var hash = Convert.ToHexString(bytes);
 
                     cachePath = Path.Join(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
-                                "CringeLauncher", "cache", "scripts", $"{hash}.cache");
+                                "CringeLauncher", "cache", "scripts", CrossGenCacheKey, $"{hash}.cache");
 
                     if (File.Exists(cachePath))
                     {
@@ -318,13 +333,13 @@ public static class ModScriptCompilerPatch
                     }
                 }
 
-                syntaxTreeInjector = InjectResourceMonitoring;
-                whitelistAnalyzer = ScriptWhitelistAnalyzer;
+                syntaxTreeInjector = MyScriptCompiler.Static.InjectResourceMonitoring;
+                whitelistAnalyzer = MyScriptCompiler.Static.m_inGameWhitelistDiagnosticAnalyzer;
                 break;
             default:
                 throw new ArgumentOutOfRangeException(nameof(target), target, "Invalid compilation target");
         }
-        var compilation = CreateCompilation(MyScriptCompiler.Static, assemblyFileName, scripts, enableDebugInformation);
+        var compilation = MyScriptCompiler.Static.CreateCompilation(assemblyFileName, scripts, enableDebugInformation);
         var compilationWithoutInjection = compilation;
         var injectionFailed = false;
 
@@ -378,7 +393,7 @@ public static class ModScriptCompilerPatch
         }
         else
         {
-            success = await EmitDiagnostics(analyticCompilation!, emitResult, messages, success).ConfigureAwait(false);
+            success = await MyScriptCompiler.Static.EmitDiagnostics(analyticCompilation!, emitResult, messages, success).ConfigureAwait(false);
             assemblyStream.Seek(0, SeekOrigin.Begin);
             if (injectionFailed)
                 return null;
@@ -395,7 +410,7 @@ public static class ModScriptCompilerPatch
                 return context.LoadFromStream(assemblyStream);
             }
 
-            await EmitDiagnostics(analyticCompilation!, compilationWithoutInjection.Emit(assemblyStream), messages,
+            await MyScriptCompiler.Static.EmitDiagnostics(analyticCompilation!, compilationWithoutInjection.Emit(assemblyStream), messages,
                 false).ConfigureAwait(false);
         }
 
@@ -412,5 +427,23 @@ public static class ModScriptCompilerPatch
         }
 
         return new(script.Name, text.Insert(0, MyScriptManager.COMPATIBILITY_USINGS));
+    }
+
+    private static void ClearOldCache(string dir)
+    {
+        foreach (var directory in Directory.EnumerateDirectories(dir))
+        {
+            try
+            {
+                Directory.Delete(directory, true);
+            }
+            catch (IOException e)
+            {
+                Console.ForegroundColor = ConsoleColor.Yellow;
+                Console.WriteLine("Failed to clean previous compiler cache");
+                Console.ResetColor();
+                Console.WriteLine(e);
+            }
+        }
     }
 }

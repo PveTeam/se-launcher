@@ -6,6 +6,7 @@ using CringeBootstrap.Abstractions;
 using CringeBootstrap.CrossGen;
 using CringeBootstrap.Transformers;
 using CringeBootstrap.Transformers.Impl;
+using Microsoft.Extensions.DependencyInjection;
 using Velopack;
 
 #if DEBUG
@@ -51,11 +52,11 @@ var transformationService = new TransformationService(gameDir, [new ImageSharpTr
 var cacheDir = Directory.CreateDirectory(Path.Join(
     Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
     "CringeLauncher", "cache"));
+
 CrossGenResult? result = null;
+CrossGenService crossGenService = new CrossGenServiceImpl(gameDir, cacheDir.FullName, transformationService);
 if (!args.Contains("--skip-crossgen", StringComparer.OrdinalIgnoreCase))
 {
-    var crossGenService = new CrossGenServiceImpl(gameDir, cacheDir.FullName, transformationService);
-
     result = RunCrossGen(crossGenService);
 }
 if (result is null or { Failed: true })
@@ -63,9 +64,9 @@ if (result is null or { Failed: true })
     if (result is null) Console.WriteLine("Running without crossgen as it has been skipped");
     else if (result.Failed) Console.WriteLine("Running without crossgen as it has failed");
     
-    var crossGen = new NoOpCrossGenService(gameDir, cacheDir.FullName, transformationService);
+    crossGenService = new NoOpCrossGenService(gameDir, cacheDir.FullName, transformationService);
         
-    result = RunCrossGen(crossGen);
+    result = RunCrossGen(crossGenService);
 }
 dir = result.CacheDirectory;
 
@@ -116,7 +117,10 @@ var launcher = context.LoadFromAssemblyName(entrypointName.AssemblyName.ToAssemb
 
 using var corePlugin = (ICorePlugin) launcher.CreateInstance(entrypointName.FullName)!;
 
-if (!corePlugin.Initialize(args) || !corePlugin.Run())
+var services = new ServiceCollection();
+services.AddSingleton<ICrossGenService>(crossGenService);
+
+if (!corePlugin.Initialize(args, services) || !corePlugin.Run())
 {
     if (!Console.IsInputRedirected)
     {

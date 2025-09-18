@@ -1,12 +1,15 @@
 ﻿using System.Collections.Immutable;
 using System.Security.Cryptography;
+using CringeBootstrap.Abstractions;
 using CringeBootstrap.Transformers;
 using NuGet.Deps;
 
 namespace CringeBootstrap.CrossGen;
 
-internal abstract class CrossGenService(string gameDirectoryPath, string cachePath, ITransformationService transformationService)
+internal abstract class CrossGenService(string gameDirectoryPath, string cachePath, ITransformationService transformationService) : ICrossGenService
 {
+    public string CacheKey => field ??= GetCacheKey();
+
     private const string FormatVersion = "1";
     
     private readonly ImmutableHashSet<string> _excludedAssemblies =
@@ -96,7 +99,7 @@ internal abstract class CrossGenService(string gameDirectoryPath, string cachePa
     /// <returns>The path to game assemblies directory either original or R2R</returns>
     public async ValueTask<CrossGenResult> RunCrossGenAsync()
     {
-        var cacheDirectory = Path.Join(CrossGenCachePath, GetCacheKey());
+        var cacheDirectory = Path.Join(CrossGenCachePath, CacheKey);
         if (Directory.Exists(cacheDirectory))
         {
             Console.WriteLine("Crossgen cache hit");
@@ -125,8 +128,8 @@ internal abstract class CrossGenService(string gameDirectoryPath, string cachePa
             
             TransformInputAssembly(ref inputAssembly);
 
-            var success = await RunCrossGenAsync(crossGenPath, inputReferences, cacheDirectory, inputAssembly,
-                index / (inputAssemblies.Length - 1.0));
+            Console.WriteLine($"Running crossgen... {index / (inputAssemblies.Length - 1.0):P0}");
+            var success = await RunCrossGenAsync(crossGenPath, inputReferences, cacheDirectory, inputAssembly);
 
             if (success) continue;
             
@@ -217,6 +220,8 @@ internal abstract class CrossGenService(string gameDirectoryPath, string cachePa
         return Convert.ToHexStringLower(SHA256.HashData(stream)) + FormatVersion;
     }
 
-    protected abstract ValueTask<bool> RunCrossGenAsync(string crossGenPath, ImmutableHashSet<string> inputReferences, string cacheDirectory,
-        string inputAssembly, double percent);
+    protected abstract ValueTask<bool> RunCrossGenAsync(string crossGenPath, IEnumerable<string> inputReferences, string cacheDirectory,
+        string inputAssembly);
+
+    ValueTask<bool> ICrossGenService.RunCrossGenAsync(string crossGenPath, IEnumerable<string> inputReferences, string cacheDirectory, string inputAssembly) => RunCrossGenAsync(crossGenPath, inputReferences, cacheDirectory, inputAssembly);
 }

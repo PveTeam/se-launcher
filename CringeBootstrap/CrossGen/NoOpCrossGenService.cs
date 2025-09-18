@@ -14,8 +14,8 @@ internal class NoOpCrossGenService(string gameDirectoryPath, string cachePath, I
         return Task.FromResult<string?>("dummy");
     }
 
-    protected override ValueTask<bool> RunCrossGenAsync(string crossGenPath, ImmutableHashSet<string> inputReferences, string cacheDirectory,
-        string inputAssembly, double percent)
+    protected override ValueTask<bool> RunCrossGenAsync(string crossGenPath, IEnumerable<string> inputReferences, string cacheDirectory,
+        string inputAssembly)
     {
         File.Copy(inputAssembly, Path.Join(cacheDirectory, Path.GetFileName(inputAssembly)), true);
         return ValueTask.FromResult(true);
