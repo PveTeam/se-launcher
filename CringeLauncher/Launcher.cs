@@ -29,6 +29,7 @@ using CringeLauncher.Stages;
 using VRage;
 using VRage.FileSystem;
 using VRageRender;
+using Sandbox.Game;
 
 namespace CringeLauncher;
 
@@ -146,6 +147,7 @@ public class Launcher : ICorePlugin
         _renderThread.Window!.Resize += OnResize;
         _renderThread.Surrogate.OnExit += _game.OnExit;
         _renderThread.Surrogate.OnManualWindowCloseRequest += _game.Window_OnManualWindowCloseRequest;
+        _renderThread.InitWaiter(_game.m_gameTimer, MyPerGameSettings.MaxFrameRate);
 
         MyRenderProxy.EnableAppEventsCall = false;
 

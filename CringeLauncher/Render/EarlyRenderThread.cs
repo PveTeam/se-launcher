@@ -1,6 +1,7 @@
 ﻿using CringeLauncher.Utils;
 using Sandbox.Engine.Utils;
 using VRage;
+using VRage.Library.Utils;
 using VRageRender;
 
 namespace CringeLauncher.Render;
@@ -10,6 +11,10 @@ internal class EarlyRenderThread : IDisposable
     private readonly bool _keepConsole;
     public EarlyWindow? Window { get; private set; }
     private readonly ManualResetEventSlim _initEvent = new(false);
+
+    private MyGameTimer? _timer;
+    private WaitForTargetFrameRate? _waiter;
+
     public Thread RenderThread { get; }
     private bool _gameRendererInitialized;
 
@@ -27,10 +32,30 @@ internal class EarlyRenderThread : IDisposable
         RenderThread.SetApartmentState(ApartmentState.STA);
         RenderThread.Start();
     }
-    
+
     public void NotifyGameRendererInitialized() => _gameRendererInitialized = true;
 
     public void WaitForInit() => _initEvent.Wait();
+
+    public void InitWaiter(MyGameTimer timer, float targetFrameRate)
+    {
+        if (targetFrameRate <= 0)
+            throw new ArgumentOutOfRangeException(nameof(targetFrameRate), "Must be positive");
+
+        _timer = timer;
+        _waiter = new WaitForTargetFrameRate(_timer, targetFrameRate);
+    }
+
+    public void SetTargetFrameRate(float targetFrameRate)
+    {
+        if (targetFrameRate <= 0)
+            throw new ArgumentOutOfRangeException(nameof(targetFrameRate), "Must be positive");
+
+        if (_timer is null)
+            throw new InvalidOperationException("Call InitWaiter before setting target frame rate");
+
+        _waiter = new WaitForTargetFrameRate(_timer, targetFrameRate);
+    }
 
     private void RunLoop()
     {
@@ -46,15 +71,15 @@ internal class EarlyRenderThread : IDisposable
                 if (!Window.Frame()) break;
                 continue;
             }
-            
+
             if (!Surrogate.UpdateRenderThread()) break;
             RenderFrame();
         }
-        
+
         if (_gameRendererInitialized) DisposeGameRenderer();
     }
 
-    private void DisposeGameRenderer()
+    private static void DisposeGameRenderer()
     {
         MyRenderProxy.AfterUpdate(null);
         MyRenderProxy.BeforeUpdate();
@@ -72,13 +97,15 @@ internal class EarlyRenderThread : IDisposable
             return;
         }
 
+        _waiter?.Wait();
+
         MyRenderProxy.BeforeRender(null);
         MyFpsManager.Update();
         MyRenderProxy.Draw();
         MyRenderProxy.AfterRender();
-        
+
         Window!.Draw();
-        
+
         MyRenderProxy.Present();
     }
 
