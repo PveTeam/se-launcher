@@ -120,6 +120,19 @@ public class CrashReportWriter(CrashInformation information, string? redirectPat
                 writer.Write("[Faulted] ");
             writer.WriteLine($"{name} - {version} ({source})");
         }
+
+        foreach (var plugin in information.Plugins)
+        {
+            if (plugin.Exception is null) continue;
+            
+            writer.WriteLine();
+            writer.WriteLine($"-- {plugin.Name} Exception --");
+            var wrotePatchesHead = false;
+            WriteFrame(writer, plugin.Exception, ref wrotePatchesHead);
+            writer.WriteLine();
+            writer.Write("Original representation: ");
+            writer.WriteLine(plugin.Exception.StringRepresentation);
+        }
     }
 
     private void WriteModDetails(StreamWriter writer)
