@@ -70,7 +70,7 @@ public static class ModScriptCompilerPatch
     }
 
     [HarmonyPrepare]
-    private static void Prepare(MethodBase original)
+    private static void Prepare(MethodBase? original)
     {
         if (original is not null)
             return;

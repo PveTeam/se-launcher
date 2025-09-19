@@ -11,14 +11,24 @@ public static class ScriptCompilationSettingsPatch
 {
     private static readonly CSharpParseOptions Options = new(LanguageVersion.Latest, DocumentationMode.None);
 
+    internal static readonly HashSet<MetadataReference> CompilerMetadataReferences = [];
+
     private static IEnumerable<CodeInstruction> Transpiler(IEnumerable<CodeInstruction> instructions)
     {
-        var field = AccessTools.Field(typeof(MyScriptCompiler), nameof(MyScriptCompiler.m_conditionalParseOptions));
+        var parseOptionsField = AccessTools.Field(typeof(MyScriptCompiler), nameof(MyScriptCompiler.m_conditionalParseOptions));
+        var metadataReferencesField = AccessTools.Field(typeof(MyScriptCompiler), nameof(MyScriptCompiler.m_metadataReferences));
         return new CodeMatcher(instructions)
             .Start()
-            .MatchStartForward(CodeMatch.IsLdarg(0), CodeMatch.LoadsField(field))
+            .MatchStartForward(CodeMatch.IsLdarg(0), CodeMatch.LoadsField(parseOptionsField))
             .SetAndAdvance(OpCodes.Nop, null)
-            .SetInstructionAndAdvance(CodeInstruction.LoadField(typeof(ScriptCompilationSettingsPatch), nameof(Options)))
+            .SetInstructionAndAdvance(
+                CodeInstruction.LoadField(typeof(ScriptCompilationSettingsPatch), nameof(Options)))
+            .MatchEndForward(CodeMatch.IsLdarg(0), CodeMatch.LoadsField(metadataReferencesField))
+            .SetInstructionAndAdvance(CodeInstruction.LoadArgument(1))
+            .InsertAndAdvance(CodeInstruction.CallClosure((MyScriptCompiler compiler, string? assemblyName) =>
+                assemblyName is null
+                    ? compiler.m_metadataReferences.AsEnumerable()
+                    : CompilerMetadataReferences))
             .Instructions();
     }
 }
