@@ -1,5 +1,7 @@
-﻿using HarmonyLib;
+﻿using System.Runtime.CompilerServices;
+using HarmonyLib;
 using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.CSharp;
 using VRage.Scripting;
 
 namespace CringeLauncher.Patches;
@@ -7,17 +9,26 @@ namespace CringeLauncher.Patches;
 [HarmonyPatch(typeof(MyScriptWhitelist.Batch), nameof(MyScriptWhitelist.Batch.ResolveTypeSymbol))]
 public static class WhitelistTypeResolutionPatch
 {
-    [HarmonyReversePatch]
-    private static INamedTypeSymbol ResolveTypeSymbol(MyScriptWhitelist.Batch batch, Type type) => throw null!;
+    private static readonly ConditionalWeakTable<MyScriptWhitelist.Batch, CSharpCompilation> CompilationTable = new();
+    
+    private static INamedTypeSymbol ResolveTypeSymbol(MyScriptWhitelist.Batch batch, Type type)
+    {
+        var name = GetCompilation(batch).GetTypeByMetadataName(type.FullName!);
+        return name ?? throw new MyWhitelistException(
+            $"Cannot add {type.FullName}, {type.Assembly.FullName} to the batch because its symbol variant could not be found.");
+    }
+
+    private static CSharpCompilation GetCompilation(MyScriptWhitelist.Batch batch) =>
+        CompilationTable.GetValue(batch, static b => b.Whitelist.CreateCompilation());
 
     // cant be assed to write a transpiler so heres a prefix
     private static bool Prefix(MyScriptWhitelist.Batch __instance, Type type, ref INamedTypeSymbol __result)
     {
-        // fast path
-        if (!type.IsGenericType || !type.IsConstructedGenericType)
-            return true;
-
-        __result = ResolveGenericTypeSymbol(__instance, type);
+        __result = type.IsPublic
+            ? ResolveGenericTypeSymbol(__instance, type)
+            :
+            // idk returning null is too much effort to patch it down the line
+            GetCompilation(__instance).ObjectType;
         return false;
     }
 
@@ -39,5 +50,15 @@ public static class WhitelistTypeResolutionPatch
         }
 
         return unconstructedSymbol.Construct(typeSymbolArguments);
+    }
+}
+
+[HarmonyPatch(typeof(MyScriptWhitelist.Batch), MethodType.Constructor, typeof(MyScriptWhitelist))]
+public static class WhitelistCompilationPatch
+{
+    private static bool Prefix(MyScriptWhitelist.Batch __instance, MyScriptWhitelist whitelist)
+    {
+        __instance.Whitelist = whitelist;
+        return false;
     }
 }
