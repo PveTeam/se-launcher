@@ -17,9 +17,24 @@ public static class WhitelistRegistrationPatch
                                         new[] { typeof(MyWhitelistTarget), typeof(ITypeSymbol), typeof(Type) });
     }
 
-    private static IEnumerable<CodeInstruction> Transpiler(IEnumerable<CodeInstruction> instructions)
+    private static IEnumerable<CodeInstruction> Transpiler(IEnumerable<CodeInstruction> instructions, ILGenerator generator)
     {
         var ins = instructions.ToList();
+
+        var label = generator.DefineLabel();
+        
+        ins[0].labels.Add(label);
+
+        ins.InsertRange(0, [
+            CodeInstruction.LoadArgument(3),
+            new(OpCodes.Callvirt, AccessTools.DeclaredPropertyGetter(typeof(Type), nameof(Type.IsPublic))),
+            new(OpCodes.Brtrue, label),
+            CodeInstruction.LoadArgument(3),
+            new(OpCodes.Callvirt, AccessTools.DeclaredPropertyGetter(typeof(Type), nameof(Type.IsNestedPublic))),
+            new(OpCodes.Brtrue, label),
+            new(OpCodes.Ret)
+        ]);
+        
         var throwIns = ins.FindAll(b => b.opcode == OpCodes.Throw).Select(b => ins.IndexOf(b));
         foreach (var index in throwIns)
         {

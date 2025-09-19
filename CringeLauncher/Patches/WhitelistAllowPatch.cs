@@ -7,10 +7,12 @@ namespace CringeLauncher.Patches;
 [HarmonyPatch(typeof(MyScriptWhitelist.MyWhitelistBatch), nameof(MyScriptWhitelist.MyWhitelistBatch.AllowMembers))]
 public static class WhitelistAllowPatch
 {
-    private static void Prefix(ref MemberInfo[] members)
+    private static void Prefix(ref MemberInfo?[] members)
     {
-        if (members.Any(b => b is null))
-            members = [.. members.Where(b => b is { })];
+        members =
+        [
+            .. members.Where(b => b?.DeclaringType is { IsPublic: true } or { IsNestedPublic: true })
+        ];
     }
 
     private static Exception? Finalizer(Exception __exception)

@@ -24,11 +24,8 @@ public static class WhitelistTypeResolutionPatch
     // cant be assed to write a transpiler so heres a prefix
     private static bool Prefix(MyScriptWhitelist.Batch __instance, Type type, ref INamedTypeSymbol __result)
     {
-        __result = type.IsPublic
-            ? ResolveGenericTypeSymbol(__instance, type)
-            :
-            // idk returning null is too much effort to patch it down the line
-            GetCompilation(__instance).ObjectType;
+        if (type.IsPublic || type.IsNestedPublic)
+            __result = ResolveGenericTypeSymbol(__instance, type);
         return false;
     }
 

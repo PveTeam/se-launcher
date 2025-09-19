@@ -24,7 +24,7 @@ public static class ScriptCompilerInitializationPatch
 
         using var batch = MyScriptCompiler.Static.Whitelist.OpenBatch();
         batch.AllowTypes(MyWhitelistTarget.ModApi, typeof(ConcurrentQueue<>));
-        batch.AllowTypes(MyWhitelistTarget.Both, typeof(BitArray));
+        batch.AllowTypes(MyWhitelistTarget.Both, typeof(BitArray), typeof(object));
         batch.AllowNamespaceOfTypes(MyWhitelistTarget.Both, typeof(ImmutableArray));
 
         return false;
