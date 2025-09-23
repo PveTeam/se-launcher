@@ -3,6 +3,5 @@ public interface ICrossGenService
 {
     string CacheKey { get; }
 
-    ValueTask<bool> RunCrossGenAsync(string crossGenPath, IEnumerable<string> inputReferences, string cacheDirectory,
-        string inputAssembly);
+    ValueTask<bool> RunCrossGenAsync(IEnumerable<string> inputReferences, string cacheDirectory, string inputAssembly);
 }

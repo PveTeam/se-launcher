@@ -100,7 +100,12 @@ context.AddDependencyOverride("CringeLauncher");
 context.AddDependencyOverride("CringePlugins");
 context.AddDependencyOverride("EOSSDK");
 
-var entrypoint = customEntrypoint ?? "CringeLauncher.CrashPad.CrashPadLauncher, CringeLauncher";
+const string CrashPadEntrypoint = "CringeLauncher.CrashPad.CrashPadLauncher, CringeLauncher";
+
+var entrypoint = customEntrypoint ?? CrashPadEntrypoint;
+
+var isCrashPad = entrypoint.Equals(CrashPadEntrypoint);
+
 if (!TypeName.TryParse(entrypoint, out var entrypointName) || 
     entrypointName.AssemblyName is null)
 {
@@ -119,15 +124,20 @@ using var corePlugin = (ICorePlugin) launcher.CreateInstance(entrypointName.Full
 
 var services = new ServiceCollection();
 services.AddSingleton<ICrossGenService>(crossGenService);
+services.AddSingleton(corePlugin);
 
-if (!corePlugin.Initialize(args, services) || !corePlugin.Run())
+do
 {
-    if (!Console.IsInputRedirected)
+    if (!corePlugin.Initialize(args, services) || !corePlugin.Run())
     {
-        Console.WriteLine("Press any key to exit...");
-        Console.Read();
+        if (!Console.IsInputRedirected)
+        {
+            Console.WriteLine("Press any key to exit...");
+            Console.Read();
+        }
+        return 1;
     }
-    return 1;
 }
+while (isCrashPad && corePlugin.RestartRequested);
 
-return 0;
+return corePlugin.RestartRequested ? -2 : 0;

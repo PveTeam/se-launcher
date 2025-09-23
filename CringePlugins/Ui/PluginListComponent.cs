@@ -1,4 +1,5 @@
-﻿using CringePlugins.Abstractions;
+﻿using CringeBootstrap.Abstractions;
+using CringePlugins.Abstractions;
 using CringePlugins.Compatability;
 using CringePlugins.Config;
 using CringePlugins.Loader;
@@ -61,6 +62,7 @@ internal class PluginListComponent : IRenderComponent
     private (SearchResultEntry entry, NuGetClient? client)? _selected;
     private (PackageSource source, int index)? _selectedSource;
     private readonly IImGuiImageService _imageService = GameServicesExtension.GameServices.GetRequiredService<IImGuiImageService>();
+    private readonly ICorePlugin _corePlugin = GameServicesExtension.GameServices.GetRequiredService<ICorePlugin>();
 
     public PluginListComponent(ConfigReference<PackagesConfig> packagesConfig, ConfigReference<LauncherConfig> launcherConfig,
         PackageSourceMapping sourceMapping, string gameFolder, ImmutableArray<PluginInstance> plugins, DirectoryInfo dataDir, DirectoryInfo cacheDir)
@@ -110,8 +112,7 @@ internal class PluginListComponent : IRenderComponent
             SameLine();
             if (Button("Restart Now"))
             {
-                Process.Start("explorer.exe", "steam://rungameid/244850");
-                Process.GetCurrentProcess().Kill();
+                _corePlugin.Restart();
             }
         }
 

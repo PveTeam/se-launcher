@@ -14,8 +14,12 @@ namespace CringeLauncher.CrashPad;
 
 public sealed class CrashPadLauncher : ICorePlugin
 {
+    public bool RestartRequested { get; private set; }
+
     private static readonly Logger Log = LogManager.GetCurrentClassLogger();
-    
+
+    public event Action? BeforeExit;
+
     private Process? _actualHostProcess;
     private string? _stderrPath;
 
@@ -39,6 +43,7 @@ public sealed class CrashPadLauncher : ICorePlugin
     {
         try
         {
+            RestartRequested = false;
             Directory.CreateDirectory(_logsDir);
             _stderrPath = FindStderrRedirectPath(_logsDir);
             var appHost = FindValidAppHostPath(args);
@@ -50,10 +55,10 @@ public sealed class CrashPadLauncher : ICorePlugin
                     ["DOTNET_BOOTSTRAP_ENTRYPOINT"] = LauncherConstants.ActualBootstrapEntrypoint
                 }
             });
-            
+
             // detach from console, the window would be closed when actual host process also detaches from it
             if (!ConsoleHandler.ShouldKeepConsole(args)) ConsoleHandler.FreeConsole();
-            
+
             return _actualHostProcess is not null;
         }
         catch (Exception e)
@@ -68,48 +73,51 @@ public sealed class CrashPadLauncher : ICorePlugin
         try
         {
             if (_actualHostProcess is null) return true;
-            
+
             var path = Path.Join(_logsDir, $"crash-info-{_actualHostProcess.Id}.json");
-            
+
             if (WaitForProcessExit())
             {
                 File.Delete(path);
+                BeforeExit?.Invoke();
                 return true;
             }
 
             Log.Error("Actual host process exited with code {ExitCode:x8}", _actualHostProcess.ExitCode);
-            
+
             RunCrashInfoDialog(_actualHostProcess.ExitCode, path);
         }
         catch (Exception e)
         {
             Log.Fatal(e, "Failed to run crashpad");
+            BeforeExit?.Invoke();
             return false;
         }
 
+        BeforeExit?.Invoke();
         return true;
     }
 
     private void RunCrashInfoDialog(int exitCode, string crashInfoPath)
     {
         InitializeCrashDialogServices();
-        
+
         var configDir = Path.Join(_appdataDir, "config");
         ImGuiHandler.Instance = new(Directory.CreateDirectory(configDir));
-        
+
         var exitEvent = new ManualResetEventSlim();
 
         RenderHandler.Current.RegisterComponent(new CrashPadComponent(ReadCrashInformation(crashInfoPath), _stderrPath, exitCode,
             exitEvent));
-        
+
         using var thread = new EarlyRenderThread(true);
-        
+
         exitEvent.Wait();
 
         thread.Window?.Invoke(thread.Window.Dispose);
     }
 
-    private void InitializeCrashDialogServices()
+    private static void InitializeCrashDialogServices()
     {
         var collection = new ServiceCollection();
 
@@ -125,12 +133,12 @@ public sealed class CrashPadLauncher : ICorePlugin
         GameServicesExtension.GameServices = collection.BuildServiceProvider();
     }
 
-    private CrashInformation? ReadCrashInformation(string path)
+    private static CrashInformation? ReadCrashInformation(string path)
     {
         if (!File.Exists(path)) return null;
-        
+
         using var stream = File.OpenRead(path);
-        
+
         try
         {
             return JsonSerializer.Deserialize<CrashInformation>(stream);
@@ -146,10 +154,13 @@ public sealed class CrashPadLauncher : ICorePlugin
     private bool WaitForProcessExit()
     {
         if (_actualHostProcess is null) return true;
-        
+
         _actualHostProcess.WaitForExit();
-        
-        return _actualHostProcess.ExitCode is 0 or -1;
+
+        if (_actualHostProcess.ExitCode == -2)
+            RestartRequested = true;
+
+        return _actualHostProcess.ExitCode is 0 or -2;
     }
 
     private static string FindStderrRedirectPath(string basePath)
@@ -161,7 +172,7 @@ public sealed class CrashPadLauncher : ICorePlugin
             var path = Path.Join(basePath, string.Format(name, DateTime.Now, i));
             if (!File.Exists(path)) return path;
         }
-        
+
         throw new InvalidOperationException("Unable to find free stderr redirect path");
     }
 
@@ -176,4 +187,6 @@ public sealed class CrashPadLauncher : ICorePlugin
         // maybe support launching via dotnet/dnx later
         return Environment.ProcessPath ?? throw new FileNotFoundException("Unable to find app host path");
     }
+
+    void ICorePlugin.Restart() => throw new NotSupportedException("Cannot restart the crashpad directly");
 }

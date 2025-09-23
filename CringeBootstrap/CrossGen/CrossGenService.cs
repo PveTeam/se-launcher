@@ -1,14 +1,16 @@
-﻿using System.Collections.Immutable;
-using System.Security.Cryptography;
-using CringeBootstrap.Abstractions;
+﻿using CringeBootstrap.Abstractions;
 using CringeBootstrap.Transformers;
 using NuGet.Deps;
+using System.Collections.Immutable;
+using System.Security.Cryptography;
 
 namespace CringeBootstrap.CrossGen;
 
 internal abstract class CrossGenService(string gameDirectoryPath, string cachePath, ITransformationService transformationService) : ICrossGenService
 {
     public string CacheKey => field ??= GetCacheKey();
+
+    private string? _crossGenPath;
 
     private const string FormatVersion = "1";
     
@@ -70,6 +72,9 @@ internal abstract class CrossGenService(string gameDirectoryPath, string cachePa
         "VRage.XmlSerializers.dll",
     ];
 
+    private readonly SemaphoreSlim _semaphore = new(1, 1);
+    private volatile ImmutableHashSet<string>? _defaultReferences;
+
     // assembly with game version constant so hash always changes with game updates
     private const string CacheKeyFileName = "SpaceEngineers.Game.dll";
 
@@ -99,6 +104,7 @@ internal abstract class CrossGenService(string gameDirectoryPath, string cachePa
     /// <returns>The path to game assemblies directory either original or R2R</returns>
     public async ValueTask<CrossGenResult> RunCrossGenAsync()
     {
+        _crossGenPath = await DownloadCrossGenAsync();
         var cacheDirectory = Path.Join(CrossGenCachePath, CacheKey);
         if (Directory.Exists(cacheDirectory))
         {
@@ -110,14 +116,15 @@ internal abstract class CrossGenService(string gameDirectoryPath, string cachePa
 
         CleanCache();
 
-        var crossGenPath = await DownloadCrossGenAsync();
-        if (crossGenPath is null)
+        if (_crossGenPath is null)
             return new(gameDirectoryPath, Failed: true);
 
         var inputAssemblies = CollectInputAssemblies();
         ImmutableHashSet<string> references =
             [..await CollectFrameworkReferencesAsync(), ..inputAssemblies];
         references = references.WithComparer(StringComparer.OrdinalIgnoreCase);
+
+        _defaultReferences = references;
 
         Directory.CreateDirectory(cacheDirectory);
 
@@ -129,7 +136,7 @@ internal abstract class CrossGenService(string gameDirectoryPath, string cachePa
             TransformInputAssembly(ref inputAssembly);
 
             Console.WriteLine($"Running crossgen... {index / (inputAssemblies.Length - 1.0):P0}");
-            var success = await RunCrossGenAsync(crossGenPath, inputReferences, cacheDirectory, inputAssembly);
+            var success = await RunCrossGenAsync(_crossGenPath, inputReferences, cacheDirectory, inputAssembly);
 
             if (success) continue;
             
@@ -196,15 +203,11 @@ internal abstract class CrossGenService(string gameDirectoryPath, string cachePa
         return [..runtime!.Keys.Select(b => Path.Join(packDirPath, b))];
     }
 
-    private ImmutableArray<string> CollectInputAssemblies()
-    {
-        return
-        [
+    private ImmutableArray<string> CollectInputAssemblies() => [
             .._includedAssemblies.Except(_excludedAssemblies)
                 .Select(s => Path.Join(gameDirectoryPath, s))
                 .Where(File.Exists)
         ];
-    }
 
     protected static void LogCrossGenException(string message, Exception e)
     {
@@ -220,8 +223,31 @@ internal abstract class CrossGenService(string gameDirectoryPath, string cachePa
         return Convert.ToHexStringLower(SHA256.HashData(stream)) + FormatVersion;
     }
 
+    private async Task<ImmutableHashSet<string>> GetDefaultReferences()
+    {
+        ImmutableHashSet<string> references = [.. await CollectFrameworkReferencesAsync(), .. CollectInputAssemblies()];
+        return references.WithComparer(StringComparer.OrdinalIgnoreCase);
+    }
+
     protected abstract ValueTask<bool> RunCrossGenAsync(string crossGenPath, IEnumerable<string> inputReferences, string cacheDirectory,
         string inputAssembly);
 
-    ValueTask<bool> ICrossGenService.RunCrossGenAsync(string crossGenPath, IEnumerable<string> inputReferences, string cacheDirectory, string inputAssembly) => RunCrossGenAsync(crossGenPath, inputReferences, cacheDirectory, inputAssembly);
+    async ValueTask<bool> ICrossGenService.RunCrossGenAsync(IEnumerable<string> inputReferences, string cacheDirectory, string inputAssembly)
+    {
+        if (_defaultReferences is null)
+        {
+            await _semaphore.WaitAsync();
+            try
+            {
+                _defaultReferences ??= await GetDefaultReferences();
+            }
+            finally
+            {
+                _semaphore.Release();
+            }
+        }
+
+        return await RunCrossGenAsync(_crossGenPath ?? throw new InvalidOperationException("Using crossgen before bootstrap"),
+            inputReferences.Concat(_defaultReferences), cacheDirectory, inputAssembly);
+    }
 }

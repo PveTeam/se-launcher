@@ -77,8 +77,6 @@ public static class ModScriptCompilerPatch
 
         MySession.OnUnloaded += OnUnloaded;
 
-        Console.WriteLine("ModScriptCompiler Prepare");
-
         MyScriptManager.m_compatibilityChanges.Remove("using VRage.Common.Voxels;");
         MyScriptManager.m_compatibilityChanges.Remove("using Sandbox.Common.ObjectBuilders.Serializer;");
         MyScriptManager.m_compatibilityChanges.Remove("using Sandbox.Common.ObjectBuilders.VRageData;");

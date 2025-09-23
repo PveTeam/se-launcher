@@ -1,6 +1,8 @@
-﻿using System.Diagnostics;
-using CringeBootstrap.Abstractions;
+﻿using CringeBootstrap.Abstractions;
+using CringeLauncher.CrashPad;
+using CringeLauncher.Patches;
 using CringeLauncher.Render;
+using CringeLauncher.Stages;
 using CringeLauncher.Utils;
 using CringePlugins.Config;
 using CringePlugins.Loader;
@@ -14,27 +16,31 @@ using Polly;
 using Polly.Extensions.Http;
 using Sandbox;
 using Sandbox.Engine.Networking;
+using Sandbox.Game;
+using Sandbox.Game.World;
+using Sandbox.Graphics.GUI;
 using SpaceEngineers.Game;
+using System.Diagnostics;
 using System.Net;
 using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Runtime.Loader;
 using System.Text.Json;
-using Windows.Win32;
-using Windows.Win32.System.Console;
-using CringeLauncher.CrashPad;
-using CringeLauncher.Patches;
-using CringeLauncher.Stages;
 using VRage;
+using VRage.Audio;
 using VRage.FileSystem;
 using VRageRender;
-using Sandbox.Game;
+using Windows.Win32;
+using Windows.Win32.System.Console;
 
 namespace CringeLauncher;
 
 public class Launcher : ICorePlugin
 {
+    public event Action? BeforeExit;
+    public bool RestartRequested { get; private set; }
+
     private readonly string? _gameDataDirectoryPathOverride;
     private SpaceEngineersGame? _game;
     private IPluginsLifetime? _lifetime;
@@ -57,6 +63,7 @@ public class Launcher : ICorePlugin
 
     public bool Initialize(string[] args, ServiceCollection services)
     {
+        RestartRequested = false;
         var stdErrRedirectIndex = args.IndexOf("--crashpad-stderr-redirect");
         if (stdErrRedirectIndex != -1)
         {
@@ -166,10 +173,28 @@ public class Launcher : ICorePlugin
         {
             _crashPadService?.CaptureCurrentThreadException(e);
             LogManager.GetLogger("Game").Fatal(e, "Fatal exception in game loop");
+            BeforeExit?.Invoke();
             return false;
         }
 
+        BeforeExit?.Invoke();
         return true;
+    }
+
+    public void Restart()
+    {
+        RestartRequested = true;
+        MySandboxGame.Static.Invoke(CloseGame, nameof(Restart));
+    }
+
+    private static void CloseGame()
+    {
+        MyAudio.Static.Mute = true;
+        MyAudio.Static.StopMusic();
+
+        MySessionLoader.Unload();
+        MyScreenManager.CloseAllScreensNowExcept(null);
+        MySandboxGame.ExitThreadSafe();
     }
 
     private IServiceProvider SetupServices(ServiceCollection services)
