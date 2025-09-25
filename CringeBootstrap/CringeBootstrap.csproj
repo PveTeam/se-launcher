@@ -22,9 +22,9 @@
     </PropertyGroup>
 
     <ItemGroup>
-        <PackageReference Include="NLog.Schema" Version="6.0.2" />
+        <PackageReference Include="NLog.Schema" Version="6.0.4" />
         <PackageReference Include="Velopack" Version="0.0.1298" />
-        <PackageReference Include="System.Runtime.Serialization.Formatters" Version="9.0.7" />
+        <PackageReference Include="System.Runtime.Serialization.Formatters" Version="9.0.9" />
     </ItemGroup>
 
     <ItemGroup>

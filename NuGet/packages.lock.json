@@ -4,9 +4,9 @@
     "net9.0": {
       "NLog": {
         "type": "Direct",
-        "requested": "[6.0.2, )",
-        "resolved": "6.0.2",
-        "contentHash": "kfjfjcjh/hHXLJ0TbEUH6ajb2jQFmwk/23nyYW9iPZ6cj5769SyeDTbUwGI7LSVUk5iTRJoC6CTKKmWrXK79oA=="
+        "requested": "[6.0.4, )",
+        "resolved": "6.0.4",
+        "contentHash": "Xr+lIk1ZlTTFXEqnxQVLxrDqZlt2tm5X+/AhJbaY2emb/dVtGDiU5QuEtj3gHtwV/SWlP/rJ922I/BPuOJXlRw=="
       },
       "NuGet.Frameworks": {
         "type": "Direct",

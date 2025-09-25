@@ -4,15 +4,15 @@
     "net9.0": {
       "NLog": {
         "type": "Direct",
-        "requested": "[6.0.2, )",
-        "resolved": "6.0.2",
-        "contentHash": "kfjfjcjh/hHXLJ0TbEUH6ajb2jQFmwk/23nyYW9iPZ6cj5769SyeDTbUwGI7LSVUk5iTRJoC6CTKKmWrXK79oA=="
+        "requested": "[6.0.4, )",
+        "resolved": "6.0.4",
+        "contentHash": "Xr+lIk1ZlTTFXEqnxQVLxrDqZlt2tm5X+/AhJbaY2emb/dVtGDiU5QuEtj3gHtwV/SWlP/rJ922I/BPuOJXlRw=="
       },
       "SpaceEngineersDedicated.ReferenceAssemblies": {
         "type": "Direct",
-        "requested": "[1.206.32, )",
-        "resolved": "1.206.32",
-        "contentHash": "uFhkUUxmumct/turcfMeM2f+jJHxuiB6jAE4JMGa/AOFKCsWIr+ZWTX9hW2muEoJpUNKrzCbGrxH8ssaJUZpig==",
+        "requested": "[1.207.22, )",
+        "resolved": "1.207.22",
+        "contentHash": "cEigq1fs5zm8wjVjLuldUvnLTeQTvymZbXt3eZ8mS4x6oynOpiiUvnSJnD/mxY227AVekRzrdRuk51/Z7m1sqg==",
         "dependencies": {
           "SharpDX": "4.2.0-keen-cringe",
           "protobuf-net": "1.0.0"
@@ -20,16 +20,16 @@
       },
       "Microsoft.Extensions.DependencyInjection": {
         "type": "Transitive",
-        "resolved": "9.0.7",
-        "contentHash": "i05AYA91vgq0as84ROVCyltD2gnxaba/f1Qw2rG7mUsS0gv8cPTr1Gm7jPQHq7JTr4MJoQUcanLVs16tIOUJaQ==",
+        "resolved": "9.0.9",
+        "contentHash": "zQV2WOSP+3z1EuK91ULxfGgo2Y75bTRnmJHp08+w/YXAyekZutX/qCd88/HOMNh35MDW9mJJJxPpMPS+1Rww8A==",
         "dependencies": {
-          "Microsoft.Extensions.DependencyInjection.Abstractions": "9.0.7"
+          "Microsoft.Extensions.DependencyInjection.Abstractions": "9.0.9"
         }
       },
       "Microsoft.Extensions.DependencyInjection.Abstractions": {
         "type": "Transitive",
-        "resolved": "9.0.7",
-        "contentHash": "iPK1FxbGFr2Xb+4Y+dTYI8Gupu9pOi8I3JPuPsrogUmEhe2hzZ9LpCmolMEBhVDo2ikcSr7G5zYiwaapHSQTew=="
+        "resolved": "9.0.9",
+        "contentHash": "/hymojfWbE9AlDOa0mczR44m00Jj+T3+HZO0ZnVTI032fVycI0ZbNOVFP6kqZMcXiLSYXzR2ilcwaRi6dzeGyA=="
       },
       "protobuf-net": {
         "type": "Transitive",
@@ -44,7 +44,7 @@
       "cringebootstrap.abstractions": {
         "type": "Project",
         "dependencies": {
-          "Microsoft.Extensions.DependencyInjection": "[9.0.7, )"
+          "Microsoft.Extensions.DependencyInjection": "[9.0.9, )"
         }
       }
     },
