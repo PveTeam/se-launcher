@@ -100,11 +100,11 @@ context.AddDependencyOverride("CringeLauncher");
 context.AddDependencyOverride("CringePlugins");
 context.AddDependencyOverride("EOSSDK");
 
-const string CrashPadEntrypoint = "CringeLauncher.CrashPad.CrashPadLauncher, CringeLauncher";
+const string crashPadEntrypoint = "CringeLauncher.CrashPad.CrashPadLauncher, CringeLauncher";
 
-var entrypoint = customEntrypoint ?? CrashPadEntrypoint;
+var entrypoint = customEntrypoint ?? crashPadEntrypoint;
 
-var isCrashPad = entrypoint.Equals(CrashPadEntrypoint);
+var isCrashPad = entrypoint.Equals(crashPadEntrypoint);
 
 if (!TypeName.TryParse(entrypoint, out var entrypointName) || 
     entrypointName.AssemblyName is null)

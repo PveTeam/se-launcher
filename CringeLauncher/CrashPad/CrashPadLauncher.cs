@@ -18,8 +18,6 @@ public sealed class CrashPadLauncher : ICorePlugin
 
     private static readonly Logger Log = LogManager.GetCurrentClassLogger();
 
-    public event Action? BeforeExit;
-
     private Process? _actualHostProcess;
     private string? _stderrPath;
 
@@ -79,7 +77,6 @@ public sealed class CrashPadLauncher : ICorePlugin
             if (WaitForProcessExit())
             {
                 File.Delete(path);
-                BeforeExit?.Invoke();
                 return true;
             }
 
@@ -90,11 +87,9 @@ public sealed class CrashPadLauncher : ICorePlugin
         catch (Exception e)
         {
             Log.Fatal(e, "Failed to run crashpad");
-            BeforeExit?.Invoke();
             return false;
         }
 
-        BeforeExit?.Invoke();
         return true;
     }
 

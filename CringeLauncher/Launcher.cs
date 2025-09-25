@@ -38,7 +38,6 @@ namespace CringeLauncher;
 
 public class Launcher : ICorePlugin
 {
-    public event Action? BeforeExit;
     public bool RestartRequested { get; private set; }
 
     private readonly string? _gameDataDirectoryPathOverride;
@@ -173,11 +172,9 @@ public class Launcher : ICorePlugin
         {
             _crashPadService?.CaptureCurrentThreadException(e);
             LogManager.GetLogger("Game").Fatal(e, "Fatal exception in game loop");
-            BeforeExit?.Invoke();
             return false;
         }
 
-        BeforeExit?.Invoke();
         return true;
     }
 
