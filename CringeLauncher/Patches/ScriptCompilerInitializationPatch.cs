@@ -2,6 +2,7 @@
 using System.Collections.Concurrent;
 using System.Collections.Immutable;
 using System.Reflection;
+using System.Text;
 using HarmonyLib;
 using VRage.Scripting;
 
@@ -24,8 +25,10 @@ public static class ScriptCompilerInitializationPatch
 
         using var batch = MyScriptCompiler.Static.Whitelist.OpenBatch();
         batch.AllowTypes(MyWhitelistTarget.ModApi, typeof(ConcurrentQueue<>));
+        batch.AllowNamespaceOfTypes(MyWhitelistTarget.ModApi, typeof(ParallelQuery));
         batch.AllowTypes(MyWhitelistTarget.Both, typeof(BitArray), typeof(object));
-        batch.AllowNamespaceOfTypes(MyWhitelistTarget.Both, typeof(ImmutableArray));
+        batch.AllowNamespaceOfTypes(MyWhitelistTarget.Both, typeof(ImmutableArray), typeof(ASCIIEncoding), typeof(Queue),
+            typeof(Queryable), typeof(IQueryable));//used for both, added separately normally
 
         return false;
     }
