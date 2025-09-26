@@ -65,6 +65,8 @@ internal sealed class ImGuiHandler : IGuiHandler, IDisposable
 
         io.ConfigErrorRecoveryEnableAssert = false;
         io.ConfigWindowsMoveFromTitleBarOnly = true;
+        io.ConfigDpiScaleViewports = true;
+        io.ConfigDpiScaleFonts = true;
         io.ConfigFlags |= ImGuiConfigFlags.DockingEnable | ImGuiConfigFlags.ViewportsEnable;
 
         ImGui_ImplWin32_Init(windowHandle);
