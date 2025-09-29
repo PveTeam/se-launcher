@@ -11,6 +11,11 @@ public class UserDevLauncher() : Launcher(Environment.GetEnvironmentVariable("DO
 {
     protected override void InitUgc(Splash splash)
     {
+#if DEBUG
+        Environment.SetEnvironmentVariable("SteamAppId", LauncherConstants.AppId.ToString());
+        base.InitUgc(splash);
+        return;
+#endif
         var gameService = new UserDevGameService(LauncherConstants.AppId);
         MyServiceManager.Instance.AddService<IMyGameService>(gameService);
         MyServiceManager.Instance.AddService<IMyNetworking>(new MyNullNetworking(gameService));

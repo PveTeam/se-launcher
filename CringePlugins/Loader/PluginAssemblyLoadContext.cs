@@ -17,11 +17,13 @@ internal class PluginAssemblyLoadContext : DerivedAssemblyLoadContext, ICoreLoad
     private readonly AssemblyDependencyResolver _dependencyResolver;
     private readonly HashSet<string> _loadedTypes = [];
     private Assembly? _assembly;
+    private readonly AssemblyName _entrypointName;
 
     internal PluginAssemblyLoadContext(ICoreLoadContext parentContext, string entrypointPath) : base(parentContext, $"Plugin Context {Path.GetFileNameWithoutExtension(entrypointPath)}")
     {
         _entrypointPath = entrypointPath;
         _dependencyResolver = new(entrypointPath);
+        _entrypointName = AssemblyName.GetAssemblyName(entrypointPath);
 
         Unloading += OnUnload;
     }
@@ -50,11 +52,16 @@ internal class PluginAssemblyLoadContext : DerivedAssemblyLoadContext, ICoreLoad
 
     protected override Assembly? Load(AssemblyName assemblyName)
     {
+        if (_dependencyResolver.ResolveAssemblyToPath(assemblyName) is { } path)
+            return LoadAssemblyFile(path);
         return ResolveFromAssemblyName(assemblyName) ?? base.Load(assemblyName);
     }
 
     protected override nint LoadUnmanagedDll(string unmanagedDllName)
     {
+        if (_dependencyResolver.ResolveUnmanagedDllToPath(unmanagedDllName) is { } path)
+            return LoadUnmanagedDllFromPath(path);
+        
         var handle = ResolveUnmanagedDll(unmanagedDllName);
         return handle != nint.Zero ? handle : base.LoadUnmanagedDll(unmanagedDllName);
     }
@@ -75,17 +82,11 @@ internal class PluginAssemblyLoadContext : DerivedAssemblyLoadContext, ICoreLoad
 
     public Assembly? ResolveFromAssemblyName(AssemblyName assemblyName)
     {
-        if (_dependencyResolver.ResolveAssemblyToPath(assemblyName) is { } path)
-            return LoadAssemblyFile(path);
-
-        return null;
+        return AssemblyName.ReferenceMatchesDefinition(assemblyName, _entrypointName) ? LoadEntrypoint() : base.Load(assemblyName);
     }
 
     public nint ResolveUnmanagedDll(string unmanagedDllName)
     {
-        if (_dependencyResolver.ResolveUnmanagedDllToPath(unmanagedDllName) is { } path)
-            return LoadUnmanagedDllFromPath(path);
-
-        return nint.Zero;
+        return base.LoadUnmanagedDll(unmanagedDllName);
     }
 }

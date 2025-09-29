@@ -289,9 +289,9 @@ internal class CrashPadService
             
         return assemblyLoadContext switch
         {
-            ICoreLoadContext => new ExceptionInformation.BootstrapAssemblyContextInformation(),
             PluginAssemblyLoadContext pluginContext => new ExceptionInformation.PluginAssemblyContextInformation(
                 pluginContext.Name!),
+            ICoreLoadContext => new ExceptionInformation.BootstrapAssemblyContextInformation(),
             PbAssemblyLoadContext pbContext => new ExceptionInformation.ProgrammableBlockContextInformation(
                 pbContext.Name!),
             ModAssemblyLoadContext => new ExceptionInformation.WorldAssemblyContextInformation(),

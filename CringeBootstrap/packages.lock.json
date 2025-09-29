@@ -23,6 +23,23 @@
           "NuGet.Versioning": "6.14.0"
         }
       },
+      "Autofac": {
+        "type": "Transitive",
+        "resolved": "8.1.0",
+        "contentHash": "O2QT+0DSTBR2Ojpacmcj3L0KrnnXTFrwLl/OW1lBUDiHhb89msHEHNhTA8AlK3jdFiAfMbAYyQaJVvRe6oSBcQ==",
+        "dependencies": {
+          "System.Diagnostics.DiagnosticSource": "8.0.1"
+        }
+      },
+      "Autofac.Extensions.DependencyInjection": {
+        "type": "Transitive",
+        "resolved": "10.0.0",
+        "contentHash": "ZjR/onUlP7BzQ7VBBigQepWLAyAzi3VRGX3pP6sBqkPRiT61fsTZqbTpRUKxo30TMgbs1o3y6bpLbETix4SJog==",
+        "dependencies": {
+          "Autofac": "8.1.0",
+          "Microsoft.Extensions.DependencyInjection.Abstractions": "8.0.1"
+        }
+      },
       "Basic.Reference.Assemblies.Net90": {
         "type": "Transitive",
         "resolved": "1.8.3",
@@ -259,6 +276,24 @@
         "resolved": "9.0.9",
         "contentHash": "z4pyMePOrl733ltTowbN565PxBw1oAr8IHmIXNDiDqd22nFpYltX9KhrNC/qBWAG1/Zx5MHX+cOYhWJQYCO/iw=="
       },
+      "Microsoft.TemplateEngine.Abstractions": {
+        "type": "Transitive",
+        "resolved": "9.0.302",
+        "contentHash": "QB6UV50O0sQhV7vWI/ehlak/5bYdWDJGTHoysseox6AnSZGxHsi/iFSAnUjXCV7H5NTRLbYWX1g4qK6SHQxRag==",
+        "dependencies": {
+          "Microsoft.Extensions.Logging.Abstractions": "9.0.3"
+        }
+      },
+      "Microsoft.TemplateEngine.Utils": {
+        "type": "Transitive",
+        "resolved": "9.0.302",
+        "contentHash": "4NJaT876zy/sC+7Nb3Q0xLBsqiusS1HEu3xrl1114hwknIHkxQFRUnSIBV+NAwRrVSmig+wXIyJN7cmnpG0gUQ==",
+        "dependencies": {
+          "Microsoft.Extensions.Logging.Abstractions": "9.0.3",
+          "Microsoft.TemplateEngine.Abstractions": "9.0.302",
+          "Newtonsoft.Json": "13.0.3"
+        }
+      },
       "Mono.Cecil": {
         "type": "Transitive",
         "resolved": "0.11.5",
@@ -387,6 +422,11 @@
           "System.Security.Cryptography.ProtectedData": "9.0.9"
         }
       },
+      "System.Diagnostics.DiagnosticSource": {
+        "type": "Transitive",
+        "resolved": "8.0.1",
+        "contentHash": "vaoWjvkG1aenR2XdjaVivlCV9fADfgyhW5bZtXT23qaEea0lWiUljdQuze4E31vKM7ZWJaSUsbYIKE3rnzfZUg=="
+      },
       "System.Diagnostics.EventLog": {
         "type": "Transitive",
         "resolved": "9.0.9",
@@ -502,12 +542,12 @@
       "cringelauncher": {
         "type": "Project",
         "dependencies": {
+          "Autofac.Extensions.DependencyInjection": "[10.0.0, )",
           "Basic.Reference.Assemblies.Net90": "[1.8.3, )",
           "CringeBootstrap.Abstractions": "[1.0.0, )",
           "CringePlugins": "[1.0.0, )",
           "EOSSDK": "[1.0.3, )",
           "Microsoft.CodeAnalysis.CSharp": "[4.14.0, )",
-          "Microsoft.Extensions.DependencyInjection": "[9.0.9, )",
           "Microsoft.Extensions.Http.Polly": "[9.0.9, )",
           "NLog": "[6.0.4, )",
           "SixLabors.ImageSharp": "[4.0.0-compat, )",
@@ -526,6 +566,7 @@
           "JsonSchema.Net.Generation": "[5.1.1, )",
           "Lib.Harmony.Thin": "[2.3.4-torch, )",
           "Microsoft.Extensions.DependencyInjection.Abstractions": "[9.0.9, )",
+          "Microsoft.TemplateEngine.Utils": "[9.0.302, )",
           "Newtonsoft.Json": "[13.0.4, )",
           "NuGet": "[1.0.0, )",
           "SharedCringe": "[1.0.0, )",

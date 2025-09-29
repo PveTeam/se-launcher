@@ -41,6 +41,7 @@ internal class PluginListComponent : IRenderComponent
 
     private readonly DirectoryInfo _dataDir;
     private readonly DirectoryInfo _cacheDir;
+    private readonly IReadOnlyDictionary<string, CachedPackage> _loadedPackages;
     private bool _disableUpdates;
     private bool _disablePluginUpdates;
     private bool _usePreviewBranch;
@@ -64,8 +65,10 @@ internal class PluginListComponent : IRenderComponent
     private readonly IImGuiImageService _imageService = GameServicesExtension.GameServices.GetRequiredService<IImGuiImageService>();
     private readonly ICorePlugin _corePlugin = GameServicesExtension.GameServices.GetRequiredService<ICorePlugin>();
 
-    public PluginListComponent(ConfigReference<PackagesConfig> packagesConfig, ConfigReference<LauncherConfig> launcherConfig,
-        PackageSourceMapping sourceMapping, string gameFolder, ImmutableArray<PluginInstance> plugins, DirectoryInfo dataDir, DirectoryInfo cacheDir)
+    public PluginListComponent(ConfigReference<PackagesConfig> packagesConfig,
+        ConfigReference<LauncherConfig> launcherConfig,
+        PackageSourceMapping sourceMapping, string gameFolder, ImmutableArray<PluginInstance> plugins,
+        DirectoryInfo dataDir, DirectoryInfo cacheDir, IReadOnlyDictionary<string, CachedPackage> loadedPackages)
     {
         _packagesConfig = packagesConfig;
         _launcherConfig = launcherConfig;
@@ -84,6 +87,7 @@ internal class PluginListComponent : IRenderComponent
 
         _dataDir = dataDir;
         _cacheDir = cacheDir;
+        _loadedPackages = loadedPackages;
 
         MyScreenManager.ScreenAdded += ScreenChanged;
         MyScreenManager.ScreenRemoved += ScreenChanged;
@@ -768,9 +772,24 @@ internal class PluginListComponent : IRenderComponent
 
                         TableNextColumn();
 
-                        var installed = _packages.ContainsKey(package.Id);
-                        TextColored(installed ? new(0f, 1f, 0f, 1f) : new(1f, 0f, 0f, 1f),
-                            installed ? "Installed" : "Not Installed");
+                        Vector4 col;
+                        string statusText;
+                        if (_packages.ContainsKey(package.Id))
+                        {
+                            col = new(0f, 1f, 0f, 1f);
+                            statusText = "Installed";
+                        } 
+                        else if (_loadedPackages.ContainsKey(package.Id))
+                        {
+                            col = new(1f, 1f, 0f, 1f);
+                            statusText = "Transient";
+                        }
+                        else
+                        {
+                            col = new(1f, 0f, 0f, 1f);
+                            statusText = "Not Installed";
+                        }
+                        TextColored(col, statusText);
                     }
                 }
 

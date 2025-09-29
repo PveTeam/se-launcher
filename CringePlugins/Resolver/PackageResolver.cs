@@ -12,7 +12,7 @@ using System.Xml.Serialization;
 
 namespace CringePlugins.Resolver;
 
-public class PackageResolver(NuGetFramework runtimeFramework, ImmutableArray<PackageReference> references, PackageSourceMapping packageSources)
+public class PackageResolver(NuGetFramework runtimeFramework, ImmutableHashSet<PackageReference> references, PackageSourceMapping packageSources)
 {
     private static readonly ILogger Log = LogManager.GetCurrentClassLogger();
     public async Task<ImmutableSortedSet<ResolvedPackage>> ResolveAsync(DirectoryInfo baseDir, bool disableUpdates, IReadOnlySet<string> builtinPackages, List<PackageReference> invalidPackages)
@@ -22,7 +22,7 @@ public class PackageResolver(NuGetFramework runtimeFramework, ImmutableArray<Pac
 
         foreach (var reference in references)
         {
-            (var items, var client, var removed) = await ResolvePackageEntriesAsync(baseDir, packageSources, reference.Id);
+            var (items, client, removed) = await ResolvePackageEntriesAsync(baseDir, packageSources, reference.Id);
 
             if (removed)
                 invalidPackages.Add(reference);
@@ -363,8 +363,20 @@ public class PackageResolver(NuGetFramework runtimeFramework, ImmutableArray<Pac
     }
 }
 
-public record CachedPackage(Package Package, NuGetFramework ResolvedFramework, DirectoryInfo Directory, CatalogEntry Entry) : ResolvedPackage(Package, ResolvedFramework, Entry);
-public record RemotePackage(Package Package, NuGetFramework ResolvedFramework, NuGetClient? Client, CatalogEntry Entry) : ResolvedPackage(Package, ResolvedFramework, Entry);
+public record CachedPackage(
+    Package Package,
+    NuGetFramework ResolvedFramework,
+    DirectoryInfo Directory,
+    CatalogEntry Entry) : ResolvedPackage(Package, ResolvedFramework, Entry);
+
+public record LocalPackage(
+    Package Package,
+    NuGetFramework ResolvedFramework,
+    DirectoryInfo Directory,
+    CatalogEntry Entry) : CachedPackage(Package, ResolvedFramework, Directory, Entry);
+
+public record RemotePackage(Package Package, NuGetFramework ResolvedFramework, NuGetClient? Client, CatalogEntry Entry)
+    : ResolvedPackage(Package, ResolvedFramework, Entry);
 
 // should not inherit from RemotePackage
 public record RemoteDependencyPackage(
@@ -374,7 +386,8 @@ public record RemoteDependencyPackage(
     RemotePackage Parent,
     CatalogEntry Entry) : ResolvedPackage(Package, ResolvedFramework, Entry);
 
-public abstract record ResolvedPackage(Package Package, NuGetFramework ResolvedFramework, CatalogEntry Entry) : IComparable<ResolvedPackage>, IComparable
+public abstract record ResolvedPackage(Package Package, NuGetFramework ResolvedFramework, CatalogEntry Entry)
+    : IComparable<ResolvedPackage>, IComparable
 {
     public int CompareTo(ResolvedPackage? other)
     {
@@ -426,4 +439,9 @@ public record Package(int Order, string Id, NuGetVersion Version) : IComparable<
     }
 }
 
-public record PackageReference(string Id, VersionRange Range);
+public record PackageReference(string Id, VersionRange Range)
+{
+    public override int GetHashCode() => Id.GetHashCode(StringComparison.OrdinalIgnoreCase);
+
+    public virtual bool Equals(PackageReference? other) => Id.Equals(other?.Id, StringComparison.OrdinalIgnoreCase);
+}

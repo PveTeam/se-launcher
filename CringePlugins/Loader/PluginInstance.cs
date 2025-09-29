@@ -42,12 +42,6 @@ internal sealed class PluginInstance(
     private static readonly ILogger Log = LogManager.GetCurrentClassLogger();
     public PluginMetadata Metadata { get; } = metadata;
 
-    public PluginInstance(string entrypointPath, bool local, IPluginServiceProviderFactory serviceProviderFactory,
-        PluginInstance? parent = null) : this(PluginMetadata.ReadFromEntrypoint(entrypointPath), entrypointPath, local,
-        serviceProviderFactory, parent)
-    {
-    }
-
     public void Instantiate(ImmutableArray<DerivedAssemblyLoadContext>.Builder contextBuilder)
     {
         if (AssemblyLoadContext.GetLoadContext(typeof(PluginInstance).Assembly) is not ICoreLoadContext parentContext)
