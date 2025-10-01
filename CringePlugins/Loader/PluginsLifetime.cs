@@ -96,6 +96,7 @@ internal class PluginsLifetime(ConfigHandler configHandler, IPluginServiceProvid
         RenderHandler.Current.RegisterComponent(new NotificationsComponent());
 
         var loadedPackages = cachedPackages.Concat(localPlugins)
+            .DistinctBy(b => b.Package.Id)
             .ToDictionary(b => b.Package.Id, StringComparer.OrdinalIgnoreCase);
         await LoadPlugins(loadedPackages.Values, sourceMapping, packagesConfig, builtInPackages, cacheDir);
 
