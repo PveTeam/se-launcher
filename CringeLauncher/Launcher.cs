@@ -75,7 +75,7 @@ public class Launcher : ICorePlugin
             var handle = File.OpenHandle(redirectPath, FileMode.Create, FileAccess.Write);
             PInvoke.SetStdHandle(STD_HANDLE.STD_ERROR_HANDLE, handle);
         }
-        
+
         if (Type.GetType("GameAnalyticsSDK.Net.Logging.GALogger, GameAnalytics.Mono") is { } gaLoggerType)
             RuntimeHelpers.RunClassConstructor(gaLoggerType.TypeHandle);
 
@@ -103,12 +103,12 @@ public class Launcher : ICorePlugin
 
         Application.SetHighDpiMode(HighDpiMode.PerMonitorV2);
         ImGuiHandler.Instance = new(_configDir);
-        
+
         _renderThread = new EarlyRenderThread(ConsoleHandler.ShouldKeepConsole(args));
-        
+
         using var splash = new Splash();
         RenderHandler.Current.RegisterComponent(splash);
-        
+
         splash.DefineStage(new CheckUpdatesStage(args, ReadUpdateConfigAsync, _crashPadService));
         splash.DefineStage(new LauncherPatchesStage());
 
@@ -117,23 +117,37 @@ public class Launcher : ICorePlugin
 
         // hook up steam as we ship it inside base context as an override
         if (AssemblyLoadContext.GetLoadContext(typeof(Launcher).Assembly) is ICoreLoadContext coreLoadContext)
-            NativeLibrary.SetDllImportResolver(typeof(Steamworks.Constants).Assembly, (name, _, _) => coreLoadContext.ResolveUnmanagedDll(name));
-        NativeLibrary.SetDllImportResolver(typeof(EosService).Assembly, (name, _, _) => NativeLibrary.Load(Path.Join(AppContext.BaseDirectory, name)));
-        
-        splash.ExecuteLoadingStages();
+            NativeLibrary.SetDllImportResolver(typeof(Steamworks.Constants).Assembly,
+                (name, _, _) => coreLoadContext.ResolveUnmanagedDll(name));
+        NativeLibrary.SetDllImportResolver(typeof(EosService).Assembly,
+            (name, _, _) => NativeLibrary.Load(Path.Join(AppContext.BaseDirectory, name)));
 
-        MyFileSystem.ExePath = Path.GetDirectoryName(args.ElementAtOrDefault(0) ?? Assembly.GetExecutingAssembly().Location)!;
+        if (splash.ExecuteLoadingStages() is { } preInitException)
+        {
+            logger.Fatal("Failed to run pre-init stages");
+            _crashPadService?.CaptureCurrentThreadException(preInitException);
+            return false;
+        }
+
+        MyFileSystem.ExePath =
+            Path.GetDirectoryName(args.ElementAtOrDefault(0) ?? Assembly.GetExecutingAssembly().Location)!;
         MyFileSystem.RootPath = new DirectoryInfo(MyFileSystem.ExePath).Parent!.FullName;
-        
-        splash.DefineStage(new PlatformInitializationStage(_renderThread, _gameDataDirectoryPathOverride, _crashPadService));
+
+        splash.DefineStage(new PlatformInitializationStage(_renderThread, _gameDataDirectoryPathOverride,
+            _crashPadService));
         splash.DefineStage(new RenderInitializationStage(_renderThread));
         splash.DefineStage(_lifetime = serviceProvider.GetRequiredService<IPluginsLifetime>());
 
         InitUgc(splash);
-        
+
         // this technically should wait for render thread init, but who cares
-        splash.ExecuteLoadingStages();
-        
+        if (splash.ExecuteLoadingStages() is { } initException)
+        {
+            logger.Fatal("Failed to run init stages");
+            _crashPadService?.CaptureCurrentThreadException(initException);
+            return false;
+        }
+
         MyFileSystem.InitUserSpecific(MyGameService.UserId.ToString());
 
         _lifetime.RegisterLifetime();
