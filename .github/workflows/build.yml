@@ -24,11 +24,12 @@ jobs:
           major_pattern: 'breaking:'
           minor_pattern: 'feature:'
           bump_each_commit: true
+          version_format: ${{ github.ref_name == 'master' && '${major}.${minor}.${patch}' || '${major}.${minor}.${patch}-preview.${increment}' }}
           
   build-nuget:
     name: Build Nuget package
     runs-on: ubuntu-latest
-    if: "!contains(github.event.commits[0].message, '[skip ci]') && github.ref_name == 'master'"
+    if: "!contains(github.event.commits[0].message, '[skip ci]')"
     needs: [compute-version]
     strategy: 
       matrix:
