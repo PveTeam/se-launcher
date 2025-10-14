@@ -1,5 +1,6 @@
 ﻿using System.Collections.Immutable;
 using System.Runtime.InteropServices;
+using System.Runtime.Loader;
 using CringePlugins.Abstractions;
 using CringePlugins.Config;
 using CringePlugins.Render;
@@ -96,6 +97,7 @@ internal class PluginsLifetime(ConfigHandler configHandler, IPluginServiceProvid
         RenderHandler.Current.RegisterComponent(new NotificationsComponent());
 
         var loadedPackages = cachedPackages.Concat(localPlugins)
+            .Order()
             .DistinctBy(b => b.Package.Id)
             .ToDictionary(b => b.Package.Id, StringComparer.OrdinalIgnoreCase);
         await LoadPlugins(loadedPackages.Values, sourceMapping, packagesConfig, builtInPackages, cacheDir);
@@ -195,7 +197,7 @@ internal class PluginsLifetime(ConfigHandler configHandler, IPluginServiceProvid
                 anyLoaded = true;
                 var packageClient = await sourceMapping.GetClientAsync(package.Package.Id);
 
-                var packageDir = package is LocalPackage
+                var packageDir = package is LocalPluginPackage
                     ? package.Directory.FullName
                     : Path.Join(package.Directory.FullName, "lib",
                         package.ResolvedFramework.GetShortFolderName());
@@ -227,13 +229,21 @@ internal class PluginsLifetime(ConfigHandler configHandler, IPluginServiceProvid
                     }
                 }
 
-                var sourceName = package is LocalPackage
+                var sourceName = package is LocalPluginPackage
                     ? "Local"
                     : packageClient == null
                         ? "Local Cache"
                         : packagesConfig.Sources.First(b => b.Url == packageClient.ToString()).Name;
-                parent = LoadComponent(plugins, Path.Join(packageDir, $"{package.Package.Id}.dll"),
-                    new(package.Package.Id, package.Entry.Title ?? package.Package.Id, package.Package.Version, sourceName),
+                var entrypointPath = Path.Join(packageDir, $"{package.Package.Id}.dll");
+                parent = LoadComponent(plugins, entrypointPath,
+                    new(package.Package.Id, package.Entry.Title ?? package.Package.Id, package.Package.Version,
+                        sourceName)
+                    {
+                        EntrypointTypeName = PluginMetadata.ResolveEntrypointTypeName(entrypointPath)
+                    },
+                    dependencyResolver: package is LocalPluginPackage pluginPackage
+                        ? pluginPackage.DependencyResolver
+                        : new(entrypointPath),
                     parent: parent);
             }
             
@@ -245,7 +255,8 @@ internal class PluginsLifetime(ConfigHandler configHandler, IPluginServiceProvid
         Plugins = plugins.ToImmutable();
     }
 
-    private async ValueTask<(ImmutableArray<CachedPackage> localPlugins, ImmutableArray<PackageReference> references)> DiscoverLocalPlugins(DirectoryInfo dir)
+    private async ValueTask<(ImmutableArray<CachedPackage>localPlugins, ImmutableArray<PackageReference> references)>
+        DiscoverLocalPlugins(DirectoryInfo dir)
     {
         var localPlugins = ImmutableArray.CreateBuilder<CachedPackage>();
         var references = ImmutableArray.CreateBuilder<PackageReference>();
@@ -254,17 +265,15 @@ internal class PluginsLifetime(ConfigHandler configHandler, IPluginServiceProvid
                      ? [new(userDevPlugin), ..dir.GetDirectories()]
                      : dir.EnumerateDirectories())
         {
-            var files = directory.GetFiles("*.deps.json");
+            const string depsExtension = ".deps.json";
+            var files = directory.GetFiles($"*{depsExtension}");
 
             if (files.Length != 1) continue;
 
-            var path = files[0].FullName[..^".deps.json".Length] + ".dll";
-
-            var metadata = PluginMetadata.ReadFromEntrypoint(path);
+            DependenciesManifest manifest;
+            await using (var stream = files[0].OpenRead())
+                manifest = await DependencyManifestSerializer.DeserializeAsync(stream);
             
-            await using var stream = files[0].OpenRead();
-            var manifest = await DependencyManifestSerializer.DeserializeAsync(stream);
-
             var packageReferences = manifest.Libraries.Where(b => b.Value.Serviceable)
                 .Select(b =>
                 {
@@ -273,24 +282,45 @@ internal class PluginsLifetime(ConfigHandler configHandler, IPluginServiceProvid
                 }).ToArray();
             references.AddRange(packageReferences);
 
-            var package = new Package(0, metadata.Id, metadata.Version);
-            var entry = new CatalogEntry(metadata.Id, metadata.Version, [
-                new DependencyGroup(_runtimeFramework.Framework,
-                    [..packageReferences.Select(b => new Dependency(b.Id, b.Range))])
-            ], ["CringePlugin"], [], metadata.Name);
-            
-            localPlugins.Add(new LocalPackage(package, _runtimeFramework.Framework, directory, entry));
+            ImmutableArray<Dependency> dependencies =
+                [..packageReferences.Select(b => new Dependency(b.Id, b.Range))];
+
+            var resolver = new AssemblyDependencyResolver(files[0].FullName[..^depsExtension.Length] + ".dll");
+
+            foreach (var (packageKey, _) in manifest.Libraries.Where(b => b.Value is
+                         { Serviceable: false, Type: LibraryType.Project }))
+            {
+                if (resolver.ResolveAssemblyToPath(new(packageKey.Id)) is not { } path)
+                {
+                    Log.Warn("Failed to resolve {PackageKey} from {DepsPath}. This dependency would be skipped.",
+                        packageKey, files[0].Name);
+                    continue;
+                }
+                
+                var metadata = PluginMetadata.ReadFromEntrypoint(path);
+                
+                if (metadata is null) continue;
+                
+                var package = new Package(int.MinValue, metadata.Id, metadata.Version);
+                var entry = new CatalogEntry(metadata.Id, metadata.Version, [
+                    new DependencyGroup(_runtimeFramework.Framework,
+                        dependencies)
+                ], ["CringePlugin"], [], metadata.Name);
+
+                localPlugins.Add(new LocalPluginPackage(package, _runtimeFramework.Framework, directory, entry, resolver));
+            }
         }
         
         return (localPlugins.ToImmutable(), references.ToImmutable());
     }
 
     private PluginInstance? LoadComponent(ImmutableArray<PluginInstance>.Builder plugins, string path,
-        PluginMetadata metadata, bool local = false, PluginInstance? parent = null)
+        PluginMetadata metadata, AssemblyDependencyResolver? dependencyResolver, bool local = false,
+        PluginInstance? parent = null)
     {
         try
         {
-            var instance = new PluginInstance(metadata, path, local, serviceProviderFactory, parent);
+            var instance = new PluginInstance(metadata, path, local, serviceProviderFactory, dependencyResolver, parent);
             plugins.Add(instance);
             return instance;
         }

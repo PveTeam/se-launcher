@@ -19,10 +19,10 @@ internal class PluginAssemblyLoadContext : DerivedAssemblyLoadContext, ICoreLoad
     private Assembly? _assembly;
     private readonly AssemblyName _entrypointName;
 
-    internal PluginAssemblyLoadContext(ICoreLoadContext parentContext, string entrypointPath) : base(parentContext, $"Plugin Context {Path.GetFileNameWithoutExtension(entrypointPath)}")
+    internal PluginAssemblyLoadContext(ICoreLoadContext parentContext, string entrypointPath, AssemblyDependencyResolver dependencyResolver) : base(parentContext, $"Plugin Context {Path.GetFileNameWithoutExtension(entrypointPath)}")
     {
         _entrypointPath = entrypointPath;
-        _dependencyResolver = new(entrypointPath);
+        _dependencyResolver = dependencyResolver;
         _entrypointName = AssemblyName.GetAssemblyName(entrypointPath);
 
         Unloading += OnUnload;

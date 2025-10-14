@@ -21,6 +21,7 @@ internal sealed class PluginInstance(
     string entrypointPath,
     bool local,
     IPluginServiceProviderFactory serviceProviderFactory,
+    AssemblyDependencyResolver? dependencyResolver,
     PluginInstance? parent = null)
 {
     private static readonly MethodInfo RegisterServicesMethod =
@@ -37,6 +38,7 @@ internal sealed class PluginInstance(
 
     private Action? _openConfigAction;
     private IServiceProviderScope? _serviceProviderScope;
+    private AssemblyDependencyResolver? _dependencyResolver = dependencyResolver;
     public PluginWrapper? WrappedInstance { get; private set; }
 
     private static readonly ILogger Log = LogManager.GetCurrentClassLogger();
@@ -47,32 +49,29 @@ internal sealed class PluginInstance(
         if (AssemblyLoadContext.GetLoadContext(typeof(PluginInstance).Assembly) is not ICoreLoadContext parentContext)
             throw new NotSupportedException("Plugin instantiation is not supported in this context");
 
+        _dependencyResolver ??= new(entrypointPath);
+
         _context = local
-            ? new LocalLoadContext(parentContext, entrypointPath)
-            : new PluginAssemblyLoadContext(parent?._context ?? parentContext, entrypointPath);
+            ? new LocalLoadContext(parentContext, entrypointPath, _dependencyResolver)
+            : new PluginAssemblyLoadContext(parent?._context ?? parentContext, entrypointPath, _dependencyResolver);
         contextBuilder.Add(_context);
 
         var entrypoint = _context.LoadEntrypoint();
 
-        var plugins = IntrospectionContext.Global.CollectDerivedTypes<IPlugin>(entrypoint.GetMainModule()).ToArray();
-
-        if (plugins.Length == 0)
-            throw new InvalidOperationException("Entrypoint does not contain any plugins");
-        if (plugins.Length > 1)
-            throw new InvalidOperationException("Entrypoint contains multiple plugins");
+        var implementationType = entrypoint.GetMainModule().GetType(Metadata.EntrypointTypeName, true, false)!;
 
         var services = serviceProviderFactory.CreateBuilder();
 
-        services.AddSingleton(typeof(IPlugin), plugins[0]);
+        services.AddSingleton(typeof(IPlugin), implementationType);
 
-        if (plugins[0].IsAssignableTo(typeof(IPluginWithServices)))
-            RegisterServicesMethod.MakeGenericMethod(plugins[0]).Invoke(null, [services]);
+        if (implementationType.IsAssignableTo(typeof(IPluginWithServices)))
+            RegisterServicesMethod.MakeGenericMethod(implementationType).Invoke(null, [services]);
 
         _serviceProviderScope = serviceProviderFactory.CreateServiceProviderScope(_context, services);
 
         _instance = _serviceProviderScope.Provider.GetRequiredService<IPlugin>();
 
-        var openConfigMethod = plugins[0].GetMethod("OpenConfigDialog");
+        var openConfigMethod = implementationType.GetMethod("OpenConfigDialog");
 
         if (openConfigMethod is not null)
         {

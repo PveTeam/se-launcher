@@ -1,4 +1,6 @@
-﻿using System.Reflection;
+﻿using System.Collections.Immutable;
+using System.Reflection;
+using CringePlugins.Utils;
 using dnlib.DotNet;
 using NuGet.Versioning;
 
@@ -6,9 +8,12 @@ namespace CringePlugins.Loader;
 
 public record PluginMetadata(string Id, string Name, NuGetVersion Version, string Source)
 {
-    public static PluginMetadata ReadFromEntrypoint(string entrypointPath)
+    public required string EntrypointTypeName { get; init; }
+    
+    public static PluginMetadata? ReadFromEntrypoint(string entrypointPath)
     {
-        var assembly = AssemblyDef.Load(entrypointPath);
+        var module = ModuleDefMD.Load(entrypointPath, IntrospectionContext.Global.Context);
+        var assembly = module.Assembly;
 
         var titleAttribute = assembly.CustomAttributes.Find(typeof(AssemblyTitleAttribute).FullName);
         var versionAttribute = assembly.CustomAttributes.Find(typeof(AssemblyVersionAttribute).FullName);
@@ -20,6 +25,28 @@ public record PluginMetadata(string Id, string Name, NuGetVersion Version, strin
                 out var version))
             version = new(0, 0, 0, 0);
 
-        return new(assembly.Name, name, version, "Local");
+        return new(assembly.Name, name, version, "Local")
+        {
+            EntrypointTypeName = ResolveEntrypointTypeName(module)
+        };
+    }
+
+    internal static string ResolveEntrypointTypeName(string entrypointPath)
+    {
+        var module = ModuleDefMD.Load(entrypointPath, IntrospectionContext.Global.Context);
+        return ResolveEntrypointTypeName(module);
+    }
+
+    internal static string ResolveEntrypointTypeName(ModuleDefMD module)
+    {
+        var entrypointTypes = IntrospectionContext.Global.CollectDerivedTypeDefinitions<VRage.Plugins.IPlugin>(module)
+            .ToImmutableArray();
+
+        if (entrypointTypes.Length == 0)
+            throw new InvalidOperationException("Entrypoint does not contain any plugins");
+        if (entrypointTypes.Length > 1)
+            throw new InvalidOperationException("Entrypoint contains multiple plugins");
+        
+        return entrypointTypes[0].ClrFullName;
     }
 }

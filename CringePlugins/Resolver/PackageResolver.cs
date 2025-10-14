@@ -8,6 +8,7 @@ using NuGet.Versioning;
 using System.Collections.Concurrent;
 using System.Collections.Immutable;
 using System.IO.Compression;
+using System.Runtime.Loader;
 using System.Xml.Serialization;
 
 namespace CringePlugins.Resolver;
@@ -369,11 +370,12 @@ public record CachedPackage(
     DirectoryInfo Directory,
     CatalogEntry Entry) : ResolvedPackage(Package, ResolvedFramework, Entry);
 
-public record LocalPackage(
+public record LocalPluginPackage(
     Package Package,
     NuGetFramework ResolvedFramework,
     DirectoryInfo Directory,
-    CatalogEntry Entry) : CachedPackage(Package, ResolvedFramework, Directory, Entry);
+    CatalogEntry Entry,
+    AssemblyDependencyResolver DependencyResolver) : CachedPackage(Package, ResolvedFramework, Directory, Entry);
 
 public record RemotePackage(Package Package, NuGetFramework ResolvedFramework, NuGetClient? Client, CatalogEntry Entry)
     : ResolvedPackage(Package, ResolvedFramework, Entry);
