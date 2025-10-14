@@ -6,6 +6,7 @@ using System.Security.Cryptography;
 using System.Text;
 using ImGuiNET;
 using NLog;
+using SharpDX.Direct3D;
 using SharpDX.Direct3D11;
 using SharpDX.DXGI;
 using VRage.Collections;
@@ -144,10 +145,20 @@ internal sealed class ImGuiImageService(HttpClient client) : IImGuiImageService
         if (!File.Exists(path))
             throw new FileNotFoundException(null, path);
 
-        using var img = SharpDX.Toolkit.Graphics.Image.Load(path);
+        using var img = LoadFromPath(path);
 
         var desc = img.Description;
-        using var tex = new Texture2D(_device, new()
+        image = new Image(identifier, LoadTexture(img), new(desc.Width, desc.Height));
+        
+        _images.Add(identifier, image, true);
+        
+        return image;
+    }
+
+    private ShaderResourceView LoadTexture(SharpDX.Toolkit.Graphics.Image img)
+    {
+        var desc = img.Description;
+        var textureDescription = new Texture2DDescription
         {
             Width = desc.Width,
             Height = desc.Height,
@@ -158,17 +169,37 @@ internal sealed class ImGuiImageService(HttpClient client) : IImGuiImageService
             {
                 Count = 1
             },
-            Usage = ResourceUsage.Default,
             BindFlags = BindFlags.ShaderResource,
+            Usage = ResourceUsage.Immutable,
             CpuAccessFlags = CpuAccessFlags.None,
-            OptionFlags = ResourceOptionFlags.None,
-        }, img.ToDataBox());
+        };
 
-        var srv = new ShaderResourceView(_device, tex);
+        Texture2D tex;
+        if (textureDescription.Format == Format.R8G8B8A8_UNorm_SRgb)
+        {
+            textureDescription.Format = Format.R8G8B8A8_Typeless;
+            using (tex = new Texture2D(_device, textureDescription, img.ToDataBox()))
+                return new ShaderResourceView(_device, tex, new()
+                {
+                    Format = Format.R8G8B8A8_UNorm,
+                    Texture2D =
+                    {
+                        MipLevels = desc.MipLevels
+                    },
+                    Dimension = ShaderResourceViewDimension.Texture2D
+                });
+        }
+        
+        using (tex = new Texture2D(_device, textureDescription, img.ToDataBox()))
+            return new ShaderResourceView(_device, tex);
+    }
 
-        image = new Image(identifier, srv, new(desc.Width, desc.Height));
-        _images.Add(identifier, image, true);
-        return image;
+    private static SharpDX.Toolkit.Graphics.Image LoadFromPath(string path)
+    {
+        // for some reason Load(string path) uses just the Read method which might not always read the file fully
+        // yet another keen moment I assume
+        using var stream = File.OpenRead(path);
+        return SharpDX.Toolkit.Graphics.Image.Load(stream, path);
     }
 
     private class ImageReference(ImGuiImage placeholderImage) : ImGuiImage
