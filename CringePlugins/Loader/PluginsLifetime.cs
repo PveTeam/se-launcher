@@ -197,35 +197,39 @@ internal class PluginsLifetime(ConfigHandler configHandler, IPluginServiceProvid
                 anyLoaded = true;
                 var packageClient = await sourceMapping.GetClientAsync(package.Package.Id);
 
-                var packageDir = package is LocalPluginPackage
-                    ? package.Directory.FullName
-                    : Path.Join(package.Directory.FullName, "lib",
-                        package.ResolvedFramework.GetShortFolderName());
-
-                var path = Path.Join(packageDir, $"{package.Package.Id}.deps.json");
-                if (!File.Exists(path))
+                string packageDir;
+                if (package is LocalPluginPackage)
+                    packageDir = package.Directory.FullName;
+                else
                 {
-                    if (packageClient == null)
+                    packageDir = Path.Join(package.Directory.FullName, "lib",
+                        package.ResolvedFramework.GetShortFolderName());
+                    
+                    var path = Path.Join(packageDir, $"{package.Package.Id}.deps.json");
+                    if (!File.Exists(path))
                     {
-                        Log.Warn("No package source found for {Package}, cannot generate dependency manifest",
-                            package.Package.Id);
-                        continue;
-                    }
+                        if (packageClient == null)
+                        {
+                            Log.Warn("No package source found for {Package}, cannot generate dependency manifest",
+                                package.Package.Id);
+                            continue;
+                        }
 
-                    try
-                    {
-                        await using var stream = File.Create(path);
+                        try
+                        {
+                            await using var stream = File.Create(path);
 
-                        //client should not be null for calls to this
-                        //filter out plugins from the dependency tree so they're loaded as port of their own trees
-                        await manifestBuilder.WriteDependencyManifestAsync(stream, package.Entry, _runtimeFramework,
-                            entry => entry.PackageTypes is not ["CringePlugin"]);
-                    }
-                    catch (Exception ex)
-                    {
-                        Log.Error(ex, $"Failed to write dependency manifest for {path}");
-                        File.Delete(path); //delete file to avoid breaking cache
-                        throw;
+                            //client should not be null for calls to this
+                            //filter out plugins from the dependency tree so they're loaded as port of their own trees
+                            await manifestBuilder.WriteDependencyManifestAsync(stream, package.Entry, _runtimeFramework,
+                                entry => entry.PackageTypes is not ["CringePlugin"]);
+                        }
+                        catch (Exception ex)
+                        {
+                            Log.Error(ex, $"Failed to write dependency manifest for {path}");
+                            File.Delete(path); //delete file to avoid breaking cache
+                            throw;
+                        }
                     }
                 }
 
@@ -282,11 +286,9 @@ internal class PluginsLifetime(ConfigHandler configHandler, IPluginServiceProvid
                 }).ToArray();
             references.AddRange(packageReferences);
 
-            ImmutableArray<Dependency> dependencies =
-                [..packageReferences.Select(b => new Dependency(b.Id, b.Range))];
-
             var resolver = new AssemblyDependencyResolver(files[0].FullName[..^depsExtension.Length] + ".dll");
 
+            var targetLibraries = manifest.Targets[manifest.RuntimeTarget.RuntimeFramework];
             foreach (var (packageKey, _) in manifest.Libraries.Where(b => b.Value is
                          { Serviceable: false, Type: LibraryType.Project }))
             {
@@ -300,6 +302,13 @@ internal class PluginsLifetime(ConfigHandler configHandler, IPluginServiceProvid
                 var metadata = PluginMetadata.ReadFromEntrypoint(path);
                 
                 if (metadata is null) continue;
+
+                var dependencies = targetLibraries[packageKey].Dependencies
+                    ?.Select(b => new ManifestPackageKey(b.Key, b.Value))
+                    .Where(b => manifest.Libraries[b] is { Type: LibraryType.Package, Serviceable: true } or
+                        { Type: LibraryType.Project })
+                    .Select(b => new Dependency(b.Id, new(b.Version)))
+                    .ToImmutableArray() ?? [];
                 
                 var package = new Package(int.MinValue, metadata.Id, metadata.Version);
                 var entry = new CatalogEntry(metadata.Id, metadata.Version, [
