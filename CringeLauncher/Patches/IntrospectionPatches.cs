@@ -42,10 +42,9 @@ public static class IntrospectionPatches
             //mods need to look for specific derived types
             Debug.WriteLine($"Getting special types for {__instance.FullName}");
             var module = __instance.GetMainModule();
-            __result =
+            HashSet<Type> set =
             [
-                .. IntrospectionContext.Global.CollectDerivedTypes<MyObjectBuilder_Base>(module)
-,
+                .. IntrospectionContext.Global.CollectDerivedTypes<MyObjectBuilder_Base>(module),
                 .. IntrospectionContext.Global.CollectDerivedTypes<MyStatLogic>(module),
                 .. IntrospectionContext.Global.CollectAttributedTypes<MyObjectBuilderDefinitionAttribute>(module),
                 .. IntrospectionContext.Global.CollectDerivedTypes<MyComponentBase>(module),
@@ -56,6 +55,7 @@ public static class IntrospectionPatches
                 .. IntrospectionContext.Global.CollectAttributedTypes<MySessionComponentDescriptor>(module),
             ];
 
+            __result = [.. set];
 
             return false;
         }
