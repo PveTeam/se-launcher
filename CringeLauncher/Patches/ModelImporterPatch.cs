@@ -1,4 +1,5 @@
 ﻿using HarmonyLib;
+using SharpDX.Multimedia;
 using SharpDX.Toolkit.Graphics;
 using System.Reflection;
 using VRageRender.Import;
@@ -14,6 +15,7 @@ internal static class ModelImporterPatch
         AccessTools.Method(typeof(MyModelImporter), "ImportData"),
         AccessTools.Method(typeof(DDSHelper), "TryReadDDSHeader"),
         AccessTools.Method(typeof(DDSHelper), "CreateCompressedImageFromStream"),
+        AccessTools.Method(typeof(SoundStream), nameof(SoundStream.ToDataStream))
     ];
 
     [HarmonyTranspiler]
