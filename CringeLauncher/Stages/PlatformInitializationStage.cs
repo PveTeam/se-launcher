@@ -70,6 +70,7 @@ internal class PlatformInitializationStage(
                 MyFakes.VOICE_CHAT_MIC_SENSITIVITY = MySandboxGame.Config.MicSensitivity;
                 MyPlatformGameSettings.VOICE_CHAT_AUTOMATIC_ACTIVATION =
                     MySandboxGame.Config.AutomaticVoiceChatActivation;
+                MyFakes.ENABLE_WAIT_UNTIL_CLIPMAPS_READY = false;
             });
         CultureInfo.DefaultThreadCurrentCulture = CultureInfo.InvariantCulture;
         MyVRage.Platform.Init();

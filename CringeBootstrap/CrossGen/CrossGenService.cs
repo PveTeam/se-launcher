@@ -220,7 +220,7 @@ internal abstract class CrossGenService(string gameDirectoryPath, string cachePa
     private string GetCacheKey()
     {
         using var stream = File.OpenRead(Path.Join(gameDirectoryPath, CacheKeyFileName));
-        return Convert.ToHexStringLower(SHA256.HashData(stream)) + FormatVersion;
+        return Convert.ToHexStringLower(SHA256.HashData(stream)) + FormatVersion + Environment.Version.GetHashCode();
     }
 
     private async Task<ImmutableHashSet<string>> GetDefaultReferences()

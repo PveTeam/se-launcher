@@ -33,7 +33,7 @@ internal class PluginsLifetime(ConfigHandler configHandler, IPluginServiceProvid
     internal bool SomeSourcesAreUnavailable { get; private set; }
 
     private readonly NuGetRuntimeFramework _runtimeFramework =
-        new(NuGetFramework.ParseFolder("net9.0-windows10.0.19041.0"), RuntimeInformation.RuntimeIdentifier);
+        new(NuGetFramework.ParseFolder("net10.0-windows10.0.19041.0"), RuntimeInformation.RuntimeIdentifier);
 
     private ConfigReference<PackagesConfig>? _configReference;
     private ConfigReference<LauncherConfig>? _launcherConfig;

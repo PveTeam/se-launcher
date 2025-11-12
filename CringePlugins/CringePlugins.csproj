@@ -1,7 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
     <PropertyGroup>
-        <TargetFramework>net9.0-windows</TargetFramework>
+        <TargetFramework>net10.0-windows</TargetFramework>
         <RuntimeIdentifier>win-x64</RuntimeIdentifier>
         <ImplicitUsings>enable</ImplicitUsings>
         <Nullable>enable</Nullable>
@@ -35,6 +35,7 @@
         <PackageReference Include="Microsoft.TemplateEngine.Utils" Version="9.0.302" />
         <PackageReference Include="Lib.Harmony.Thin" Version="2.3.4-torch" />
         <PackageReference Include="ImGui.NET.DirectX" Version="1.92.3" />
+        <PackageReference Include="MonoMod.Core" Version="1.3.3" />
         <PackageReference Include="SpaceEngineersDedicated.ReferenceAssemblies" Version="1.207.22" ExcludeAssets="runtime" />
         <PackageReference Include="dnlib" Version="4.5.0" />
         <PackageReference Include="Steamworks.NET" Version="[20.1.0]" />
