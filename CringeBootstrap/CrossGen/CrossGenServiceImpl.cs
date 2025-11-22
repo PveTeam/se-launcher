@@ -36,11 +36,8 @@ internal class CrossGenServiceImpl(string gameDirectoryPath, string cachePath, I
 
             await using var stream =
                 await client.GetPackageContentStreamAsync(packageId, new NuGetVersion(Environment.Version));
-            await using var memStream = new MemoryStream();
-            await stream.CopyToAsync(memStream);
-            memStream.Position = 0;
-            using var archive = new ZipArchive(memStream, ZipArchiveMode.Read);
-            archive.ExtractToDirectory(packagePath.FullName);
+            await using var archive = await ZipArchive.CreateAsync(stream, ZipArchiveMode.Read, true, null);
+            await archive.ExtractToDirectoryAsync(packagePath.FullName);
 
             if (!File.Exists(toolPath))
             {

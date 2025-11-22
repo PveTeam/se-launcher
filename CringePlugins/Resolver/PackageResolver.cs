@@ -340,11 +340,8 @@ public class PackageResolver(NuGetFramework runtimeFramework, ImmutableHashSet<P
                                 ?? throw new InvalidOperationException("Attempted to download a package with no client (no cached folder)");
 
                         await using var stream = await client.GetPackageContentStreamAsync(package.Package.Id, package.Package.Version);
-                        await using var memStream = new MemoryStream();
-                        await stream.CopyToAsync(memStream);
-                        memStream.Position = 0;
-                        using var archive = new ZipArchive(memStream, ZipArchiveMode.Read);
-                        archive.ExtractToDirectory(dir.FullName);
+                        await using var archive = await ZipArchive.CreateAsync(stream, ZipArchiveMode.Read, true, null);
+                        await archive.ExtractToDirectoryAsync(dir.FullName);
                     }
 
                     packages.Add(new CachedPackage(package.Package, package.ResolvedFramework, dir, package.Entry));

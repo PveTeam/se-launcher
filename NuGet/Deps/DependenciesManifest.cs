@@ -160,17 +160,14 @@ public class DependencyManifestBuilder(DirectoryInfo cacheDirectory, PackageSour
             }
 
             //don't call this method if client is null
-            var client = await packageSources.GetClientAsync(entry.Id)!;
+            var client = await packageSources.GetClientAsync(entry.Id);
 
             dir.Create();
 
             {
-                await using var stream = await client.GetPackageContentStreamAsync(entry.Id, entry.Version);
-                await using var memStream = new MemoryStream();
-                await stream.CopyToAsync(memStream);
-                memStream.Position = 0;
-                using var archive = new ZipArchive(memStream, ZipArchiveMode.Read);
-                archive.ExtractToDirectory(dir.FullName);
+                await using var stream = await client!.GetPackageContentStreamAsync(entry.Id, entry.Version);
+                await using var archive = await ZipArchive.CreateAsync(stream, ZipArchiveMode.Read, true, null);
+                await archive.ExtractToDirectoryAsync(dir.FullName);
             }
         }
     }
