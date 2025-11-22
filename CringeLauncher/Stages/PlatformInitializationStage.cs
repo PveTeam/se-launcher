@@ -1,5 +1,6 @@
 ﻿using System.Globalization;
 using CringeLauncher.CrashPad;
+using CringeLauncher.Patches;
 using CringeLauncher.Platform;
 using CringeLauncher.Render;
 using CringeLauncher.Utils;
@@ -7,6 +8,7 @@ using CringePlugins.Splash;
 using Sandbox;
 using Sandbox.Engine.Utils;
 using Sandbox.Game;
+using Sandbox.Game.World;
 using SpaceEngineers.Game;
 using VRage;
 using VRage.Audio;
@@ -78,6 +80,7 @@ internal class PlatformInitializationStage(
         ConfigureSettings();
         InitThreadPool();
         MyVRage.Platform.System.OnThreadpoolInitialized();
+        MySession.OnUnloaded += ResourceFreePatch.OnUnloaded;
         
         return default;
     }
