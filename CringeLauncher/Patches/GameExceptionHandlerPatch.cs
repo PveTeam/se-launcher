@@ -4,7 +4,7 @@ using Sandbox;
 namespace CringeLauncher.Patches;
 
 [HarmonyPatch(typeof(MyInitializer), "UnhandledExceptionHandler")]
-public class GameExceptionHandlerPatch
+public static class GameExceptionHandlerPatch
 {
     private static bool Prefix() => false;
 }

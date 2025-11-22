@@ -68,6 +68,7 @@ public static class SwapChainPatch
     [HarmonyPrefix, HarmonyPatch(typeof(MyBackbuffer), MethodType.Constructor, typeof(SharpDX.Direct3D11.Resource))]
     private static bool SwapChainBBPrefix(MyBackbuffer __instance, SharpDX.Direct3D11.Resource swapChainBB)
     {
+        __instance.m_debugName = "MyBackbuffer";
         __instance.m_resource = swapChainBB;
         __instance.m_rtv = new RenderTargetView(MyRender11.DeviceInstance, swapChainBB, new()
         {
