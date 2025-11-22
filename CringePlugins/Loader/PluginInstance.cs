@@ -87,6 +87,23 @@ internal sealed class PluginInstance(
         }
 
         WrappedInstance = new PluginWrapper(new PluginContext(Metadata, _serviceProviderScope.Provider), _instance);
+        
+        var loadAssetsMethod = implementationType.GetMethod("LoadAssets", [typeof(string)]);
+
+        if (loadAssetsMethod is null) return;
+        
+        var assetsDir = Path.Join(new DirectoryInfo(Path.GetDirectoryName(entrypointPath)!).Parent?.Parent?.FullName,
+            "assets" + Path.DirectorySeparatorChar);
+        
+        if (Directory.Exists(assetsDir))
+        {
+            loadAssetsMethod.Invoke(_instance, [assetsDir]);
+        }
+        else
+        {
+            Log.Error("Plugin is missing an assets folder: {Name}, v{Version} - {Source}", Metadata.Name,
+                Metadata.Version, Metadata.Source);
+        }
     }
 
     public void RegisterLifetime()
