@@ -92,12 +92,9 @@ internal sealed class PluginInstance(
 
         if (loadAssetsMethod is null) return;
         
-        var assetsDir = Path.Join(new DirectoryInfo(Path.GetDirectoryName(entrypointPath)!).Parent?.Parent?.FullName,
-            "assets" + Path.DirectorySeparatorChar);
-        
-        if (Directory.Exists(assetsDir))
+        if (Metadata.AssetsDirectory?.Exists == true)
         {
-            loadAssetsMethod.Invoke(_instance, [assetsDir]);
+            loadAssetsMethod.Invoke(_instance, [Metadata.AssetsDirectory.FullName]);
         }
         else
         {

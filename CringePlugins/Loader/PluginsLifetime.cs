@@ -232,6 +232,9 @@ internal class PluginsLifetime(ConfigHandler configHandler, IPluginServiceProvid
                         }
                     }
                 }
+                
+                var assetsDirectory = new DirectoryInfo(Path.Join(package.Directory.FullName, "assets"));
+                if (!assetsDirectory.Exists) assetsDirectory = null;
 
                 var sourceName = package is LocalPluginPackage
                     ? "Local"
@@ -243,7 +246,8 @@ internal class PluginsLifetime(ConfigHandler configHandler, IPluginServiceProvid
                     new(package.Package.Id, package.Entry.Title ?? package.Package.Id, package.Package.Version,
                         sourceName)
                     {
-                        EntrypointTypeName = PluginMetadata.ResolveEntrypointTypeName(entrypointPath)
+                        EntrypointTypeName = PluginMetadata.ResolveEntrypointTypeName(entrypointPath),
+                        AssetsDirectory = assetsDirectory
                     },
                     dependencyResolver: package is LocalPluginPackage pluginPackage
                         ? pluginPackage.DependencyResolver

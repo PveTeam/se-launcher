@@ -10,6 +10,8 @@ public record PluginMetadata(string Id, string Name, NuGetVersion Version, strin
 {
     public required string EntrypointTypeName { get; init; }
     
+    public DirectoryInfo? AssetsDirectory { get; init; }
+    
     public static PluginMetadata? ReadFromEntrypoint(string entrypointPath)
     {
         var module = ModuleDefMD.Load(entrypointPath, IntrospectionContext.Global.Context);
