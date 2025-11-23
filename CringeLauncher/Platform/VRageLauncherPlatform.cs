@@ -21,14 +21,13 @@ namespace CringeLauncher.Platform;
 
 internal class VRageLauncherPlatform(string applicationName, string? appdataPath, VRageWindowSurrogate surrogate) : IVRagePlatform
 {
-    private readonly MyWindowsSystem _system = new(applicationName, appdataPath, MyLog.Default);
+    private readonly VRageSystem _system = new(applicationName, surrogate, appdataPath);
     private readonly IProtoTypeModel _typeModel = new DynamicTypeModel();
     
     public VRageWindowSurrogate Surrogate => surrogate;
 
     public void Init()
     {
-        _system.Init();
         Render = new PlatformRender(surrogate);
     }
 
