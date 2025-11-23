@@ -1,4 +1,4 @@
-﻿using CringeBootstrap.Abstractions;
+using CringeBootstrap.Abstractions;
 using CringeBootstrap.Transformers;
 using NuGet.Deps;
 using System.Collections.Immutable;
@@ -170,11 +170,12 @@ internal abstract class CrossGenService(string gameDirectoryPath, string cachePa
         inputAssemblyPath = Path.Join(Path.GetTempPath(), Path.GetRandomFileName() + ".dll");
         transformationService.Transform(token, inputAssemblyPath);
     }
-
+    
     private static async Task<ImmutableArray<string>> CollectFrameworkReferencesAsync()
     {
-        var dotnetPacksPath = Path.Join(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles), "dotnet",
-            "shared");
+        var dotnetRoot = Environment.GetEnvironmentVariable("DOTNET_ROOT") ??
+                         Path.Join(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles), "dotnet");
+        var dotnetPacksPath = Path.Join(dotnetRoot, "shared");
         if (!Directory.Exists(dotnetPacksPath))
             throw new Exception($"Dotnet shared packs not found in {dotnetPacksPath}");
 
@@ -184,7 +185,9 @@ internal abstract class CrossGenService(string gameDirectoryPath, string cachePa
         return
         [
             ..await CollectFrameworkReferencesFromPackAsync(dotnetPacksPath, runtimePackId),
+#if WINDOWS
             ..await CollectFrameworkReferencesFromPackAsync(dotnetPacksPath, desktopPackId)
+#endif
         ];
     }
 

@@ -93,19 +93,37 @@ public class CrashReportWriter(CrashInformation information, string? redirectPat
         writer.WriteLine(RuntimeInformation.OSDescription);
         writer.Write("CPUs: ");
         writer.WriteLine(Environment.ProcessorCount);
+        var processorName = QueryProcessorName();
+        writer.Write("Processor: ");
+        writer.WriteLine(processorName ?? "Unknown");
+    }
+
+    internal static string? QueryProcessorName()
+    {
         string? processorName = null;
         try
         {
+#if WINDOWS
             // im lazy for WMI
             processorName = Registry.GetValue(@"HKEY_LOCAL_MACHINE\HARDWARE\DESCRIPTION\System\CentralProcessor\0",
                 "ProcessorNameString", null) as string;
+#else
+            foreach (var line in File.ReadLines("/proc/cpuinfo"))
+            {
+                if (!line.StartsWith("model name")) continue;
+                var separatorIndex = line.IndexOf(':');
+                if (separatorIndex > 0)
+                    processorName = line[(separatorIndex + 1)..].Trim();
+                break;
+            }
+#endif
         }
         catch (Exception e)
         {
             Log.Warn(e, "Failed to query processor information");
         }
-        writer.Write("Processor: ");
-        writer.WriteLine(processorName ?? "Unknown");
+
+        return processorName;
     }
 
     private void WritePluginDetails(StreamWriter writer)

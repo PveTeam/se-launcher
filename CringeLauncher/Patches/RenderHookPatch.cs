@@ -2,7 +2,6 @@
 using Windows.Win32.Foundation;
 using CringeLauncher.Platform;
 using HarmonyLib;
-using SharpDX.DXGI;
 using VRage;
 using VRage.Platform.Windows.Forms;
 using VRageRender;
@@ -13,12 +12,6 @@ namespace CringeLauncher.Patches;
 [HarmonyPatch]
 public static class RenderHookPatch
 {
-    [HarmonyPostfix, HarmonyPatch(typeof(MyGameForm), "OnLoad")]
-    private static void LoadPostfix(MyGameForm __instance)
-    {
-        ImGuiHandler.HookWindow((HWND)__instance.Handle);
-    }
-
     [HarmonyTranspiler, HarmonyPatch(typeof(MyRender11), nameof(MyRender11.ProcessStateChanges))]
     private static IEnumerable<CodeInstruction> ProcessStateChangesTranspiler(IEnumerable<CodeInstruction> instructions)
     {
@@ -46,6 +39,6 @@ public static class RenderHookPatch
 
     private static void SwitchSettings(object? renderThread, MyRenderDeviceSettings settings)
     {
-        ((VRageLauncherPlatform)MyVRage.Platform).Surrogate.ApplyRenderSettings(settings);
+        ((VRageLauncherPlatform)MyVRage.Platform).Surrogate?.ApplyRenderSettings(settings);
     }
 }

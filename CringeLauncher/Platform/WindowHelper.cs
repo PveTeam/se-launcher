@@ -5,7 +5,7 @@ using MessageBoxOptions = VRage.MessageBoxOptions;
 
 namespace CringeLauncher.Platform;
 
-internal class WindowHelper(VRageWindowSurrogate surrogate) : IVRageWindows
+internal class WindowHelper(VRageWindowSurrogate? surrogate) : IVRageWindows
 {
     public void CreateWindow(string gameName, string gameIcon, Type imeCandidateType)
     {
@@ -42,5 +42,5 @@ internal class WindowHelper(VRageWindowSurrogate surrogate) : IVRageWindows
         throw new NotImplementedException();
     }
 
-    public IVRageWindow Window => surrogate;
+    public IVRageWindow? Window => surrogate;
 }

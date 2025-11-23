@@ -9,7 +9,7 @@ namespace CringeLauncher.UserDev;
 
 public class UserDevLauncher() : Launcher(Environment.GetEnvironmentVariable("DOTNET_USERDEV_RUNDIR"))
 {
-    protected override void InitUgc(Splash splash)
+    protected override void Initialize(Splash splash)
     {
         var gameService = new UserDevGameService(LauncherConstants.AppId);
         MyServiceManager.Instance.AddService<IMyGameService>(gameService);

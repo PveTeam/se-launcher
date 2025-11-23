@@ -1,5 +1,4 @@
-﻿using System.Drawing.Drawing2D;
-using SharpDX.Direct3D11;
+﻿using SharpDX.Direct3D11;
 using SharpDX.DXGI;
 using Windows.Win32.Foundation;
 using ImGuiNET;
@@ -40,6 +39,7 @@ internal class EarlyImGuiHandler
         ImGuiHandler.Instance!.DoRender();
     }
 
+#if WINDOWS
     public Region? GetWindowRegions()
     {
         var contextPtr = ImGui.GetCurrentContext();
@@ -70,6 +70,7 @@ internal class EarlyImGuiHandler
     
     private int _previousWindowRegionHash;
     private Region? _windowRegion;
+#endif
 
     public RenderTargetView RenderTarget => ImGuiHandler.Rtv!;
 }

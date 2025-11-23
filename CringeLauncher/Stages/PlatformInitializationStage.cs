@@ -1,4 +1,4 @@
-﻿using CringeLauncher.CrashPad;
+using CringeLauncher.CrashPad;
 using CringeLauncher.Platform;
 using CringeLauncher.Render;
 using CringeLauncher.Utils;
@@ -19,7 +19,7 @@ using VRageRender;
 namespace CringeLauncher.Stages;
 
 internal class PlatformInitializationStage(
-    EarlyRenderThread renderThread,
+    EarlyRenderThread? renderThread,
     string? gameDataDirectoryPathOverride,
     CrashPadService crashPadService) : ILoadingStage
 {
@@ -44,7 +44,7 @@ internal class PlatformInitializationStage(
             gameDataDirectoryPathOverride is null
                 ? null
                 : Path.Join(gameDataDirectoryPathOverride, MyPerGameSettings.BasicGameInfo.ApplicationName),
-            renderThread.Surrogate));
+            renderThread?.Surrogate));
         
         MyPlatformGameSettings.SAVE_TO_CLOUD_OPTION_AVAILABLE = true;
 
@@ -62,6 +62,9 @@ internal class PlatformInitializationStage(
         {
             MyPlatformGameSettings.SIMPLIFIED_SIMULATION_OVERRIDE = false;
         }
+
+        // MyFakes.ENABLE_HAVOK_MULTITHREADING = false;
+        // MyFakes.ENABLE_HAVOK_PARALLEL_SCHEDULING = false;
         
         progress.Report("Loading configuration");
 
@@ -93,8 +96,9 @@ internal class PlatformInitializationStage(
     
     private static void InitThreadPool()
     {
-#if DEBUG
-        ParallelTasks.Parallel.Scheduler = new ThreadPoolScheduler();
+#if false
+        ParallelTasks.Parallel.Scheduler = new ParallelTasks.FakeTaskScheduler();
+        // ParallelTasks.Parallel.Scheduler = new ThreadPoolScheduler();
 #else
         MySandboxGame.InitMultithreading();
 

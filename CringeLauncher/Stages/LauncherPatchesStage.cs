@@ -11,7 +11,15 @@ public class LauncherPatchesStage : ILoadingStage
         progress.DefineStepsCount(1);
         progress.Report("Applying launcher patches");
         
-        new Harmony("CringeBootstrap").PatchAll(typeof(Launcher).Assembly);
+        try
+        {
+            new Harmony("CringeBootstrap").PatchAll(typeof(Launcher).Assembly);
+        }
+        catch (Exception e)
+        {
+            Console.WriteLine(e);
+            throw;
+        }
         
         return default;
     }

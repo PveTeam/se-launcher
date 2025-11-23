@@ -1,6 +1,7 @@
 ﻿using System.Formats.Nrbf;
 using HarmonyLib;
 using VRage.GameServices;
+#pragma warning disable SYSLIB5005
 
 namespace CringeLauncher.Patches;
 

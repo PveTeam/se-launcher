@@ -9,7 +9,7 @@ using CringeBootstrap.Transformers.Impl;
 using Microsoft.Extensions.DependencyInjection;
 using Velopack;
 
-#if DEBUG
+#if false
 while (!Debugger.IsAttached)
     Thread.Sleep(100);
 #endif
@@ -48,7 +48,13 @@ var gameDir = dir;
 
 var customEntrypoint = Environment.GetEnvironmentVariable("DOTNET_BOOTSTRAP_ENTRYPOINT");
 
-var transformationService = new TransformationService(gameDir, [new ImageSharpTransformer()]);
+var transformationService = new TransformationService(gameDir, [
+    new ImageSharpTransformer(),
+#if !WINDOWS
+    new DllImportTransformer(),
+    new SharpDxTransformer(),
+#endif
+]);
 var cacheDir = Directory.CreateDirectory(Path.Join(
     Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
     "CringeLauncher", "cache"));

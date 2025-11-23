@@ -1,4 +1,4 @@
-﻿using CringeBootstrap.Abstractions;
+using CringeBootstrap.Abstractions;
 using CringePlugins.Abstractions;
 using CringePlugins.Compatability;
 using CringePlugins.Config;
@@ -17,10 +17,11 @@ using SpaceEngineers.Game.GUI;
 using System.Collections.Concurrent;
 using System.Collections.Immutable;
 using System.Diagnostics;
-using System.Numerics;
 using System.Text.Json;
 using System.Xml.Serialization;
+using VRageMath;
 using static ImGuiNET.ImGui;
+using Vector2 = System.Numerics.Vector2;
 
 namespace CringePlugins.Ui;
 

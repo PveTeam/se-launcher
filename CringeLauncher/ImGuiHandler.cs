@@ -1,10 +1,12 @@
-﻿using System.Runtime.CompilerServices;
+#if WINDOWS
+using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
-using System.Runtime.InteropServices.Marshalling;
 using System.Runtime.Versioning;
 using Windows.Win32;
-using Windows.Win32.Foundation;
 using Windows.Win32.UI.WindowsAndMessaging;
+#endif
+using Windows.Win32.Foundation;
+using System.Runtime.InteropServices.Marshalling;
 using CringePlugins.Abstractions;
 using CringePlugins.Render;
 using CringePlugins.Services;
@@ -12,10 +14,8 @@ using CringePlugins.Ui;
 using ImGuiNET;
 using Microsoft.Extensions.DependencyInjection;
 using SharpDX.Direct3D11;
-using static ImGuiNET.ImGui;
-using VRage;
 using Sandbox.Graphics.GUI;
-using VRageRender;
+using static ImGuiNET.ImGui;
 
 namespace CringeLauncher;
 
@@ -69,7 +69,10 @@ internal sealed class ImGuiHandler : IGuiHandler, IDisposable
         io.ConfigDpiScaleFonts = true;
         io.ConfigFlags |= ImGuiConfigFlags.DockingEnable | ImGuiConfigFlags.ViewportsEnable;
 
+#if WINDOWS
         ImGui_ImplWin32_Init(windowHandle);
+#endif
+        
         ImGui_ImplDX11_Init(device.NativePointer, deviceContext.NativePointer);
         _init = true;
 
@@ -108,6 +111,7 @@ internal sealed class ImGuiHandler : IGuiHandler, IDisposable
 
     public static void HookWindow(HWND windowHandle)
     {
+#if WINDOWS
         _wndproc = PInvoke.GetWindowLongPtr(windowHandle, WINDOW_LONG_PTR_INDEX.GWL_WNDPROC);
 
         unsafe
@@ -116,6 +120,7 @@ internal sealed class ImGuiHandler : IGuiHandler, IDisposable
 
             PInvoke.SetWindowLongPtr(windowHandle, WINDOW_LONG_PTR_INDEX.GWL_WNDPROC, (nint)wndProcHook);
         }
+#endif
     }
 
     public void NotifyGameRendererInitialized()
@@ -129,7 +134,9 @@ internal sealed class ImGuiHandler : IGuiHandler, IDisposable
             return;
 
         ImGui_ImplDX11_NewFrame();
+#if WINDOWS
         ImGui_ImplWin32_NewFrame();
+#endif
         NewFrame();
 
         var io = GetIO();
@@ -173,6 +180,7 @@ internal sealed class ImGuiHandler : IGuiHandler, IDisposable
         }
     }
 
+#if WINDOWS
     [UnmanagedCallersOnly(CallConvs = [typeof(CallConvStdcall)])]
     private static unsafe int WndProcHook(HWND hWnd, int msg, nint wParam, nint lParam)
     {
@@ -196,7 +204,7 @@ internal sealed class ImGuiHandler : IGuiHandler, IDisposable
             return 0;
 
         //ignore input if mouse is hidden
-        if (Instance?.BlockKeys != true && MyVRage.Platform?.Input?.ShowCursor == false && Instance?.DrawMouse != true)
+        if (Instance?.BlockKeys != true && VRage.MyVRage.Platform?.Input?.ShowCursor == false && Instance?.DrawMouse != true)
             return CallWindowProc(_wndproc, hWnd, msg, wParam, lParam);
 
         var hookResult = ImGui_ImplWin32_WndProcHandler(hWnd, msg, wParam, lParam);
@@ -210,7 +218,7 @@ internal sealed class ImGuiHandler : IGuiHandler, IDisposable
         var io = GetIO();
 
         var blockMessage = (msg is >= 256 and <= 265 && io.WantTextInput)
-            || (msg is >= 512 and <= 526 && io.WantCaptureMouse);
+                           || (msg is >= 512 and <= 526 && io.WantCaptureMouse);
 
         return blockMessage ? hookResult : CallWindowProc(_wndproc, hWnd, msg, wParam, lParam);
     }
@@ -219,6 +227,7 @@ internal sealed class ImGuiHandler : IGuiHandler, IDisposable
     [DefaultDllImportSearchPaths(DllImportSearchPath.System32)]
     [SupportedOSPlatform("windows5.0")]
     private static extern int CallWindowProc(nint lpPrevWndFunc, HWND hWnd, int msg, nint wParam, nint lParam);
+#endif
 
     public void Dispose()
     {

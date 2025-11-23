@@ -1,4 +1,5 @@
-﻿using CringeLauncher.Render;
+﻿using CringeLauncher.Platform.Xplat;
+using CringeLauncher.Render;
 using VRage;
 using VRage.Analytics;
 using VRage.Audio;
@@ -11,25 +12,26 @@ using VRage.Platform.Windows.Forms;
 using VRage.Platform.Windows.Http;
 using VRage.Platform.Windows.IME;
 using VRage.Platform.Windows.Input;
+using VRage.Platform.Windows.Render;
 using VRage.Platform.Windows.Serialization;
-using VRage.Platform.Windows.Sys;
 using VRage.Scripting;
 using VRage.Serialization;
 using VRage.Utils;
 
 namespace CringeLauncher.Platform;
 
-internal class VRageLauncherPlatform(string applicationName, string? appdataPath, VRageWindowSurrogate surrogate) : IVRagePlatform
+internal class VRageLauncherPlatform(string applicationName, string? appdataPath, VRageWindowSurrogate? surrogate) : IVRagePlatform
 {
-    private readonly MyWindowsSystem _system = new(applicationName, appdataPath, MyLog.Default);
+    private readonly VRageSystem _system = new(applicationName, surrogate, appdataPath);
     private readonly IProtoTypeModel _typeModel = new DynamicTypeModel();
     
-    public VRageWindowSurrogate Surrogate => surrogate;
+    public VRageWindowSurrogate? Surrogate => surrogate;
 
     public void Init()
     {
-        _system.Init();
-        Render = new PlatformRender(surrogate);
+        if (surrogate is not null)
+            Render = new PlatformRender(surrogate);
+        else Render = new MyWindowsRender(MyLog.Default, null);
     }
 
     public void Update()
@@ -42,10 +44,17 @@ internal class VRageLauncherPlatform(string applicationName, string? appdataPath
 
     public bool CreateInput2()
     {
+#if WINDOWS
         Input2 = new MyDirectInput(new MyWindowsWindows(null)
         {
-            WindowHandle = surrogate.Window.Handle
+            WindowHandle = surrogate?.Window.Handle ?? 0
         });
+#else
+        var input = new XplatGameInput(surrogate!.Window);
+        Input2 = input;
+        
+        surrogate?.AddFrameCallback(input.Update);
+#endif
         return Input2.IsCorrectlyInitialized;
     }
 
@@ -71,13 +80,33 @@ internal class VRageLauncherPlatform(string applicationName, string? appdataPath
 
     public IVRageRender? Render { get; private set; }
 
-    public IAnsel Ansel { get; } =
+    public IAnsel? Ansel { get; } =
+#if WINDOWS
         (IAnsel)Activator.CreateInstance(Type.GetType("VRage.Ansel.MyAnsel, VRage.Ansel", true)!)!;
-    public IAfterMath AfterMath { get; } = new MyAfterMath();
-    public IVRageInput Input => surrogate;
+#else
+        new NullAnsel();
+#endif
+    public IAfterMath AfterMath { get; } =
+#if WINDOWS
+        new MyAfterMath();
+#else
+        new NullAfterMath();
+#endif
+    public IVRageInput? Input => surrogate;
     public IVRageInput2? Input2 { get; private set; }
-    public IMyAudio? Audio => field ??= new MyXAudio2(new MyPlatformAudio());
-    public IMyImeProcessor ImeProcessor => MyImeProcessor.Instance;
+
+    public IMyAudio? Audio => field ??=
+#if WINDOWS
+        new MyXAudio2(new MyPlatformAudio());
+#else
+        new MyNullAudio();
+#endif
+    public IMyImeProcessor ImeProcessor { get; } =
+#if WINDOWS
+        MyImeProcessor.Instance;
+#else
+        new NullImeProcessor();
+#endif
     public IMyCrashReporting CrashReporting { get; } = new CrashReportingSurrogate();
     public IVRageScripting Scripting { get; } = MyVRageScripting.Create();
 }

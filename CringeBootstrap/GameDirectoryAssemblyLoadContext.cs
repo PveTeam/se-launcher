@@ -1,12 +1,14 @@
 ﻿using System.Collections.Immutable;
 using System.Diagnostics;
 using System.Reflection;
+using System.Runtime.InteropServices;
+using System.Runtime.InteropServices.Marshalling;
 using System.Runtime.Loader;
 using CringeBootstrap.Abstractions;
 
 namespace CringeBootstrap;
 
-public class GameDirectoryAssemblyLoadContext : AssemblyLoadContext, ICoreLoadContext
+public partial class GameDirectoryAssemblyLoadContext : AssemblyLoadContext, ICoreLoadContext
 {
     private readonly string _dir;
     private readonly string _unmanagedAssembliesDir;
@@ -75,14 +77,49 @@ public class GameDirectoryAssemblyLoadContext : AssemblyLoadContext, ICoreLoadCo
         if (unmanagedDllName.AsSpan().ContainsAny(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar))
             return base.LoadUnmanagedDll(unmanagedDllName);
 
+#if !WINDOWS
+        if (unmanagedDllName == Transformers.Impl.DllImportTransformer.EntrypointModuleName)
+            return LoadEntrypointLibrary();
+#endif
+
         // prefer System32 over ours
         // avoid using _dir because it may be a crossgen directory without unmanaged assemblies
-        ReadOnlySpan<string> dirs = [Environment.SystemDirectory, _unmanagedAssembliesDir];
+        ReadOnlySpan<string> dirs = [
+            Environment.SystemDirectory, 
+            _unmanagedAssembliesDir, 
+            AppContext.BaseDirectory,
+#if DEBUG
+            Directory.GetCurrentDirectory(),
+#endif
+        ];
         foreach (var dir in dirs)
         {
             var path = Path.Join(dir, unmanagedDllName);
+            
             if (!Path.HasExtension(path))
                 path += ".dll";
+
+#if !WINDOWS
+            if (Path.GetExtension(path.AsSpan()) is ".dll")
+            {
+                var fileName = Path.GetFileNameWithoutExtension(path).Replace('.', '_') + ".so";
+                path = Path.GetDirectoryName(path);
+                if (!File.Exists(path))
+                {
+                    var fileNameLower = fileName.ToLowerInvariant();
+                    var lowercase = Path.Join(path, fileNameLower);
+                    if (!File.Exists(lowercase))
+                    {
+                        lowercase = Path.Join(path, $"lib{fileNameLower}");
+                        path = File.Exists(lowercase) ? lowercase : Path.Join(path, $"lib{fileName}");
+                    }
+                    else path = lowercase;
+                }
+
+                if (!Path.IsPathRooted(path))
+                    path = Path.GetFullPath(path);
+            }
+#endif
 
             if (File.Exists(path))
                 return LoadUnmanagedDllFromPath(path);
@@ -90,6 +127,14 @@ public class GameDirectoryAssemblyLoadContext : AssemblyLoadContext, ICoreLoadCo
 
         throw new DllNotFoundException($"Unable to load {unmanagedDllName}, module not found in valid locations");
     }
+
+#if !WINDOWS
+    private static nint LoadEntrypointLibrary()
+    {
+        var mainHandle = NativeLibrary.Load(Transformers.Impl.DllImportTransformer.EntrypointModuleName);
+        return mainHandle;
+    }
+#endif
 
     public Assembly? ResolveFromAssemblyName(AssemblyName assemblyName) => Load(assemblyName);
     public nint ResolveUnmanagedDll(string unmanagedDllName) => LoadUnmanagedDll(unmanagedDllName);

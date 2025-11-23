@@ -99,7 +99,7 @@ internal class CheckUpdatesStage(
         Environment.SetEnvironmentVariable("DOTNET_BOOTSTRAP_ENTRYPOINT", null);
 
         var newArgs = args;
-        var index = args.IndexOf("--crashpad-stderr-redirect");
+        var index = args.AsSpan().IndexOf("--crashpad-stderr-redirect");
         if (index != -1)
             // remove --crashpad-stderr-redirect and path
             newArgs = [..args.AsSpan(..index), ..args.AsSpan(index + 2)];

@@ -12,7 +12,7 @@ using VRageRender;
 
 namespace CringeLauncher.Stages;
 
-internal class RenderInitializationStage(EarlyRenderThread renderThread) : ILoadingStage
+internal class RenderInitializationStage(EarlyRenderThread? renderThread) : ILoadingStage
 {
     public string Name { get; } = "Render initialization";
     public ValueTask Load(ISplashProgress progress)
@@ -21,9 +21,17 @@ internal class RenderInitializationStage(EarlyRenderThread renderThread) : ILoad
         
         progress.Report("Initializing render");
 
-        renderThread.Window!.Invoke(InitRender);
+        if (renderThread is null)
+            InitDedicatedRender();
+        else
+            renderThread.Window!.Invoke(InitRender);
         
         return default;
+    }
+
+    private static void InitDedicatedRender()
+    {
+        MyRenderProxy.Initialize(new MyNullRender());
     }
     
     private void InitRender()
@@ -34,7 +42,7 @@ internal class RenderInitializationStage(EarlyRenderThread renderThread) : ILoad
         MyRenderProxy.Settings.User = MyVideoSettingsManager
             .GetGraphicsSettingsFromConfig(ref preset, renderQualityHint > MyRenderPresetEnum.CUSTOM)
             .PerformanceSettings.RenderSettings;
-        MyRenderProxy.Settings.EnableAnsel = MyPlatformGameSettings.ENABLE_ANSEL;
+        MyRenderProxy.Settings.EnableAnsel = OperatingSystem.IsWindows() && MyPlatformGameSettings.ENABLE_ANSEL;
         MyRenderProxy.Settings.EnableAnselWithSprites = MyPlatformGameSettings.ENABLE_ANSEL_WITH_SPRITES;
 
         var graphicsRenderer = MySandboxGame.Config.GraphicsRenderer;
@@ -47,7 +55,7 @@ internal class RenderInitializationStage(EarlyRenderThread renderThread) : ILoad
         var settings = MyRenderProxy.CreateDevice(null, MyVideoSettingsManager.Initialize(), out _);
         MyRenderProxy.SendCreatedDeviceSettings(settings);
         
-        renderThread.NotifyGameRendererInitialized();
+        renderThread?.NotifyGameRendererInitialized();
         ImGuiHandler.Instance?.NotifyGameRendererInitialized();
     }
 }

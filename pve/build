@@ -1,0 +1,8 @@
+#!/bin/sh
+
+wineg++ winload.cpp \
+-Wall \
+-I /usr/lib/dotnet/packs/Microsoft.NETCore.App.Host.ubuntu.24.04-x64/10.0.0/runtimes/ubuntu.24.04-x64/native/ \
+-L /usr/lib/x86_64-linux-gnu/ \
+-L /usr/lib/dotnet/packs/Microsoft.NETCore.App.Host.ubuntu.24.04-x64/10.0.0/runtimes/ubuntu.24.04-x64/native/ \
+-l nethost

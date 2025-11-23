@@ -1,4 +1,4 @@
-﻿namespace CringeBootstrap.Abstractions;
+namespace CringeBootstrap.Abstractions;
 public interface ICrossGenService
 {
     string CacheKey { get; }

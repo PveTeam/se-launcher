@@ -9,13 +9,13 @@ namespace CringeLauncher.Render;
 internal class EarlyRenderThread : IDisposable
 {
     private readonly bool _keepConsole;
-    public EarlyWindow? Window { get; private set; }
+    public IEarlyWindow? Window { get; private set; }
     private readonly ManualResetEventSlim _initEvent = new(false);
 
     private MyGameTimer? _timer;
     private WaitForTargetFrameRate? _waiter;
 
-    public Thread RenderThread { get; }
+    public Thread? RenderThread { get; private set; }
     private bool _gameRendererInitialized;
 
     public VRageWindowSurrogate Surrogate =>
@@ -24,13 +24,18 @@ internal class EarlyRenderThread : IDisposable
     public EarlyRenderThread(bool keepConsole)
     {
         _keepConsole = keepConsole;
+        const string threadName = "Early Render Thread";
+#if WINDOWS
         RenderThread = new Thread(RunLoop)
         {
-            Name = "Early Render Thread"
+            Name = threadName
         };
-
+        
         RenderThread.SetApartmentState(ApartmentState.STA);
         RenderThread.Start();
+#else
+        PlatformApi.CreateThread(RunLoop, threadName);
+#endif
     }
 
     public void NotifyGameRendererInitialized() => _gameRendererInitialized = true;
@@ -59,11 +64,20 @@ internal class EarlyRenderThread : IDisposable
 
     private void RunLoop()
     {
-        Window = new() { Text = "Cringe Launcher" };
-        Window.Show();
+        RenderThread = Thread.CurrentThread;
+#if WINDOWS
+        Window = new Win.EarlyWindow
+#else
+        Window = new Xplat.EarlyWindow
+#endif
+            { Title = "Cringe Launcher" };
+        
         Window.Activate();
+        
         _initEvent.Set();
+        
         if (!_keepConsole) ConsoleHandler.FreeConsole();
+        
         while (true)
         {
             if (!_gameRendererInitialized)

@@ -1,5 +1,7 @@
 ﻿using CringePlugins.Splash;
+#if WINDOWS
 using Epic.OnlineServices.VRage;
+#endif
 using Sandbox;
 using Sandbox.Engine.Multiplayer;
 using Sandbox.Engine.Networking;
@@ -12,7 +14,7 @@ using VRage.Steam;
 
 namespace CringeLauncher.Stages;
 
-public class GameServiceInitializationStage() : ILoadingStage
+public class GameServiceInitializationStage(bool isDedicated) : ILoadingStage
 {
     public string Name { get; } = "Game service initialization";
     public ValueTask Load(ISplashProgress progress)
@@ -21,12 +23,23 @@ public class GameServiceInitializationStage() : ILoadingStage
         
         progress.Report("Steam game service initialization");
         
-        var steamGameService = MySteamGameService.Create(false, LauncherConstants.AppId);
+        if (isDedicated)
+        {
+#if WINDOWS
+            Environment.SetEnvironmentVariable("SteamAppId", LauncherConstants.AppId.ToString());
+#else
+            // steam doesn't like environment variable on unixes for some reason
+            File.WriteAllText("steam_appid.txt", LauncherConstants.AppId.ToString());
+#endif
+        }
+        
+        var steamGameService = MySteamGameService.Create(isDedicated, LauncherConstants.AppId);
         MyServiceManager.Instance.AddService(steamGameService);
 
         var aggregator = new MyServerDiscoveryAggregator();
-        MySteamGameService.InitNetworking(false, steamGameService, MyPerGameSettings.GameName, aggregator);
+        MySteamGameService.InitNetworking(isDedicated, steamGameService, MyPerGameSettings.GameName, aggregator);
         
+#if WINDOWS
         progress.Report("Epic game service initialization");
         
         EosService.InitNetworking(false, false, MyPerGameSettings.GameName, steamGameService, "xyza7891964JhtVD93nm3nZp8t1MbnhC",
@@ -49,6 +62,7 @@ public class GameServiceInitializationStage() : ILoadingStage
             MyPlatformGameSettings.MODIO_PORTAL);
         modUgc.IsConsentGiven = MySandboxGame.Config.ModIoConsent;
         MyGameService.WorkshopService.AddAggregate(modUgc);
+#endif
 
         MySpaceEngineersAchievements.Initialize();
         

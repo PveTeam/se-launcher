@@ -15,6 +15,8 @@ internal static class ConsoleHandler
         Console.SetOut(new StreamWriter(Stream.Null));
         Console.SetError(new StreamWriter(Stream.Null));
         Console.SetIn(new StreamReader(Stream.Null));
+#if WINDOWS
         PInvoke.FreeConsole();
+#endif
     }
 }

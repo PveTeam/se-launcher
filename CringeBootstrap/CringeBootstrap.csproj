@@ -2,16 +2,14 @@
 
     <PropertyGroup>
         <OutputType>Exe</OutputType>
-        <TargetFramework>net9.0-windows10.0.19041.0</TargetFramework>
+        <TargetFrameworks>net9.0-windows10.0.19041.0;net9.0</TargetFrameworks>
         <ImplicitUsings>enable</ImplicitUsings>
         <Nullable>enable</Nullable>
-        <UseWindowsForms>true</UseWindowsForms>
         <LangVersion>preview</LangVersion>
         <TieredPGO>true</TieredPGO>
         <PublishReadyToRun>true</PublishReadyToRun>
         <RestorePackagesWithLockFile>true</RestorePackagesWithLockFile>
         <EnableWindowsTargeting>true</EnableWindowsTargeting>
-        <RuntimeIdentifier>win-x64</RuntimeIdentifier>
         
         <!-- Required for Serialization of List<MyGameInventoryItem> in VRage.GameServices.MyInventoryHelper -->
         <!-- Deserialization is patched to use safer NrbfDecoder instead -->
@@ -19,6 +17,18 @@
         
         <ApplicationIcon>..\icon.ico</ApplicationIcon>
         <ActualHostName>SpaceEngineers</ActualHostName>
+        <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    </PropertyGroup>
+
+    <!-- Xplat -->
+    <PropertyGroup Condition="'$(TargetFramework)' == 'net9.0'">
+        <RuntimeIdentifier>linux-x64</RuntimeIdentifier>
+    </PropertyGroup>
+
+    <!-- Windows only -->
+    <PropertyGroup Condition="'$(TargetFramework)' != 'net9.0'">
+        <UseWindowsForms>true</UseWindowsForms>
+        <RuntimeIdentifier>win-x64</RuntimeIdentifier>
     </PropertyGroup>
 
     <ItemGroup>

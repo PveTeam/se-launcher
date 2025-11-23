@@ -1,4 +1,5 @@
 ﻿using System.Collections.Immutable;
+using System.Reflection;
 using CringeBootstrap.Transformers;
 
 namespace CringeBootstrap.CrossGen;
@@ -17,7 +18,8 @@ internal class NoOpCrossGenService(string gameDirectoryPath, string cachePath, I
     protected override ValueTask<bool> RunCrossGenAsync(string crossGenPath, IEnumerable<string> inputReferences, string cacheDirectory,
         string inputAssembly)
     {
-        File.Copy(inputAssembly, Path.Join(cacheDirectory, Path.GetFileName(inputAssembly)), true);
+        var assemblyName = AssemblyName.GetAssemblyName(inputAssembly);
+        File.Copy(inputAssembly, Path.Join(cacheDirectory, $"{assemblyName.Name}.dll"), true);
         return ValueTask.FromResult(true);
     }
 }

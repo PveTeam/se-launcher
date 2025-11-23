@@ -2,6 +2,7 @@
 using HarmonyLib;
 using Havok;
 using Sandbox.Engine.Physics;
+using Sandbox.Engine.Utils;
 
 namespace CringeLauncher.Patches;
 
@@ -10,6 +11,7 @@ internal static class HavokThreadTypePatch
 {
     private static void Postfix(HkJobThreadPool ___m_threadPool)
     {
-        ___m_threadPool.RunOnEachWorker(() => ThreadInformationTracker.MarkCurrentThreadType(ExceptionInformation.ThreadType.HavokPool));
+        if (MyFakes.ENABLE_HAVOK_MULTITHREADING)
+            ___m_threadPool.RunOnEachWorker(() => ThreadInformationTracker.MarkCurrentThreadType(ExceptionInformation.ThreadType.HavokPool));
     }
 }

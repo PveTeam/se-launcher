@@ -39,7 +39,7 @@ internal class PluginsLifetime(ConfigHandler configHandler, HttpClient client, D
 
         progress.Report("Discovering local plugins");
 
-#if DEBUG
+#if false
         await Task.Delay(10000);
 #endif
 

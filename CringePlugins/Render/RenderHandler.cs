@@ -79,4 +79,14 @@ public sealed class RenderHandler : IRootRenderComponent
         _current = null;
         _components.Clear();
     }
+
+    internal static void InitializeNoop() => _ = new RenderHandler(new NoopGuiHandler());
+    
+    internal class NoopGuiHandler : IGuiHandler
+    {
+        public bool BlockKeys { get; }
+        public bool BlockMouse { get; }
+        public bool DrawMouse { get; }
+        public bool Initialized { get; }
+    }
 }

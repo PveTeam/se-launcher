@@ -1,0 +1,10 @@
+{
+    "configurations": [
+        {
+            "type": "dotnet-launch-settings",
+            "name": "Server",
+            "projectPath": "CringeBootstrap/CringeBootstrap.csproj",
+            "profileName": "Server"
+        }
+    ]
+}

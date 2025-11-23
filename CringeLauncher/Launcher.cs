@@ -1,4 +1,4 @@
-﻿using CringeBootstrap.Abstractions;
+using CringeBootstrap.Abstractions;
 using CringeLauncher.CrashPad;
 using CringeLauncher.Patches;
 using CringeLauncher.Render;
@@ -9,7 +9,6 @@ using CringePlugins.Loader;
 using CringePlugins.Render;
 using CringePlugins.Services;
 using CringePlugins.Splash;
-using Epic.OnlineServices.VRage;
 using Microsoft.Extensions.DependencyInjection;
 using NLog;
 using Polly;
@@ -20,7 +19,6 @@ using Sandbox.Game;
 using Sandbox.Game.World;
 using Sandbox.Graphics.GUI;
 using SpaceEngineers.Game;
-using System.Diagnostics;
 using System.Net;
 using System.Reflection;
 using System.Runtime.CompilerServices;
@@ -33,6 +31,8 @@ using VRage.FileSystem;
 using VRageRender;
 using Windows.Win32;
 using Windows.Win32.System.Console;
+using CringeLauncher.Platform;
+using CringeLauncher.Platform.Xplat;
 
 namespace CringeLauncher;
 
@@ -48,6 +48,8 @@ public class Launcher : ICorePlugin
     private readonly DirectoryInfo _dir;
     private EarlyRenderThread? _renderThread;
     private CrashPadService? _crashPadService;
+    
+    protected virtual bool IsDedicated => false;
 
     public Launcher() : this(null) { }
 
@@ -96,10 +98,17 @@ public class Launcher : ICorePlugin
 
         var serviceProvider = SetupServices(services);
 
-        Application.SetHighDpiMode(HighDpiMode.PerMonitorV2);
-        ImGuiHandler.Instance = new(_configDir);
+        if (!IsDedicated)
+        {
+#if WINDOWS
+            Application.SetHighDpiMode(HighDpiMode.PerMonitorV2);
+#endif
+            //ImGuiHandler.Instance = new(_configDir);
+            RenderHandler.InitializeNoop();
         
-        _renderThread = new EarlyRenderThread(ConsoleHandler.ShouldKeepConsole(args));
+            _renderThread = new EarlyRenderThread(ConsoleHandler.ShouldKeepConsole(args));
+        }
+        else RenderHandler.InitializeNoop();
         
         using var splash = new Splash();
         RenderHandler.Current.RegisterComponent(splash);
@@ -113,7 +122,9 @@ public class Launcher : ICorePlugin
         // hook up steam as we ship it inside base context as an override
         if (AssemblyLoadContext.GetLoadContext(typeof(Launcher).Assembly) is ICoreLoadContext coreLoadContext)
             NativeLibrary.SetDllImportResolver(typeof(Steamworks.Constants).Assembly, (name, _, _) => coreLoadContext.ResolveUnmanagedDll(name));
-        NativeLibrary.SetDllImportResolver(typeof(EosService).Assembly, (name, _, _) => NativeLibrary.Load(Path.Join(AppContext.BaseDirectory, name)));
+#if WINDOWS
+        NativeLibrary.SetDllImportResolver(typeof(Epic.OnlineServices.VRage.EosService).Assembly, (name, _, _) => NativeLibrary.Load(Path.Join(AppContext.BaseDirectory, name)));
+#endif
         
         splash.ExecuteLoadingStages();
 
@@ -124,40 +135,46 @@ public class Launcher : ICorePlugin
         splash.DefineStage(new RenderInitializationStage(_renderThread));
         splash.DefineStage(_lifetime = serviceProvider.GetRequiredService<IPluginsLifetime>());
 
-        InitUgc(splash);
+        Initialize(splash);
         
         // this technically should wait for render thread init, but who cares
         splash.ExecuteLoadingStages();
         
         MyFileSystem.InitUserSpecific(MyGameService.UserId.ToString());
+#if !WINDOWS
+        MyFileSystem.ReplaceFileProvider<MyClassicFileProvider>(new LauncherFileProvider());
+#endif
 
         _lifetime.RegisterLifetime();
         _crashPadService.PullPluginInfo((PluginsLifetime)_lifetime);
         
         GameReadyHandlerPatch.GameReady += () => _crashPadService.PullPluginInfo((PluginsLifetime)_lifetime);
 
-        _renderThread.WaitForInit();
+        _renderThread?.WaitForInit();
 
+        Sandbox.Engine.Platform.Game.IsDedicated = IsDedicated;
         _game = new(args)
         {
-            DrawThread = _renderThread.RenderThread,
-            form = _renderThread.Surrogate
+            DrawThread = _renderThread?.RenderThread,
+            form = _renderThread?.Surrogate
         };
         
-        void OnResize(object? o, EventArgs eventArgs)
+        void OnResize(IEarlyWindow window, EventArgs eventArgs)
         {
-            var size = _renderThread.Window.ClientSize;
+            var size = window.ClientSize;
             MySandboxGame.Static.RenderThread_SizeChanged(size.Width, size.Height, new MyViewport(new(size.Width, size.Height)));
         }
 
-        _renderThread.Window!.Resize += OnResize;
-        _renderThread.Surrogate.OnExit += _game.OnExit;
-        _renderThread.Surrogate.OnManualWindowCloseRequest += _game.Window_OnManualWindowCloseRequest;
-        _renderThread.InitWaiter(_game.m_gameTimer, MyPerGameSettings.MaxFrameRate);
+        if (_renderThread is not null)
+        {
+            _renderThread.Window!.Resize += OnResize;
+            _renderThread.Surrogate.OnExit += _game.OnExit;
+            _renderThread.Surrogate.OnManualWindowCloseRequest += _game.Window_OnManualWindowCloseRequest;
+            _renderThread.InitWaiter(_game.m_gameTimer, MyPerGameSettings.MaxFrameRate);
+            OnResize(_renderThread.Window, EventArgs.Empty);
+        }
 
         MyRenderProxy.EnableAppEventsCall = false;
-
-        OnResize(null, EventArgs.Empty);
 
         return true;
     }
@@ -248,9 +265,9 @@ public class Launcher : ICorePlugin
 
     #region Keen shit
 
-    protected virtual void InitUgc(Splash splash)
+    protected virtual void Initialize(Splash splash)
     {
-        splash.DefineStage(new GameServiceInitializationStage());
+        splash.DefineStage(new GameServiceInitializationStage(IsDedicated));
     }
 
     #endregion

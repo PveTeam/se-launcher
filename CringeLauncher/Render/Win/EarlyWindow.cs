@@ -1,4 +1,5 @@
-﻿using Windows.Win32;
+﻿#if WINDOWS
+using Windows.Win32;
 using Windows.Win32.Foundation;
 using Windows.Win32.Graphics.Dwm;
 using Windows.Win32.Graphics.Gdi;
@@ -10,9 +11,9 @@ using SharpDX.Windows;
 using Device = SharpDX.Direct3D11.Device;
 using Message = System.Windows.Forms.Message;
 
-namespace CringeLauncher.Render;
+namespace CringeLauncher.Render.Win;
 
-internal sealed class EarlyWindow : Form
+internal sealed class EarlyWindow : Form, IEarlyWindow
 {
     private static readonly Logger Log = LogManager.GetCurrentClassLogger();
     private Device? _device;
@@ -22,16 +23,26 @@ internal sealed class EarlyWindow : Form
     private RenderLoop? _renderLoop;
     private Size? _newSize;
     private Point _lastMousePosition;
-    
+    private nint _handle;
+
+    public WindowState State
+    {
+        get => (WindowState)WindowState;
+        set
+        {
+            if (InvokeRequired)
+                Invoke(() => WindowState = (FormWindowState)value);
+            else
+                WindowState = (FormWindowState)value;
+        } 
+    }
     public FullScreenMode CurrentMode { get; private set; }
 
     public Device? DeviceInstance => _device;
 
     public SwapChain? SwapChainInstance => _swapChain;
 
-    public VRageWindowSurrogate Surrogate => _surrogate ??= new(this, _renderLoop ??= new(this));
-
-    public new nint Handle { get; private set; }
+    public VRageWindowSurrogate Surrogate => _surrogate ??= new(this, new WinRenderLoop(_renderLoop ??= new(this)));
 
     public bool OwnsSwapChain { get; set; } = true;
 
@@ -45,6 +56,18 @@ internal sealed class EarlyWindow : Form
                 Cursor.Position = PointToScreen(value);
             });
             _lastMousePosition = value;
+        }
+    }
+
+    bool IEarlyWindow.Visible
+    {
+        get => Visible;
+        set
+        {
+            if (InvokeRequired)
+                Invoke(() => Visible = value);
+            else
+                Visible = value;
         }
     }
 
@@ -68,6 +91,24 @@ internal sealed class EarlyWindow : Form
         }
         if (icon is not null)
             Icon = icon;
+    }
+
+    public string ClipboardText
+    {
+        get => InvokeRequired ? Invoke(Clipboard.GetText) : Clipboard.GetText();
+        set
+        {
+            if (InvokeRequired)
+                Invoke(() => Clipboard.SetText(value));
+            else
+                Clipboard.SetText(value);
+        }
+    }
+
+    public string Title
+    {
+        get => Text;
+        set => Text = value;
     }
 
     public bool Frame()
@@ -104,19 +145,84 @@ internal sealed class EarlyWindow : Form
         Region = region;
     }
 
+    void IEarlyWindow.Close()
+    {
+        if (InvokeRequired)
+            Invoke(Close);
+        else
+            Close();
+    }
+    
+    void IEarlyWindow.Hide()
+    {
+        if (InvokeRequired)
+            Invoke(Hide);
+        else
+            Hide();
+    }
+
+    void IEarlyWindow.Activate()
+    {
+        if (InvokeRequired)
+        {
+            Invoke(() =>
+            {
+                Show();
+                Activate();
+            });
+        }
+        else
+        {
+            Show();
+            Activate();
+        }
+    }
+
+    public void DoEvents() => Application.DoEvents();
+
+    Rectangle IEarlyWindow.CursorClip
+    {
+        get => Cursor.Clip;
+        set => Cursor.Clip = value;
+    }
+
     public void Draw() => _guiHandler?.Render();
 
     protected override void CreateHandle()
     {
         base.CreateHandle();
-        Handle = base.Handle;
+        _handle = base.Handle;
         CreateD3D11Device();
         CreateImGui();
-        ConfigureComposition();
+        ConfigureCompositionInternal();
         Region = new Region(Rectangle.Empty);
     }
 
+    void IEarlyWindow.ShowCursor()
+    {
+        if (InvokeRequired)
+            Invoke(Cursor.Show);
+        else
+            Cursor.Show();
+    }
+
+    void IEarlyWindow.HideCursor()
+    {
+        if (InvokeRequired)
+            Invoke(Cursor.Hide);
+        else
+            Cursor.Hide();
+    }
+
     public void ConfigureComposition(bool enableBlurBehind = true)
+    {
+        if (InvokeRequired)
+            Invoke(() => ConfigureCompositionInternal(enableBlurBehind));
+        else
+            ConfigureCompositionInternal(enableBlurBehind);
+    }
+
+    private void ConfigureCompositionInternal(bool enableBlurBehind = true)
     {
         if (!OperatingSystem.IsWindowsVersionAtLeast(8) ||
             PInvoke.DwmIsCompositionEnabled(out var compositionEnabled).Failed || !compositionEnabled)
@@ -143,6 +249,14 @@ internal sealed class EarlyWindow : Form
             fEnable = false
         };
         PInvoke.DwmEnableBlurBehindWindow((HWND)Handle, in blurBehindDisable).ThrowOnFailure();
+    }
+
+    void IEarlyWindow.DisableCrop()
+    {
+        if (InvokeRequired)
+            Invoke(() => Region = null);
+        else
+            Region = null;
     }
 
     private void CreateImGui()
@@ -211,6 +325,83 @@ internal sealed class EarlyWindow : Form
         WindowState = FormWindowState.Maximized;
     }
 
+    protected override void OnFormClosing(FormClosingEventArgs e)
+    {
+        base.OnFormClosing(e);
+        var args = new ClosingEventArgs(e.CloseReason == CloseReason.UserClosing)
+        {
+            Cancel = e.Cancel
+        };
+        ClosingEvent?.Invoke(this, args);
+        e.Cancel = args.Cancel;
+    }
+
+    protected override void OnGotFocus(EventArgs e)
+    {
+        base.OnGotFocus(e);
+        GotFocusEvent?.Invoke(this, EventArgs.Empty);
+    }
+
+    protected override void OnClientSizeChanged(EventArgs e)
+    {
+        base.OnClientSizeChanged(e);
+        ResizeEvent?.Invoke(this, EventArgs.Empty);
+    }
+
+    protected override void OnKeyPress(System.Windows.Forms.KeyPressEventArgs e)
+    {
+        base.OnKeyPress(e);
+        var args = new KeyPressEventArgs(e.KeyChar)
+        {
+            Cancel = e.Handled
+        };
+        KeyPressEvent?.Invoke(this, args);
+        e.Handled = args.Cancel;
+    }
+
+    protected override void OnLostFocus(EventArgs e)
+    {
+        base.OnLostFocus(e);
+        LostFocusEvent?.Invoke(this, EventArgs.Empty);
+    }
+
+    private event EarlyWindowEventHandler<ClosingEventArgs>? ClosingEvent;
+    event EarlyWindowEventHandler<ClosingEventArgs>? IEarlyWindow.Closing
+    {
+        add => ClosingEvent += value;
+        remove => ClosingEvent -= value;
+    }
+
+    private event EarlyWindowEventHandler? GotFocusEvent;
+    event EarlyWindowEventHandler? IEarlyWindow.GotFocus
+    {
+        add => GotFocusEvent += value;
+        remove => GotFocusEvent -= value;
+    }
+
+    private event EarlyWindowEventHandler? LostFocusEvent;
+    event EarlyWindowEventHandler? IEarlyWindow.LostFocus
+    {
+        add => LostFocusEvent += value;
+        remove => LostFocusEvent -= value;
+    }
+    
+    private event EarlyWindowEventHandler? ResizeEvent;
+    event EarlyWindowEventHandler? IEarlyWindow.Resize
+    {
+        add => ResizeEvent += value;
+        remove => ResizeEvent -= value;
+    }
+
+    private event EarlyWindowEventHandler<KeyPressEventArgs>? KeyPressEvent;
+    event EarlyWindowEventHandler<KeyPressEventArgs>? IEarlyWindow.KeyPress
+    {
+        add => KeyPressEvent += value;
+        remove => KeyPressEvent -= value;
+    }
+
+    nint IEarlyWindow.Handle => _handle;
+
     protected override void OnMouseMove(MouseEventArgs e)
     {
         base.OnMouseMove(e);
@@ -250,11 +441,22 @@ internal sealed class EarlyWindow : Form
         _surrogate = null;
         base.Dispose(disposing);
     }
+
+    void IDisposable.Dispose()
+    {
+        ObjectDisposedException.ThrowIf(IsDisposed, this);
+        if (InvokeRequired)
+            Invoke(Dispose);
+        else
+            Dispose();
+    }
 }
 
-public enum FullScreenMode
+internal class WinRenderLoop(RenderLoop loop) : IRenderLoop
 {
-    Windowed,
-    Borderless,
-    Fullscreen
+    public void Dispose() => loop.Dispose();
+
+    public bool NextFrame() => loop.NextFrame();
 }
+
+#endif

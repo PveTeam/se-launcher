@@ -1,4 +1,4 @@
-﻿using HarmonyLib;
+using HarmonyLib;
 using SharpDX.Multimedia;
 using SharpDX.Toolkit.Graphics;
 using System.Reflection;

@@ -11,19 +11,18 @@ using Windows.Win32.System.DataExchange;
 using CringeLauncher.Patches;
 using VRage.Platform.Windows.Render;
 using VRageRender;
-using Message = System.Windows.Forms.Message;
 using Rectangle = System.Drawing.Rectangle;
 
 namespace CringeLauncher.Render;
 
 internal class VRageWindowSurrogate : IVRageWindow, IVRageInput
 {
-    public EarlyWindow Window { get; }
-    private readonly RenderLoop _renderLoop;
+    public IEarlyWindow Window { get; }
+    private readonly IRenderLoop _renderLoop;
 
     private readonly Lock _lock = new();
     private readonly Dictionary<uint, ActionRef<MyMessage>> _messageHandlers = [];
-    private readonly ConcurrentQueue<DataMessage> _messages = [];
+    private readonly List<Action> _frameCallbacks = [];
 
     private MyGuiControlIme? _imeControl;
     private List<char> _textBuffer = [];
@@ -31,12 +30,12 @@ internal class VRageWindowSurrogate : IVRageWindow, IVRageInput
 
     private bool _shouldUpdateWindowFrame = true;
 
-    public VRageWindowSurrogate(EarlyWindow window, RenderLoop renderLoop)
+    public VRageWindowSurrogate(IEarlyWindow window, IRenderLoop renderLoop)
     {
         Window = window;
         _renderLoop = renderLoop;
 
-        Window.FormClosing += WindowOnFormClosing;
+        Window.Closing += WindowOnClosing;
         Window.GotFocus += WindowOnGotFocus;
         Window.LostFocus += WindowOnLostFocus;
         Window.KeyPress += WindowOnKeyPress;
@@ -45,21 +44,26 @@ internal class VRageWindowSurrogate : IVRageWindow, IVRageInput
         GameReadyHandlerPatch.GameReadyTransitionStarted += OnGameReadyTransitionStarted;
     }
 
+    public void AddFrameCallback(Action action)
+    {
+        _frameCallbacks.Add(action);
+    }
+
     private void OnGameReady()
     {
-        Window.Invoke(() => Window.ConfigureComposition(false));
+        Window.ConfigureComposition(false);
     }
 
     private void OnGameReadyTransitionStarted()
     {
         _shouldUpdateWindowFrame = false;
-        Window.Invoke(() => Window.Region = null);
+        Window.DisableCrop();
     }
 
     private void WindowOnKeyPress(object? sender, KeyPressEventArgs e)
     {
         AddChar(e.KeyChar);
-        e.Handled = true;
+        e.Cancel = true;
     }
 
     private void WindowOnLostFocus(object? sender, EventArgs e)
@@ -67,7 +71,7 @@ internal class VRageWindowSurrogate : IVRageWindow, IVRageInput
         IsActive = false;
         ActiveChanged?.Invoke();
         
-        Cursor.Clip = Rectangle.Empty;
+        Window.CursorClip = Rectangle.Empty;
         if (!ShowCursor) CursorVisible = true;
     }
 
@@ -84,15 +88,18 @@ internal class VRageWindowSurrogate : IVRageWindow, IVRageInput
 
     public void InitializeIme(Type imeCandidateType)
     {
+#if WINDOWS
         MyImeProcessor.CreateInstance(imeCandidateType);
-        Window.ImeMode = ImeMode.On;
+        var form = (Win.EarlyWindow)Window;
+        form.ImeMode = ImeMode.On;
         _imeControl = new()
         {
             Size = new Size(0, 10),
             AutoFocusing = true
         };
-        Window.Controls.Add(_imeControl);
+        form.Controls.Add(_imeControl);
         _imeControl.ActivateInputListening();
+#endif
     }
 
     private void UpdateClip()
@@ -101,16 +108,16 @@ internal class VRageWindowSurrogate : IVRageWindow, IVRageInput
 
         if (IsActive && (MouseCapture || !ShowCursor))
         {
-            Cursor.Clip = Window.RectangleToScreen(Window.ClientRectangle);
+            Window.CursorClip = Window.RectangleToScreen(Window.ClientRectangle);
             return;
         }
         
-        Cursor.Clip = Rectangle.Empty;
+        Window.CursorClip = Rectangle.Empty;
     }
 
-    private void WindowOnFormClosing(object? sender, FormClosingEventArgs e)
+    private void WindowOnClosing(IEarlyWindow window, ClosingEventArgs e)
     {
-        if (e.CloseReason == CloseReason.UserClosing)
+        if (e.UserClosing)
         {
             e.Cancel = true;
             if (OnManualWindowCloseRequest is not null && Window.Visible)
@@ -129,15 +136,15 @@ internal class VRageWindowSurrogate : IVRageWindow, IVRageInput
         if (!Window.IsHandleCreated || Window.IsDisposed)
             return;
 
-        Window.Invoke(Window.Close);
+        Window.Close();
     }
 
-    public void DoEvents() => Application.DoEvents();
+    public void DoEvents() => Window.DoEvents();
 
     public void Exit()
     {
         if (!Window.IsDisposed)
-            Window.Invoke(Window.Dispose);
+            Window.Dispose();
     }
 
     public bool UpdateRenderThread()
@@ -149,6 +156,10 @@ internal class VRageWindowSurrogate : IVRageWindow, IVRageInput
             MyRenderProxy.ApplySettings(_pendingSettings.Value);
             _pendingSettings = null;
         }
+        
+        foreach (var callback in _frameCallbacks)
+            callback();
+        
         if (_shouldUpdateWindowFrame)
             Window.UpdateFrame();
         return _renderLoop.NextFrame();
@@ -159,6 +170,64 @@ internal class VRageWindowSurrogate : IVRageWindow, IVRageInput
         _pendingSettings = settings;
     }
 
+    public void SetCursor(Stream stream)
+    {
+        /*if (!Window.IsHandleCreated || Window.IsDisposed)
+            return;
+        var bitmap = new Bitmap(stream);
+
+        Window.Invoke(() =>
+        {
+            Window.Cursor = new Cursor(bitmap.GetHicon());
+        });*/
+    }
+
+#if WINDOWS
+    private readonly ConcurrentQueue<DataMessage> _messages = [];
+
+    public unsafe void EnqueueMessage(ref Message message)
+    {
+        // love keen
+        if (message.Msg == PInvoke.WM_INPUTLANGCHANGE && MyImeProcessor.Instance is not null)
+        {
+            MyImeProcessor.Instance.LanguageChanged();
+            return;
+        }
+
+        using (_lock.EnterScope())
+        {
+            if (!_messageHandlers.ContainsKey((uint)message.Msg))
+                return;
+        }
+
+        ArraySegment<byte>? dataSegment = null;
+        if (message.Msg == PInvoke.WM_COPYDATA)
+        {
+            var copyData = (COPYDATASTRUCT*)message.LParam;
+            if (copyData->cbData > int.MaxValue)
+                throw new ArgumentOutOfRangeException(null, $"Copy data size is too big: {copyData->cbData}");
+
+            var dataSpan = new ReadOnlySpan<byte>(copyData->lpData, (int)copyData->cbData);
+
+            var array = ArrayPool<byte>.Shared.Rent((int)copyData->cbData);
+            dataSegment = new ArraySegment<byte>(array, 0, (int)copyData->cbData);
+            dataSpan.CopyTo(dataSegment.Value);
+        }
+
+        _messages.Enqueue(new DataMessage(message, dataSegment));
+    }
+    
+    private readonly record struct DataMessage(Message Message, ArraySegment<byte>? Data) : IDisposable
+    {
+        public void Dispose()
+        {
+            if (Data is { Array: { } array })
+            {
+                ArrayPool<byte>.Shared.Return(array);
+            }
+        }
+    }
+    
     public void UpdateMainThread()
     {
         using var scope = _lock.EnterScope();
@@ -196,50 +265,18 @@ internal class VRageWindowSurrogate : IVRageWindow, IVRageInput
                 dataMessage.Dispose();
             }
     }
-
-    public void SetCursor(Stream stream)
+    
+    public int KeyboardDelay { get; } = SystemInformation.KeyboardDelay;
+    public int KeyboardSpeed { get; } = SystemInformation.KeyboardSpeed;
+#else
+    public void UpdateMainThread()
     {
-        /*if (!Window.IsHandleCreated || Window.IsDisposed)
-            return;
-        var bitmap = new Bitmap(stream);
-
-        Window.Invoke(() =>
-        {
-            Window.Cursor = new Cursor(bitmap.GetHicon());
-        });*/
+        
     }
-
-    public unsafe void EnqueueMessage(ref Message message)
-    {
-        // love keen
-        if (message.Msg == PInvoke.WM_INPUTLANGCHANGE && MyImeProcessor.Instance is not null)
-        {
-            MyImeProcessor.Instance.LanguageChanged();
-            return;
-        }
-
-        using (_lock.EnterScope())
-        {
-            if (!_messageHandlers.ContainsKey((uint)message.Msg))
-                return;
-        }
-
-        ArraySegment<byte>? dataSegment = null;
-        if (message.Msg == PInvoke.WM_COPYDATA)
-        {
-            var copyData = (COPYDATASTRUCT*)message.LParam;
-            if (copyData->cbData > int.MaxValue)
-                throw new ArgumentOutOfRangeException(null, $"Copy data size is too big: {copyData->cbData}");
-
-            var dataSpan = new ReadOnlySpan<byte>(copyData->lpData, (int)copyData->cbData);
-
-            var array = ArrayPool<byte>.Shared.Rent((int)copyData->cbData);
-            dataSegment = new ArraySegment<byte>(array, 0, (int)copyData->cbData);
-            dataSpan.CopyTo(dataSegment.Value);
-        }
-
-        _messages.Enqueue(new DataMessage(message, dataSegment));
-    }
+    
+    public int KeyboardDelay { get; } = 0;
+    public int KeyboardSpeed { get; } = 0;
+#endif
 
     public void AddMessageHandler(uint wm, ActionRef<MyMessage> action)
     {
@@ -264,11 +301,7 @@ internal class VRageWindowSurrogate : IVRageWindow, IVRageInput
         if (!Window.IsHandleCreated || Window.IsDisposed)
             return;
 
-        Window.Invoke(() =>
-        {
-            Window.Show();
-            Window.Activate();
-        });
+        Window.Activate();
         IsActive = true;
         ActiveChanged?.Invoke();
     }
@@ -278,26 +311,15 @@ internal class VRageWindowSurrogate : IVRageWindow, IVRageInput
         if (!Window.IsHandleCreated || Window.IsDisposed)
             return;
 
-        Window.Invoke(Window.Hide);
+        Window.Hide();
     }
 
-    public bool DrawEnabled => Window.WindowState != FormWindowState.Minimized;
+    public bool DrawEnabled => Window.State != WindowState.Minimized;
     public bool IsActive { get; set; }
     public event Action? ActiveChanged;
     public Vector2I ClientSize => new(Window.ClientSize.Width, Window.ClientSize.Height);
     public event Action? OnExit;
     public event Action? OnManualWindowCloseRequest;
-
-    private readonly record struct DataMessage(Message Message, ArraySegment<byte>? Data) : IDisposable
-    {
-        public void Dispose()
-        {
-            if (Data is { Array: { } array })
-            {
-                ArrayPool<byte>.Shared.Return(array);
-            }
-        }
-    }
 
     public void AddChar(char ch) => _textBuffer.Add(ch);
 
@@ -335,14 +357,12 @@ internal class VRageWindowSurrogate : IVRageWindow, IVRageInput
         get;
         set
         {
-            var previousValue = Interlocked.Exchange(ref field, value);
-            if (previousValue != value)
-            {
-                Window.Invoke(value ? Cursor.Show : Cursor.Hide);
-            }
+            if (Interlocked.Exchange(ref field, value) == value) return;
+            
+            if (value)
+                Window.ShowCursor();
+            else
+                Window.HideCursor();
         }
     } = true;
-
-    public int KeyboardDelay { get; } = SystemInformation.KeyboardDelay;
-    public int KeyboardSpeed { get; } = SystemInformation.KeyboardSpeed;
 }

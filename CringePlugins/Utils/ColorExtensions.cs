@@ -1,4 +1,5 @@
-﻿using System.Numerics;
+﻿using VRageMath;
+using Vector4 = System.Numerics.Vector4;
 
 namespace CringePlugins.Utils;
 

@@ -57,12 +57,12 @@ public static class ModScriptCompilerPatch
     private static readonly ICoreLoadContext CoreContext = (ICoreLoadContext)AssemblyLoadContext.GetLoadContext(typeof(MySession).Assembly)!;
 
     private static readonly ConfigReference<LauncherConfig> LauncherConfigRef =
-        MySandboxGame.Services.GetRequiredService<ConfigHandler>().RegisterConfig("launcher", LauncherConfig.Default);
+        GameServicesExtension.GameServices.GetRequiredService<ConfigHandler>().RegisterConfig("launcher", LauncherConfig.Default);
 
-    private static readonly string CrossGenCacheKey = MySandboxGame.Services.GetRequiredService<ICrossGenService>()
+    private static readonly string CrossGenCacheKey = GameServicesExtension.GameServices.GetRequiredService<ICrossGenService>()
         .CacheKey;
 
-    private static readonly CrashPadService CrashPad = MySandboxGame.Services.GetRequiredService<CrashPadService>();
+    private static readonly CrashPadService CrashPad = GameServicesExtension.GameServices.GetRequiredService<CrashPadService>();
 
     static ModScriptCompilerPatch()
     {

@@ -23,7 +23,7 @@ public sealed class ImFontVariants : IImFontDictionary
             unsafe
             {
                 if (fontPtr.NativePtr == null)
-                    throw new FileFormatException($"Failed to load font {fileName}");
+                    throw new Exception($"Failed to load font {fileName}");
             }
             
             return fontPtr;
