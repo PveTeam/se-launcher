@@ -399,6 +399,8 @@ public class UserDevGameService(uint appId) : IMyGameService
 
     public bool ActivityInProgress { get; }
 
+    public bool IsSteamDeck => false;
+
     public LoadActivityResult GetActivityLoadInformation(string activityId)
     {
         return new LoadActivityResult();

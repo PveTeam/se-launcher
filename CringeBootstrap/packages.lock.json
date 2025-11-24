@@ -351,8 +351,8 @@
       },
       "SpaceEngineersDedicated.ReferenceAssemblies": {
         "type": "Transitive",
-        "resolved": "1.207.22",
-        "contentHash": "cEigq1fs5zm8wjVjLuldUvnLTeQTvymZbXt3eZ8mS4x6oynOpiiUvnSJnD/mxY227AVekRzrdRuk51/Z7m1sqg==",
+        "resolved": "1.208.14",
+        "contentHash": "7oA3MnwLCauVqaA9Q4TK68Akt7DhzJvCS+UrfYACo7SkJXO5+MNtTcA8C7Os4QDUrCbL6p2MGeyUMw1nH12FhQ==",
         "dependencies": {
           "SharpDX": "4.2.0-keen-cringe",
           "protobuf-net": "1.0.0"
@@ -511,7 +511,7 @@
           "Microsoft.Extensions.Http.Polly": "[9.0.9, )",
           "NLog": "[6.0.4, )",
           "SixLabors.ImageSharp": "[4.0.0-compat, )",
-          "SpaceEngineersDedicated.ReferenceAssemblies": "[1.207.22, )",
+          "SpaceEngineersDedicated.ReferenceAssemblies": "[1.208.14, )",
           "System.Diagnostics.PerformanceCounter": "[9.0.9, )",
           "System.Management": "[9.0.9, )",
           "System.Private.ServiceModel": "[4.10.3, )",
