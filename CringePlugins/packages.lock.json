@@ -2,11 +2,11 @@
   "version": 1,
   "dependencies": {
     "net10.0-windows7.0": {
-      "Basic.Reference.Assemblies.Net90": {
+      "Basic.Reference.Assemblies.Net100": {
         "type": "Direct",
         "requested": "[1.8.3, )",
         "resolved": "1.8.3",
-        "contentHash": "sZRH0NW/jdLTNq8X2/IVGIUVVE0JLKxwSp9GOwKzoHzt7BK5U7iRqG25ddSsggdABpvyz3ooQ4GkwQQ/Kn+z+g==",
+        "contentHash": "9/gCzSJfaqizalClxtYcIqMYvtp5F8bQiu1jVm7Ca/ELdZqOrWwNjHJ6eGrBv1L+O96nP6/+RhNRcPWX6KSOzQ==",
         "dependencies": {
           "Microsoft.CodeAnalysis.Common": "4.11.0"
         }
@@ -85,9 +85,9 @@
       },
       "SpaceEngineersDedicated.ReferenceAssemblies": {
         "type": "Direct",
-        "requested": "[1.207.22, )",
-        "resolved": "1.207.22",
-        "contentHash": "cEigq1fs5zm8wjVjLuldUvnLTeQTvymZbXt3eZ8mS4x6oynOpiiUvnSJnD/mxY227AVekRzrdRuk51/Z7m1sqg==",
+        "requested": "[1.208.14, )",
+        "resolved": "1.208.14",
+        "contentHash": "7oA3MnwLCauVqaA9Q4TK68Akt7DhzJvCS+UrfYACo7SkJXO5+MNtTcA8C7Os4QDUrCbL6p2MGeyUMw1nH12FhQ==",
         "dependencies": {
           "SharpDX": "4.2.0-keen-cringe",
           "protobuf-net": "1.0.0"

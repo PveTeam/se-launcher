@@ -32,9 +32,9 @@
 
     <ItemGroup>
         <PackageReference Include="Autofac.Extensions.DependencyInjection" Version="10.0.0" />
-        <PackageReference Include="Basic.Reference.Assemblies.Net90" Version="1.8.3" />
+        <PackageReference Include="Basic.Reference.Assemblies.Net100" Version="1.8.3" />
         <PackageReference Include="dnlib" Version="4.5.0" />
-        <PackageReference Include="EOSSDK" Version="1.0.3" />
+        <PackageReference Include="EOSSDK" Version="1.0.4" />
         <PackageReference Include="Krafs.Publicizer" Version="2.3.0">
             <PrivateAssets>all</PrivateAssets>
             <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
@@ -51,7 +51,7 @@
         </PackageReference>
         <PackageReference Include="NLog" Version="6.0.4" />
         <PackageReference Include="Microsoft.CodeAnalysis.CSharp" Version="4.14.0" />
-        <PackageReference Include="SpaceEngineersDedicated.ReferenceAssemblies" Version="1.207.22" ExcludeAssets="runtime" />
+        <PackageReference Include="SpaceEngineersDedicated.ReferenceAssemblies" Version="1.208.14" ExcludeAssets="runtime" />
     </ItemGroup>
 
     <ItemGroup>

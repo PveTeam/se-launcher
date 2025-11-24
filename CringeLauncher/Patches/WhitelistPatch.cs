@@ -33,7 +33,7 @@ public static class WhitelistPatch
         ];
         
         scriptCompiler.m_metadataReferences.Clear();
-        scriptCompiler.m_metadataReferences.AddRange(Basic.Reference.Assemblies.Net90.References.All);
+        scriptCompiler.m_metadataReferences.AddRange(Basic.Reference.Assemblies.Net100.References.All);
         scriptCompiler.m_metadataReferences.AddRange(gameAssemblies.Select(b => MetadataReference.CreateFromFile(b)));
     }
 }

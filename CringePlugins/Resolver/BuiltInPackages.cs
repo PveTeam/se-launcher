@@ -64,7 +64,7 @@ public static class BuiltInPackages
 
         ResolvedPackage[] packages =
         [
-            ..Net90.ReferenceInfos.AllValues.Select(MapSdkPackage),
+            ..Net100.ReferenceInfos.AllValues.Select(MapSdkPackage),
             se,
 
             ..libraries.Where(kvp =>

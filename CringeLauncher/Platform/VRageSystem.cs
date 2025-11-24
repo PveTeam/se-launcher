@@ -157,6 +157,8 @@ internal class VRageSystem(string applicationName, VRageWindowSurrogate? surroga
 
     public bool IsUsingGeforceNow => false; // not really an option for us kek
 
+    public bool IsUsingGeforceNowCloud => false;
+
     public string Clipboard
     {
 #if WINDOWS

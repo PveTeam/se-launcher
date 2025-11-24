@@ -46,6 +46,8 @@ public class UserDevGameService(uint appId) : IMyGameService
 
     public string BranchNameFriendly => "UserDev";
 
+    public bool IsSteamDeck => false;
+
     public event Action<bool>? OnOverlayActivated;
 
     public event Action<uint>? OnDLCInstalled;
