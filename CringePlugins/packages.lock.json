@@ -68,9 +68,9 @@
       },
       "SpaceEngineersDedicated.ReferenceAssemblies": {
         "type": "Direct",
-        "requested": "[1.207.22, )",
-        "resolved": "1.207.22",
-        "contentHash": "cEigq1fs5zm8wjVjLuldUvnLTeQTvymZbXt3eZ8mS4x6oynOpiiUvnSJnD/mxY227AVekRzrdRuk51/Z7m1sqg==",
+        "requested": "[1.208.14, )",
+        "resolved": "1.208.14",
+        "contentHash": "7oA3MnwLCauVqaA9Q4TK68Akt7DhzJvCS+UrfYACo7SkJXO5+MNtTcA8C7Os4QDUrCbL6p2MGeyUMw1nH12FhQ==",
         "dependencies": {
           "SharpDX": "4.2.0-keen-cringe",
           "protobuf-net": "1.0.0"

@@ -544,7 +544,7 @@
           "Newtonsoft.Json": "[13.0.4, )",
           "NuGet": "[1.0.0, )",
           "SharedCringe": "[1.0.0, )",
-          "SpaceEngineersDedicated.ReferenceAssemblies": "[1.207.22, )",
+          "SpaceEngineersDedicated.ReferenceAssemblies": "[1.208.14, )",
           "Steamworks.NET": "[20.1.0, 20.1.0]",
           "dnlib": "[4.5.0, )"
         }
