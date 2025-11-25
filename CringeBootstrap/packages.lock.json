@@ -548,7 +548,7 @@
         "dependencies": {
           "CringeBootstrap.Abstractions": "[1.0.0, )",
           "NLog": "[6.0.4, )",
-          "SpaceEngineersDedicated.ReferenceAssemblies": "[1.207.22, )"
+          "SpaceEngineersDedicated.ReferenceAssemblies": "[1.208.14, )"
         }
       }
     },
