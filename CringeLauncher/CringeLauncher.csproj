@@ -21,6 +21,7 @@
         <Publicize Include="Sandbox.Game:Sandbox.MySandboxGame.RenderThread_SizeChanged" />
         <Publicize Include="Sandbox.Game:Sandbox.MySandboxGame.Window_OnManualWindowCloseRequest" />
         <Publicize Include="Sandbox.Game:Sandbox.MySandboxGame.OnExit" />
+        <Publicize Include="Sandbox.Game:Sandbox.MySandboxGame.CheckGraphicsCard" />
         <Publicize Include="VRage.Render;VRage.Render11;VRage.Platform.Windows;VRage.Scripting;VRage.Input" IncludeCompilerGeneratedMembers="false" />
 		<Publicize Include="VRage.Scripting:VRage.Scripting.Rewriters.ProtoTagRewriter" />
 		<Publicize Include="Sandbox.Game:Sandbox.Game.World.MyScriptManager.m_compatibilityChanges" />
