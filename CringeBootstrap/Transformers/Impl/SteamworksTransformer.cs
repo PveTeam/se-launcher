@@ -26,24 +26,7 @@ internal class SteamworksTransformer : ITransformer
             return false;
         }
         
-        if (!Remove(ctor)) return false;
-
-        var method = typeDefinition.FindMethod("LoadStats");
-        
-        if (method is null)
-        {
-            Log.Warn("Failed to find steam service LoadStats");
-            return false;
-        }
-        
-        if (!Remove(method)) return false;
-
-        return true;
-    }
-
-    private static bool Remove(MethodDef method)
-    {
-        var instructions = method.Body.Instructions;
+        var instructions = ctor.Body.Instructions;
         var index = -1;
         for (var i = 0; i < instructions.Count; i++)
         {
@@ -63,6 +46,7 @@ internal class SteamworksTransformer : ITransformer
         
         instructions[index] = Instruction.Create(OpCodes.Nop); // call
         instructions[index + 1] = Instruction.Create(OpCodes.Nop); // pop
+
         return true;
     }
 }
