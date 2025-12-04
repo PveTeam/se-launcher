@@ -5,19 +5,18 @@
       "CringePlugins": {
         "type": "Direct",
         "requested": "[*, )",
-        "resolved": "0.3.14",
-        "contentHash": "vEWqiTRsPsK4ZGzewfrUiElhICuxRhQ66unmO0ngcaQX6CYTQCeKXengdy08f1tJUjh3BpipnHz+ygZxnTQeqg==",
+        "resolved": "0.3.9",
+        "contentHash": "i5qRCBym9GvJSpeipsoHbtfxsnTQe9nUma/bsAF0MYSl//mndHA1200YpHFEGn60/IjJX4MGakU1qCW7FHy8eA==",
         "dependencies": {
           "ImGui.NET.DirectX": "1.92.3",
           "JsonSchema.Net.Generation": "5.1.1",
           "Lib.Harmony.Thin": "2.3.4-torch",
           "Microsoft.Extensions.DependencyInjection.Abstractions": "9.0.9",
           "Newtonsoft.Json": "13.0.4",
-          "NuGet": "0.3.14",
-          "SharedCringe": "0.3.14",
-          "SixLabors.ImageSharp": "4.0.0-compat",
-          "SpaceEngineersDedicated.ReferenceAssemblies": "1.208.14",
-          "Steamworks.NET.AnyCPU": "2025.162.5",
+          "NuGet": "0.3.9",
+          "SharedCringe": "0.3.9",
+          "SpaceEngineersDedicated.ReferenceAssemblies": "1.207.22",
+          "Steamworks.NET": "[20.1.0]",
           "dnlib": "4.5.0"
         }
       },
@@ -35,8 +34,8 @@
       },
       "CringeBootstrap.Abstractions": {
         "type": "Transitive",
-        "resolved": "0.3.14",
-        "contentHash": "guRnJQshXKfBqt8MuLW9Ux0POR00NaK4cVyAPN7KGtQhvvFdWBaj+hd5XBXKJBchHvq6sVwfblkQDyqEdpZhig==",
+        "resolved": "0.3.9",
+        "contentHash": "JxwG2ERSAKHt10EKlgZGtwGhFsRZ7rEhSeMPcLWrADSVrKJdMDTdPa7BVFlRmAWMU9uZ0+5w1C+hmFa683fxDg==",
         "dependencies": {
           "Microsoft.Extensions.DependencyInjection": "9.0.9"
         }
@@ -165,8 +164,8 @@
       },
       "NuGet": {
         "type": "Transitive",
-        "resolved": "0.3.14",
-        "contentHash": "2gQGPasvyuSnlT2A4QZmuJrnXvKOFGN6icYlEyWalrXQFFeh+PH0zIZrCbSBRSAltNHstCuLYgYIxyNUYCBaNg==",
+        "resolved": "0.3.9",
+        "contentHash": "r7ZwsSJ0fXwqd2bVVbJv6nHY6hprRUDXXElPcgV+qhdaOuufEyDLBc2HYE4Ks6CDLkG1bCrw4loCIRV49kkMHg==",
         "dependencies": {
           "NLog": "6.0.4",
           "NuGet.Frameworks": "6.14.0",
@@ -191,12 +190,12 @@
       },
       "SharedCringe": {
         "type": "Transitive",
-        "resolved": "0.3.14",
-        "contentHash": "aSdrW7RIsUuDY44tBblH4jqUPprVG5Tp9Td5LHBHdVfMvCU+wt+jisPZ6nBUGLBfqsCfi0K8TFy0kMTy22Lxcg==",
+        "resolved": "0.3.9",
+        "contentHash": "RQvq5cyIxDVE7B16mQuNMxah12Y+3iRnlic66T0nOK19uJzFI1wicZSJhsjw+Oo+HsjIWO+uNb+bmMWa8ALReA==",
         "dependencies": {
-          "CringeBootstrap.Abstractions": "0.3.14",
+          "CringeBootstrap.Abstractions": "0.3.9",
           "NLog": "6.0.4",
-          "SpaceEngineersDedicated.ReferenceAssemblies": "1.208.14"
+          "SpaceEngineersDedicated.ReferenceAssemblies": "1.207.22"
         }
       },
       "SharpDX": {
@@ -204,37 +203,24 @@
         "resolved": "4.2.0-keen-cringe",
         "contentHash": "LaJN3h1Gi1FWVdef2I5WtOH9gwzKCBniH0CragarbkN2QheYY6Lqm+91PcOfp1w/4wdVb+k8Kjv3sO393Tphtw=="
       },
-      "SixLabors.ImageSharp": {
-        "type": "Transitive",
-        "resolved": "4.0.0-compat",
-        "contentHash": "aFnFB5ulnffN/p35/B1Aq62TQ991LA5Id2NaOAGWxsSl54hyVGJROu2qvaxuIeBVyFvY7fmKgUPYISOIAfXdLw==",
-        "dependencies": {
-          "System.IO.Hashing": "9.0.8"
-        }
-      },
       "SpaceEngineersDedicated.ReferenceAssemblies": {
         "type": "Transitive",
-        "resolved": "1.208.14",
-        "contentHash": "7oA3MnwLCauVqaA9Q4TK68Akt7DhzJvCS+UrfYACo7SkJXO5+MNtTcA8C7Os4QDUrCbL6p2MGeyUMw1nH12FhQ==",
+        "resolved": "1.207.22",
+        "contentHash": "cEigq1fs5zm8wjVjLuldUvnLTeQTvymZbXt3eZ8mS4x6oynOpiiUvnSJnD/mxY227AVekRzrdRuk51/Z7m1sqg==",
         "dependencies": {
           "SharpDX": "4.2.0-keen-cringe",
           "protobuf-net": "1.0.0"
         }
       },
-      "Steamworks.NET.AnyCPU": {
+      "Steamworks.NET": {
         "type": "Transitive",
-        "resolved": "2025.162.5",
-        "contentHash": "G5nrmdRec7cfoB7YoIyTwd2HQHgHWpOxj+SkXLkpHa7RS0W5sJeVNJ68mQo6LFnjC+FKXym66Dv2CIIrR9ihNw=="
+        "resolved": "20.1.0",
+        "contentHash": "+GntwnyJ5tCNvUIaQxv2+ehDvZJzGUqlSB5xRBk1hTj1qqBJ6s4vK/OfGD/jae7aTmXiGSm8wpJORosNtQevJQ=="
       },
       "System.Buffers": {
         "type": "Transitive",
         "resolved": "4.5.1",
         "contentHash": "Rw7ijyl1qqRS0YQD/WycNst8hUUMgrMH4FCn1nNm27M4VxchZ1js3fVjQaANHO5f3sN4isvP4a+Met9Y4YomAg=="
-      },
-      "System.IO.Hashing": {
-        "type": "Transitive",
-        "resolved": "9.0.8",
-        "contentHash": "5TJUS9EIYrp0VEcm06EPYxXmLmsVUakewFnM/CAxQfvlasI9fGkTKM9afSf2dodZcMCzFna/o7Fn+gYRt3uTiA=="
       },
       "System.Linq.Async": {
         "type": "Transitive",
@@ -268,10 +254,10 @@
           "System.Runtime.CompilerServices.Unsafe": "6.0.0"
         }
       },
-      "Steamworks.NET.AnyCPU": {
+      "Steamworks.NET": {
         "type": "Transitive",
-        "resolved": "2025.162.5",
-        "contentHash": "G5nrmdRec7cfoB7YoIyTwd2HQHgHWpOxj+SkXLkpHa7RS0W5sJeVNJ68mQo6LFnjC+FKXym66Dv2CIIrR9ihNw=="
+        "resolved": "20.1.0",
+        "contentHash": "+GntwnyJ5tCNvUIaQxv2+ehDvZJzGUqlSB5xRBk1hTj1qqBJ6s4vK/OfGD/jae7aTmXiGSm8wpJORosNtQevJQ=="
       }
     }
   }
