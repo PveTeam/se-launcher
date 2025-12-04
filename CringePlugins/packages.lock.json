@@ -85,11 +85,11 @@
           "protobuf-net": "1.0.0"
         }
       },
-      "Steamworks.NET": {
+      "Steamworks.NET.AnyCPU": {
         "type": "Direct",
-        "requested": "[20.1.0, 20.1.0]",
-        "resolved": "20.1.0",
-        "contentHash": "+GntwnyJ5tCNvUIaQxv2+ehDvZJzGUqlSB5xRBk1hTj1qqBJ6s4vK/OfGD/jae7aTmXiGSm8wpJORosNtQevJQ=="
+        "requested": "[2025.162.5, )",
+        "resolved": "2025.162.5",
+        "contentHash": "G5nrmdRec7cfoB7YoIyTwd2HQHgHWpOxj+SkXLkpHa7RS0W5sJeVNJ68mQo6LFnjC+FKXym66Dv2CIIrR9ihNw=="
       },
       "Humanizer.Core": {
         "type": "Transitive",
@@ -284,11 +284,11 @@
           "System.Runtime.CompilerServices.Unsafe": "6.0.0"
         }
       },
-      "Steamworks.NET": {
+      "Steamworks.NET.AnyCPU": {
         "type": "Direct",
-        "requested": "[20.1.0, 20.1.0]",
-        "resolved": "20.1.0",
-        "contentHash": "+GntwnyJ5tCNvUIaQxv2+ehDvZJzGUqlSB5xRBk1hTj1qqBJ6s4vK/OfGD/jae7aTmXiGSm8wpJORosNtQevJQ=="
+        "requested": "[2025.162.5, )",
+        "resolved": "2025.162.5",
+        "contentHash": "G5nrmdRec7cfoB7YoIyTwd2HQHgHWpOxj+SkXLkpHa7RS0W5sJeVNJ68mQo6LFnjC+FKXym66Dv2CIIrR9ihNw=="
       }
     }
   }
