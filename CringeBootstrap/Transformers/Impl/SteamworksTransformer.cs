@@ -2,7 +2,9 @@
 using System.Reflection;
 using dnlib.DotNet;
 using dnlib.DotNet.Emit;
+using HarmonyLib;
 using NLog;
+using Steamworks;
 
 namespace CringeBootstrap.Transformers.Impl;
 
@@ -38,7 +40,42 @@ internal class SteamworksTransformer : ITransformer
         
         if (!Remove(method)) return false;
 
+        method = typeDefinition.FindMethod("GetAuthSessionTicket");
+
+        if (method is not null) PatchAuthTicket(method);
+
         return true;
+    }
+
+    private static void PatchAuthTicket(MethodDef method)
+    {
+        var instructions = method.Body.Instructions;
+
+        for (var i = 0; i < instructions.Count; i++)
+        {
+            var instruction = instructions[i];
+            
+            if (instruction.OpCode == OpCodes.Call && instruction.Operand is IMethodDefOrRef operand &&
+                operand.Name == "GetAuthSessionTicket" && operand.DeclaringType.Name == "SteamUser")
+            {
+                instruction.Operand =
+                    method.Module.Import(AccessTools.DeclaredMethod(typeof(SteamUser),
+                        nameof(SteamUser.GetAuthSessionTicket)));
+
+                var local = new Local(method.Module.ImportAsTypeSig(typeof(SteamNetworkingIdentity)));
+                method.Body.Variables.Add(local);
+                
+                instructions.Insert(i, Instruction.Create(OpCodes.Ldloca, local));
+
+                instructions.Insert(0,
+                    Instruction.Create(OpCodes.Call,
+                        method.Module.Import(AccessTools.DeclaredMethod(typeof(SteamNetworkingIdentity),
+                            nameof(SteamNetworkingIdentity.SetLocalHost)))));
+                instructions.Insert(0, Instruction.Create(OpCodes.Ldloca, local));
+                
+                break;
+            }
+        }
     }
 
     private static bool Remove(MethodDef method)
@@ -49,7 +86,7 @@ internal class SteamworksTransformer : ITransformer
         {
             var instruction = instructions[i];
             if (instruction.OpCode == OpCodes.Call && instruction.Operand is IMethodDefOrRef operand &&
-                operand.Name == "RequestCurrentStats" && operand.DeclaringType.Name == "SteamUserStats")
+                operand.Name == "RequestCurrentStats" && operand.DeclaringType.Name == nameof(SteamUserStats))
             {
                 index = i;
             }
