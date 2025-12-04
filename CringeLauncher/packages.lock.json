@@ -81,15 +81,6 @@
         "resolved": "6.0.4",
         "contentHash": "Xr+lIk1ZlTTFXEqnxQVLxrDqZlt2tm5X+/AhJbaY2emb/dVtGDiU5QuEtj3gHtwV/SWlP/rJ922I/BPuOJXlRw=="
       },
-      "SixLabors.ImageSharp": {
-        "type": "Direct",
-        "requested": "[4.0.0-compat, )",
-        "resolved": "4.0.0-compat",
-        "contentHash": "aFnFB5ulnffN/p35/B1Aq62TQ991LA5Id2NaOAGWxsSl54hyVGJROu2qvaxuIeBVyFvY7fmKgUPYISOIAfXdLw==",
-        "dependencies": {
-          "System.IO.Hashing": "9.0.8"
-        }
-      },
       "SpaceEngineersDedicated.ReferenceAssemblies": {
         "type": "Direct",
         "requested": "[1.208.14, )",
@@ -422,6 +413,14 @@
         "resolved": "4.2.0-keen-cringe",
         "contentHash": "LaJN3h1Gi1FWVdef2I5WtOH9gwzKCBniH0CragarbkN2QheYY6Lqm+91PcOfp1w/4wdVb+k8Kjv3sO393Tphtw=="
       },
+      "SixLabors.ImageSharp": {
+        "type": "Transitive",
+        "resolved": "4.0.0-compat",
+        "contentHash": "aFnFB5ulnffN/p35/B1Aq62TQ991LA5Id2NaOAGWxsSl54hyVGJROu2qvaxuIeBVyFvY7fmKgUPYISOIAfXdLw==",
+        "dependencies": {
+          "System.IO.Hashing": "9.0.8"
+        }
+      },
       "Steamworks.NET": {
         "type": "Transitive",
         "resolved": "20.1.0",
@@ -544,6 +543,7 @@
           "Newtonsoft.Json": "[13.0.4, )",
           "NuGet": "[1.0.0, )",
           "SharedCringe": "[1.0.0, )",
+          "SixLabors.ImageSharp": "[4.0.0-compat, )",
           "SpaceEngineersDedicated.ReferenceAssemblies": "[1.208.14, )",
           "Steamworks.NET": "[20.1.0, 20.1.0]",
           "dnlib": "[4.5.0, )"
