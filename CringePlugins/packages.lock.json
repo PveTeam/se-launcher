@@ -102,11 +102,11 @@
           "protobuf-net": "1.0.0"
         }
       },
-      "Steamworks.NET.AnyCPU": {
+      "Steamworks.NET": {
         "type": "Direct",
-        "requested": "[2025.162.5, )",
-        "resolved": "2025.162.5",
-        "contentHash": "G5nrmdRec7cfoB7YoIyTwd2HQHgHWpOxj+SkXLkpHa7RS0W5sJeVNJ68mQo6LFnjC+FKXym66Dv2CIIrR9ihNw=="
+        "requested": "[2025.162.1, )",
+        "resolved": "2025.162.1",
+        "contentHash": "kICLA6+AAvCvmaUSMv8xxYbg7tco8c83YnVF6OAnHM27hKpewTJJy91fSVVxyFhS0KBT5ya7wy313aAwaXkDbA=="
       },
       "Humanizer.Core": {
         "type": "Transitive",
@@ -273,12 +273,6 @@
         "requested": "[1.92.3, )",
         "resolved": "1.92.3",
         "contentHash": "1GFD4bYNqbGBnLmfmmaM2nLngmPcj+GKDJmRYJki8xjsMmH6Tim5meKmliLfsWm4at7F1y16xWxeN3qalVQL9g=="
-      },
-      "Steamworks.NET.AnyCPU": {
-        "type": "Direct",
-        "requested": "[2025.162.5, )",
-        "resolved": "2025.162.5",
-        "contentHash": "G5nrmdRec7cfoB7YoIyTwd2HQHgHWpOxj+SkXLkpHa7RS0W5sJeVNJ68mQo6LFnjC+FKXym66Dv2CIIrR9ihNw=="
       }
     }
   }

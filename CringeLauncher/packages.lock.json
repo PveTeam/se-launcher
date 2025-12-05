@@ -433,10 +433,10 @@
           "System.IO.Hashing": "9.0.8"
         }
       },
-      "Steamworks.NET.AnyCPU": {
+      "Steamworks.NET": {
         "type": "Transitive",
-        "resolved": "2025.162.5",
-        "contentHash": "G5nrmdRec7cfoB7YoIyTwd2HQHgHWpOxj+SkXLkpHa7RS0W5sJeVNJ68mQo6LFnjC+FKXym66Dv2CIIrR9ihNw=="
+        "resolved": "2025.162.1",
+        "contentHash": "kICLA6+AAvCvmaUSMv8xxYbg7tco8c83YnVF6OAnHM27hKpewTJJy91fSVVxyFhS0KBT5ya7wy313aAwaXkDbA=="
       },
       "System.Interactive.Async": {
         "type": "Transitive",
@@ -476,7 +476,7 @@
           "SharedCringe": "[1.0.0, )",
           "SixLabors.ImageSharp": "[4.0.0-compat, )",
           "SpaceEngineersDedicated.ReferenceAssemblies": "[1.208.14, )",
-          "Steamworks.NET.AnyCPU": "[2025.162.5, )",
+          "Steamworks.NET": "[2025.162.1, )",
           "dnlib": "[4.5.0, )"
         }
       },
@@ -524,11 +524,6 @@
         "type": "Transitive",
         "resolved": "1.92.3",
         "contentHash": "1GFD4bYNqbGBnLmfmmaM2nLngmPcj+GKDJmRYJki8xjsMmH6Tim5meKmliLfsWm4at7F1y16xWxeN3qalVQL9g=="
-      },
-      "Steamworks.NET.AnyCPU": {
-        "type": "Transitive",
-        "resolved": "2025.162.5",
-        "contentHash": "G5nrmdRec7cfoB7YoIyTwd2HQHgHWpOxj+SkXLkpHa7RS0W5sJeVNJ68mQo6LFnjC+FKXym66Dv2CIIrR9ihNw=="
       }
     }
   }
