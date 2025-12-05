@@ -48,7 +48,8 @@ var gameDir = dir;
 
 var customEntrypoint = Environment.GetEnvironmentVariable("DOTNET_BOOTSTRAP_ENTRYPOINT");
 
-var transformationService = new TransformationService(gameDir, [new ImageSharpTransformer()]);
+var transformationService =
+    new TransformationService(gameDir, [new ImageSharpTransformer(), new SteamworksTransformer()]);
 var cacheDir = Directory.CreateDirectory(Path.Join(
     Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
     "CringeLauncher", "cache"));
@@ -99,6 +100,7 @@ var context = new GameDirectoryAssemblyLoadContext(dir, gameDir);
 context.AddDependencyOverride("CringeLauncher");
 context.AddDependencyOverride("CringePlugins");
 context.AddDependencyOverride("EOSSDK");
+context.AddDependencyOverride("Steamworks.NET");
 
 const string crashPadEntrypoint = "CringeLauncher.CrashPad.CrashPadLauncher, CringeLauncher";
 

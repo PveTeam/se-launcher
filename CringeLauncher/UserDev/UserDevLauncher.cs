@@ -21,6 +21,7 @@ public class UserDevLauncher() : Launcher(Environment.GetEnvironmentVariable("DO
         MyServiceManager.Instance.AddService<IMyNetworking>(new MyNullNetworking(gameService));
         MyServiceManager.Instance.AddService<IMyLobbyDiscovery>(new MyNullLobbyDiscovery());
         MyServiceManager.Instance.AddService<IMyServerDiscovery>(new MyNullServerDiscovery());
+
     }
 
     protected override ValueTask<LauncherConfig?> ReadUpdateConfigAsync(Logger logger)

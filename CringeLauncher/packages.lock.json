@@ -80,15 +80,6 @@
         "resolved": "6.0.4",
         "contentHash": "Xr+lIk1ZlTTFXEqnxQVLxrDqZlt2tm5X+/AhJbaY2emb/dVtGDiU5QuEtj3gHtwV/SWlP/rJ922I/BPuOJXlRw=="
       },
-      "SixLabors.ImageSharp": {
-        "type": "Direct",
-        "requested": "[4.0.0-compat, )",
-        "resolved": "4.0.0-compat",
-        "contentHash": "aFnFB5ulnffN/p35/B1Aq62TQ991LA5Id2NaOAGWxsSl54hyVGJROu2qvaxuIeBVyFvY7fmKgUPYISOIAfXdLw==",
-        "dependencies": {
-          "System.IO.Hashing": "9.0.8"
-        }
-      },
       "SpaceEngineersDedicated.ReferenceAssemblies": {
         "type": "Direct",
         "requested": "[1.208.14, )",
@@ -434,10 +425,18 @@
         "resolved": "4.2.0-keen-cringe",
         "contentHash": "LaJN3h1Gi1FWVdef2I5WtOH9gwzKCBniH0CragarbkN2QheYY6Lqm+91PcOfp1w/4wdVb+k8Kjv3sO393Tphtw=="
       },
-      "Steamworks.NET": {
+      "SixLabors.ImageSharp": {
         "type": "Transitive",
-        "resolved": "20.1.0",
-        "contentHash": "+GntwnyJ5tCNvUIaQxv2+ehDvZJzGUqlSB5xRBk1hTj1qqBJ6s4vK/OfGD/jae7aTmXiGSm8wpJORosNtQevJQ=="
+        "resolved": "4.0.0-compat",
+        "contentHash": "aFnFB5ulnffN/p35/B1Aq62TQ991LA5Id2NaOAGWxsSl54hyVGJROu2qvaxuIeBVyFvY7fmKgUPYISOIAfXdLw==",
+        "dependencies": {
+          "System.IO.Hashing": "9.0.8"
+        }
+      },
+      "Steamworks.NET.AnyCPU": {
+        "type": "Transitive",
+        "resolved": "2025.162.5",
+        "contentHash": "G5nrmdRec7cfoB7YoIyTwd2HQHgHWpOxj+SkXLkpHa7RS0W5sJeVNJ68mQo6LFnjC+FKXym66Dv2CIIrR9ihNw=="
       },
       "System.Interactive.Async": {
         "type": "Transitive",
@@ -475,8 +474,9 @@
           "Newtonsoft.Json": "[13.0.4, )",
           "NuGet": "[1.0.0, )",
           "SharedCringe": "[1.0.0, )",
+          "SixLabors.ImageSharp": "[4.0.0-compat, )",
           "SpaceEngineersDedicated.ReferenceAssemblies": "[1.208.14, )",
-          "Steamworks.NET": "[20.1.0, 20.1.0]",
+          "Steamworks.NET.AnyCPU": "[2025.162.5, )",
           "dnlib": "[4.5.0, )"
         }
       },
@@ -494,7 +494,7 @@
         "dependencies": {
           "CringeBootstrap.Abstractions": "[1.0.0, )",
           "NLog": "[6.0.4, )",
-          "SpaceEngineersDedicated.ReferenceAssemblies": "[1.207.22, )"
+          "SpaceEngineersDedicated.ReferenceAssemblies": "[1.208.14, )"
         }
       }
     },
@@ -525,10 +525,10 @@
         "resolved": "1.92.3",
         "contentHash": "1GFD4bYNqbGBnLmfmmaM2nLngmPcj+GKDJmRYJki8xjsMmH6Tim5meKmliLfsWm4at7F1y16xWxeN3qalVQL9g=="
       },
-      "Steamworks.NET": {
+      "Steamworks.NET.AnyCPU": {
         "type": "Transitive",
-        "resolved": "20.1.0",
-        "contentHash": "+GntwnyJ5tCNvUIaQxv2+ehDvZJzGUqlSB5xRBk1hTj1qqBJ6s4vK/OfGD/jae7aTmXiGSm8wpJORosNtQevJQ=="
+        "resolved": "2025.162.5",
+        "contentHash": "G5nrmdRec7cfoB7YoIyTwd2HQHgHWpOxj+SkXLkpHa7RS0W5sJeVNJ68mQo6LFnjC+FKXym66Dv2CIIrR9ihNw=="
       }
     }
   }

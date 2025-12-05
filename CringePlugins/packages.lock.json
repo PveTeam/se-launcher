@@ -83,6 +83,15 @@
         "resolved": "13.0.4",
         "contentHash": "pdgNNMai3zv51W5aq268sujXUyx7SNdE2bj1wZcWjAQrKMFZV260lbqYop1d2GM67JI1huLRwxo9ZqnfF/lC6A=="
       },
+      "SixLabors.ImageSharp": {
+        "type": "Direct",
+        "requested": "[4.0.0-compat, )",
+        "resolved": "4.0.0-compat",
+        "contentHash": "aFnFB5ulnffN/p35/B1Aq62TQ991LA5Id2NaOAGWxsSl54hyVGJROu2qvaxuIeBVyFvY7fmKgUPYISOIAfXdLw==",
+        "dependencies": {
+          "System.IO.Hashing": "9.0.8"
+        }
+      },
       "SpaceEngineersDedicated.ReferenceAssemblies": {
         "type": "Direct",
         "requested": "[1.208.14, )",
@@ -93,11 +102,11 @@
           "protobuf-net": "1.0.0"
         }
       },
-      "Steamworks.NET": {
+      "Steamworks.NET.AnyCPU": {
         "type": "Direct",
-        "requested": "[20.1.0, 20.1.0]",
-        "resolved": "20.1.0",
-        "contentHash": "+GntwnyJ5tCNvUIaQxv2+ehDvZJzGUqlSB5xRBk1hTj1qqBJ6s4vK/OfGD/jae7aTmXiGSm8wpJORosNtQevJQ=="
+        "requested": "[2025.162.5, )",
+        "resolved": "2025.162.5",
+        "contentHash": "G5nrmdRec7cfoB7YoIyTwd2HQHgHWpOxj+SkXLkpHa7RS0W5sJeVNJ68mQo6LFnjC+FKXym66Dv2CIIrR9ihNw=="
       },
       "Humanizer.Core": {
         "type": "Transitive",
@@ -221,6 +230,11 @@
         "resolved": "7.0.0",
         "contentHash": "Ckj+tg2BVOZ0oLp7FAbjfvRyA/BMkUhVxROLd+x22zncRR6KD7CdFzAYp+9Mo2cedxAMo2X9ZNyhZu68jdDITw=="
       },
+      "System.IO.Hashing": {
+        "type": "Transitive",
+        "resolved": "9.0.8",
+        "contentHash": "5TJUS9EIYrp0VEcm06EPYxXmLmsVUakewFnM/CAxQfvlasI9fGkTKM9afSf2dodZcMCzFna/o7Fn+gYRt3uTiA=="
+      },
       "System.Linq.Async": {
         "type": "Transitive",
         "resolved": "7.0.0",
@@ -249,7 +263,7 @@
         "dependencies": {
           "CringeBootstrap.Abstractions": "[1.0.0, )",
           "NLog": "[6.0.4, )",
-          "SpaceEngineersDedicated.ReferenceAssemblies": "[1.207.22, )"
+          "SpaceEngineersDedicated.ReferenceAssemblies": "[1.208.14, )"
         }
       }
     },
@@ -260,11 +274,11 @@
         "resolved": "1.92.3",
         "contentHash": "1GFD4bYNqbGBnLmfmmaM2nLngmPcj+GKDJmRYJki8xjsMmH6Tim5meKmliLfsWm4at7F1y16xWxeN3qalVQL9g=="
       },
-      "Steamworks.NET": {
+      "Steamworks.NET.AnyCPU": {
         "type": "Direct",
-        "requested": "[20.1.0, 20.1.0]",
-        "resolved": "20.1.0",
-        "contentHash": "+GntwnyJ5tCNvUIaQxv2+ehDvZJzGUqlSB5xRBk1hTj1qqBJ6s4vK/OfGD/jae7aTmXiGSm8wpJORosNtQevJQ=="
+        "requested": "[2025.162.5, )",
+        "resolved": "2025.162.5",
+        "contentHash": "G5nrmdRec7cfoB7YoIyTwd2HQHgHWpOxj+SkXLkpHa7RS0W5sJeVNJ68mQo6LFnjC+FKXym66Dv2CIIrR9ihNw=="
       }
     }
   }
