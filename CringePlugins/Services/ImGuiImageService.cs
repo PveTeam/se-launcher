@@ -155,18 +155,16 @@ internal sealed class ImGuiImageService(HttpClient client) : IImGuiImageService
 
         try
         {
-            Format format;
+            var format = Format.R8G8B8A8_UNorm;
             switch (img)
             {
                 case Image<Bgra32>:
-                    format = Format.B8G8R8A8_UNorm_SRgb;
+                    format = Format.B8G8R8A8_UNorm;
                     break;
                 case Image<Rgba32>:
-                    format = Format.R8G8B8A8_UNorm_SRgb;
                     break;
                 default:
                 {
-                    format = Format.R8G8B8A8_UNorm_SRgb;
                     var clone = img.CloneAs<Rgba32>();
                     img.Dispose();
                     img = clone;
@@ -226,6 +224,7 @@ internal sealed class ImGuiImageService(HttpClient client) : IImGuiImageService
             {
                 frames[i].srv = new(_device, tex, new()
                 {
+                    Format = format,
                     Dimension = ShaderResourceViewDimension.Texture2DArray,
                     Texture2DArray =
                     {
