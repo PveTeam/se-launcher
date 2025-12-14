@@ -1,5 +1,4 @@
-﻿using System.Globalization;
-using CringeLauncher.CrashPad;
+﻿using CringeLauncher.CrashPad;
 using CringeLauncher.Platform;
 using CringeLauncher.Render;
 using CringeLauncher.Utils;
@@ -8,11 +7,13 @@ using Sandbox;
 using Sandbox.Engine.Utils;
 using Sandbox.Game;
 using SpaceEngineers.Game;
+using System.Globalization;
 using VRage;
 using VRage.Audio;
 using VRage.FileSystem;
 using VRage.Game;
 using VRage.Game.Localization;
+using VRage.Input;
 using VRageRender;
 
 namespace CringeLauncher.Stages;
@@ -46,7 +47,16 @@ internal class PlatformInitializationStage(
             renderThread.Surrogate));
         
         MyPlatformGameSettings.SAVE_TO_CLOUD_OPTION_AVAILABLE = true;
+
+        MyPlatformGameSettings.ENABLE_BLUEPRINT_SHARING = true;
+
         MyXAudio2.DEVICE_DETAILS_SUPPORTED = false;
+
+        MyPlatformGameSettings.ENABLE_JOYSTICK_SCHEME = true;
+        if (MyFakes.ENABLE_LEFT_RIGHT_MODIFIERS)
+        {
+            MyInput.EnableModifierKeyEmulation = false;
+        }
 
         if (MyVRage.Platform.System.SimulationQuality == SimulationQuality.Normal)
         {
