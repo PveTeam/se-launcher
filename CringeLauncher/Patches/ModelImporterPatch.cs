@@ -15,7 +15,10 @@ internal static class ModelImporterPatch
         AccessTools.Method(typeof(MyModelImporter), "ImportData"),
         AccessTools.Method(typeof(DDSHelper), "TryReadDDSHeader"),
         AccessTools.Method(typeof(DDSHelper), "CreateCompressedImageFromStream"),
-        AccessTools.Method(typeof(SoundStream), nameof(SoundStream.ToDataStream))
+        AccessTools.Method(typeof(SoundStream), nameof(SoundStream.ToDataStream)),
+        AccessTools.Method(typeof(System.StreamExtensions), nameof(System.StreamExtensions.ReadNoAlloc)),
+        AccessTools.Method(typeof(System.StreamExtensions), nameof(System.StreamExtensions.ReadString)),
+        AccessTools.Method(typeof(System.StreamExtensions), nameof(System.StreamExtensions.SkipBytes)),
     ];
 
     [HarmonyTranspiler]

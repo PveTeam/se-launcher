@@ -115,18 +115,10 @@ public class Launcher : ICorePlugin
         //environment variable for viktor's plugins
         Environment.SetEnvironmentVariable("SE_PLUGIN_DISABLE_METHOD_VERIFICATION", "True");
 
-        nint Resolver(string name, Assembly assembly, DllImportSearchPath? dllImportSearchPath)
-        {
-            const string steamApiSuffix = "steam_api";
-            if (name.EndsWith(steamApiSuffix, StringComparison.OrdinalIgnoreCase))
-                name += "64";
-            if (!name.EndsWith(".dll", StringComparison.OrdinalIgnoreCase))
-                name += ".dll";
-            return NativeLibrary.Load(Path.Join(AppContext.BaseDirectory, name));
-        }
-
-        NativeLibrary.SetDllImportResolver(typeof(Steamworks.Constants).Assembly, Resolver);
-        NativeLibrary.SetDllImportResolver(typeof(EosService).Assembly, Resolver);
+        // hook up steam as we ship it inside base context as an override
+        if (AssemblyLoadContext.GetLoadContext(typeof(Launcher).Assembly) is ICoreLoadContext coreLoadContext)
+            NativeLibrary.SetDllImportResolver(typeof(Steamworks.Constants).Assembly, (name, _, _) => coreLoadContext.ResolveUnmanagedDll(name));
+        NativeLibrary.SetDllImportResolver(typeof(EosService).Assembly, (name, _, _) => NativeLibrary.Load(Path.Join(AppContext.BaseDirectory, name)));
 
         if (splash.ExecuteLoadingStages() is { } preInitException)
         {

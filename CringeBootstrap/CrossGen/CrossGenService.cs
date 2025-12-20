@@ -12,7 +12,7 @@ internal abstract class CrossGenService(string gameDirectoryPath, string cachePa
 
     private string? _crossGenPath;
 
-    private const string FormatVersion = "4";
+    private const string FormatVersion = "1";
     
     private readonly ImmutableHashSet<string> _excludedAssemblies =
     [
