@@ -3,8 +3,8 @@ using CringeBootstrap.Transformers;
 
 namespace CringeBootstrap.CrossGen;
 
-internal class NoOpCrossGenService(string gameDirectoryPath, string cachePath, ITransformationService transformationService)
-    : CrossGenService(gameDirectoryPath, cachePath, transformationService)
+internal class NoOpCrossGenService(string gameDirectoryPath, string cachePath, string cacheKey, ITransformationService transformationService)
+    : CrossGenService(gameDirectoryPath, cacheKey, transformationService)
 {
     protected override string CrossGenCachePath { get; } =
         Directory.CreateDirectory(Path.Join(cachePath, "NOOP")).FullName;

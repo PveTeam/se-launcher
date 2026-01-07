@@ -1,14 +1,13 @@
-using System.Collections.Frozen;
 using System.Collections.Immutable;
 using System.Reflection;
 using dnlib.DotNet;
+using dnlib.DotNet.Writer;
 
 namespace CringeBootstrap.Transformers;
 
 internal sealed class TransformationService : ITransformationService
 {
-    private readonly FrozenSet<string> _acceptedAssemblies;
-    private readonly ImmutableArray<ITransformer> _transformers;
+    private readonly ILookup<string, ITransformer> _transformers;
 
     private readonly ModuleContext _context;
 
@@ -16,9 +15,8 @@ internal sealed class TransformationService : ITransformationService
 
     public TransformationService(string gameAssembliesPath, ImmutableArray<ITransformer> transformers)
     {
-        _transformers = transformers;
-        _acceptedAssemblies = transformers.SelectMany(x => x.AcceptedAssemblies).Select(b => b.Name ?? string.Empty)
-            .Distinct().ToFrozenSet(StringComparer.OrdinalIgnoreCase);
+        _transformers = transformers.SelectMany(x => x.AcceptedAssemblies.Select(a => (x, a)))
+            .ToLookup(b => b.a.Name ?? string.Empty, b => b.x, StringComparer.OrdinalIgnoreCase);
         
         var assemblyResolver = new AssemblyResolver();
 
@@ -44,9 +42,9 @@ internal sealed class TransformationService : ITransformationService
             return null;
         }
         
-        var assemblyName = new AssemblyName(moduleDefinition.Assembly!.FullName);
-        if (_acceptedAssemblies.Contains(assemblyName.Name ?? string.Empty))
-            token = new TransformationToken(moduleDefinition);
+        var assemblyName = new AssemblyName(moduleDefinition.Assembly!.FullName).Name ?? string.Empty;
+        if (_transformers.Contains(assemblyName))
+            token = new TransformationToken(moduleDefinition, _transformers[assemblyName]);
         _tokens.Add(assemblyPath, token);
         return token;
     }
@@ -56,20 +54,21 @@ internal sealed class TransformationService : ITransformationService
         if (token is not TransformationToken transformationToken)
             throw new ArgumentException("Invalid token type", nameof(token));
 
-        transformationToken.Transform(targetPath, _transformers);
+        transformationToken.Transform(targetPath);
     }
 
-    private class TransformationToken(ModuleDefMD moduleDefinition) : ITransformationToken
+    private class TransformationToken(ModuleDefMD moduleDefinition, IEnumerable<ITransformer> transformers) : ITransformationToken
     {
-        public void Transform(string targetPath, ImmutableArray<ITransformer> transformers)
+        public void Transform(string targetPath)
         {
+            var writerOptions = new ModuleWriterOptions(moduleDefinition);
             foreach (var transformer in transformers)
             {
                 // todo think about if bool return type is useful or not
-                transformer.Transform(moduleDefinition);
+                transformer.Transform(new(moduleDefinition, writerOptions));
             }
 
-            moduleDefinition.Write(targetPath);
+            moduleDefinition.Write(targetPath, writerOptions);
         }
     }
 }

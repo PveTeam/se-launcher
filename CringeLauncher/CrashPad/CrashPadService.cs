@@ -10,6 +10,7 @@ using CringeLauncher.Utils;
 using CringePlugins.Loader;
 using HarmonyLib;
 using MonoMod.Utils;
+using Pillar.Demystifier;
 
 namespace CringeLauncher.CrashPad;
 
@@ -86,10 +87,10 @@ internal class CrashPadService
         MarkSavePoint();
     }
 
-    private static ExceptionInformation CaptureExceptionInformation(Exception exception, Thread? thread = null) =>
+    private ExceptionInformation CaptureExceptionInformation(Exception exception, Thread? thread = null) =>
         new(thread is null ? null : CaptureThreadInformation(thread), CaptureExceptionFrame(exception));
 
-    private static ExceptionInformation.ExceptionFrame CaptureExceptionFrame(Exception exception)
+    private ExceptionInformation.ExceptionFrame CaptureExceptionFrame(Exception exception)
     {
         ImmutableArray<ExceptionInformation.ExceptionFrame> innerFrames =
             exception is AggregateException { InnerExceptions: var innerExceptions }
@@ -100,7 +101,8 @@ internal class CrashPadService
                     ? []
                     : [CaptureExceptionFrame(exception.InnerException)];
 
-        return new(CaptureTypeFullName(exception.GetType()), exception.Message, CaptureExceptionStackFrames(exception),
+        return new(CaptureTypeFullName(exception.GetType()), exception.Message,
+            CaptureExceptionStackFrames(exception).Result,
             CaptureExceptionStringRepresentation(exception), innerFrames);
     }
 
@@ -121,18 +123,23 @@ internal class CrashPadService
         }
     }
 
-    private static ImmutableArray<ExceptionInformation.ExceptionStackFrame> CaptureExceptionStackFrames(Exception exception)
+    private async Task<ImmutableArray<ExceptionInformation.ExceptionStackFrame>> CaptureExceptionStackFrames(Exception exception)
     {
         var stackTrace = new StackTrace(exception, true);
 
         var builder = ImmutableArray.CreateBuilder<ExceptionInformation.ExceptionStackFrame>(stackTrace.FrameCount);
         var sb = new StringBuilder();
+        var options = new StackTraceOptions(new HarmonyStackFrameMethodResolver(), new PortableDebugSymbolsResolver());
 
-        var i = 0;
-        while (stackTrace.GetFrame(i++) is { } frame)
+        foreach (var frame in await EnhancedStackTrace.GetFramesAsync(stackTrace, options))
         {
             sb.Clear();
-            if (!sb.AppendStackFrame(frame, out var method)) continue;
+
+            var method = frame.MethodInfo.MethodBase;
+            if (method is null) continue;
+
+            frame.MethodInfo.Append(sb);
+            sb.AppendPatchInformation(method);
             
             var stringRepresentation = sb.ToString();
             

@@ -48,13 +48,15 @@ var gameDir = dir;
 
 var customEntrypoint = Environment.GetEnvironmentVariable("DOTNET_BOOTSTRAP_ENTRYPOINT");
 
-var transformationService = new TransformationService(gameDir, [new ImageSharpTransformer()]);
+var cacheKey = GameCacheKey.FromDirectory(gameDir).Value;
+
+var transformationService = new TransformationService(gameDir, [new ImageSharpTransformer(), new DebugSymbolsTransformer(cacheKey)]);
 var cacheDir = Directory.CreateDirectory(Path.Join(
     Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
     "CringeLauncher", "cache"));
 
 CrossGenResult? result = null;
-CrossGenService crossGenService = new CrossGenServiceImpl(gameDir, cacheDir.FullName, transformationService);
+CrossGenService crossGenService = new CrossGenServiceImpl(gameDir, cacheDir.FullName, cacheKey, transformationService);
 if (!args.Contains("--skip-crossgen", StringComparer.OrdinalIgnoreCase))
 {
     result = RunCrossGen(crossGenService);
@@ -64,7 +66,7 @@ if (result is null or { Failed: true })
     if (result is null) Console.WriteLine("Running without crossgen as it has been skipped");
     else if (result.Failed) Console.WriteLine("Running without crossgen as it has failed");
     
-    crossGenService = new NoOpCrossGenService(gameDir, cacheDir.FullName, transformationService);
+    crossGenService = new NoOpCrossGenService(gameDir, cacheDir.FullName, cacheKey, transformationService);
         
     result = RunCrossGen(crossGenService);
 }

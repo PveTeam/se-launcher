@@ -6,11 +6,11 @@ using NLog;
 
 namespace CringeLauncher.CrashPad;
 
-public class CrashReportWriter(CrashInformation information, string? redirectPath)
+public class CrashReportWriter(CrashInformation information, CrashProcessInformation processInformation)
 {
     private static readonly Logger Log = LogManager.GetCurrentClassLogger();
 
-    public void Write(Stream stream, int exitCode)
+    public void Write(Stream stream)
     {
         using var writer = new StreamWriter(stream);
 
@@ -42,10 +42,10 @@ public class CrashReportWriter(CrashInformation information, string? redirectPat
         }
         else
         {
-            writer.WriteLine($"No exception information available. Process disappeared? ExitCode: 0x{exitCode:x8}");
+            writer.WriteLine($"No exception information available. Process disappeared? ExitCode: 0x{processInformation.ExitCode:x8}");
         }
 
-        var stdErrContent = redirectPath is null ? null : File.ReadAllText(redirectPath);
+        var stdErrContent = File.Exists(processInformation.StderrPath) ? File.ReadAllText(processInformation.StderrPath) : null;
         if (!string.IsNullOrEmpty(stdErrContent) && stdErrContent != Environment.NewLine)
         {
             writer.WriteLine();

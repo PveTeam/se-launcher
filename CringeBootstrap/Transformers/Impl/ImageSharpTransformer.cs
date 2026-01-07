@@ -17,10 +17,10 @@ internal class ImageSharpTransformer : ITransformer
     
     public ImmutableArray<AssemblyName> AcceptedAssemblies { get; } =
         [new("VRage.Render, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null")];
-    public bool Transform(ModuleDefMD moduleDefinition)
+    public bool Transform(TransformationContext context)
     {
-        if (!PatchStaticCtor(moduleDefinition)) return false;
-        if (!PatchGenericType(moduleDefinition)) return false;
+        if (!PatchStaticCtor(context.Module)) return false;
+        if (!PatchGenericType(context.Module)) return false;
 
         return true;
     }

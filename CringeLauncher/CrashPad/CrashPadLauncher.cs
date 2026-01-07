@@ -20,6 +20,8 @@ public sealed class CrashPadLauncher : ICorePlugin
 
     private Process? _actualHostProcess;
     private string? _stderrPath;
+    private string? _dumpPath;
+    private string? _dumpLogPath;
 
     private readonly string _appdataDir = Path.Join(
         Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
@@ -43,14 +45,21 @@ public sealed class CrashPadLauncher : ICorePlugin
         {
             RestartRequested = false;
             Directory.CreateDirectory(_logsDir);
-            _stderrPath = FindStderrRedirectPath(_logsDir);
+            _stderrPath = FindFreePath("crashpad-stderr-redirect", _logsDir);
+            _dumpPath = FindFreePath("crashpad-dump", _logsDir);
+            _dumpLogPath = FindFreePath("crashpad-dump-log", _logsDir);
             var appHost = FindValidAppHostPath(args);
 
             _actualHostProcess = Process.Start(new ProcessStartInfo(appHost, [..args, "--crashpad-stderr-redirect", _stderrPath])
             {
                 Environment =
                 {
-                    ["DOTNET_BOOTSTRAP_ENTRYPOINT"] = LauncherConstants.ActualBootstrapEntrypoint
+                    ["DOTNET_BOOTSTRAP_ENTRYPOINT"] = LauncherConstants.ActualBootstrapEntrypoint,
+                    ["DOTNET_DbgEnableMiniDump"] = "1", // https://learn.microsoft.com/en-us/dotnet/core/diagnostics/collect-dumps-crash
+                    ["DOTNET_DbgMiniDumpType"] = "3", // Triage, Same as Mini, but removes personal user information, such as paths and passwords.
+                    ["DOTNET_DbgMiniDumpName"] = _dumpPath,
+                    ["DOTNET_CreateDumpDiagnostics"] = "1", // logging of dump process won't hurt
+                    ["DOTNET_CreateDumpLogToFile"] = _dumpLogPath,
                 }
             });
 
@@ -102,7 +111,8 @@ public sealed class CrashPadLauncher : ICorePlugin
 
         var exitEvent = new ManualResetEventSlim();
 
-        RenderHandler.Current.RegisterComponent(new CrashPadComponent(ReadCrashInformation(crashInfoPath), _stderrPath, exitCode,
+        RenderHandler.Current.RegisterComponent(new CrashPadComponent(ReadCrashInformation(crashInfoPath),
+            new CrashProcessInformation(_stderrPath!, _dumpPath!, _dumpLogPath!, exitCode),
             exitEvent));
 
         using var thread = new EarlyRenderThread(true);
@@ -158,17 +168,15 @@ public sealed class CrashPadLauncher : ICorePlugin
         return _actualHostProcess.ExitCode is 0 or -2;
     }
 
-    private static string FindStderrRedirectPath(string basePath)
+    private static string FindFreePath(string key, string basePath)
     {
-        const string name = "crashpad-stderr-redirect-{0:yyyy-MM-dd_HH}-{1}.txt";
-
         for (var i = 0; i < 1000; i++)
         {
-            var path = Path.Join(basePath, string.Format(name, DateTime.Now, i));
+            var path = Path.Join(basePath, $"{key}-{DateTime.Now:yyyy-MM-dd_HH}-{i}");
             if (!File.Exists(path)) return path;
         }
 
-        throw new InvalidOperationException("Unable to find free stderr redirect path");
+        throw new InvalidOperationException($"Unable to find free {key} path");
     }
 
     private static string FindValidAppHostPath(string[] args)
@@ -185,3 +193,5 @@ public sealed class CrashPadLauncher : ICorePlugin
 
     void ICorePlugin.Restart() => throw new NotSupportedException("Cannot restart the crashpad directly");
 }
+
+public record CrashProcessInformation(string StderrPath, string DumpPath, string DumpLogPath, int ExitCode);

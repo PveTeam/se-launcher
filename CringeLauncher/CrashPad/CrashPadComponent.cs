@@ -19,7 +19,7 @@ internal class CrashPadComponent : IRenderComponent
     private bool _failed;
     private string? _uploadedUrl;
 
-    public CrashPadComponent(CrashInformation? information, string? redirectPath, int exitCode,
+    public CrashPadComponent(CrashInformation? information, CrashProcessInformation processInformation,
         ManualResetEventSlim exitEvent)
     {
         _exitEvent = exitEvent;
@@ -31,7 +31,7 @@ internal class CrashPadComponent : IRenderComponent
             Plugins = [],
             ModScripts = [],
             Version = new()
-        }, redirectPath).Write(memStream, exitCode);
+        }, processInformation).Write(memStream);
 
         _crashReport = Encoding.UTF8.GetString(memStream.ToArray());
     }

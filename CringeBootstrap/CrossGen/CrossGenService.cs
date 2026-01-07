@@ -2,13 +2,12 @@
 using CringeBootstrap.Transformers;
 using NuGet.Deps;
 using System.Collections.Immutable;
-using System.Security.Cryptography;
 
 namespace CringeBootstrap.CrossGen;
 
-internal abstract class CrossGenService(string gameDirectoryPath, string cachePath, ITransformationService transformationService) : ICrossGenService
+internal abstract class CrossGenService(string gameDirectoryPath, string cacheKey, ITransformationService transformationService) : ICrossGenService
 {
-    public string CacheKey => field ??= GetCacheKey();
+    public string CacheKey { get; } = $"{FormatVersion}_{cacheKey}_{Environment.Version}";
 
     private string? _crossGenPath;
 
@@ -75,9 +74,6 @@ internal abstract class CrossGenService(string gameDirectoryPath, string cachePa
     private readonly SemaphoreSlim _semaphore = new(1, 1);
     private volatile ImmutableHashSet<string>? _defaultReferences;
 
-    // assembly with game version constant so hash always changes with game updates
-    private const string CacheKeyFileName = "SpaceEngineers.Game.dll";
-
     protected abstract string CrossGenCachePath { get; }
 
     public void CleanCache()
@@ -143,6 +139,8 @@ internal abstract class CrossGenService(string gameDirectoryPath, string cachePa
             CleanCache();
             return new(gameDirectoryPath, Failed: true);
         }
+        
+        Console.WriteLine("Completing leftover transformations...");
 
         foreach (var excludedAssembly in _excludedAssemblies)
         {
@@ -215,12 +213,6 @@ internal abstract class CrossGenService(string gameDirectoryPath, string cachePa
         Console.WriteLine(message);
         Console.ResetColor();
         Console.WriteLine(e);
-    }
-
-    private string GetCacheKey()
-    {
-        using var stream = File.OpenRead(Path.Join(gameDirectoryPath, CacheKeyFileName));
-        return Convert.ToHexStringLower(SHA256.HashData(stream)) + FormatVersion + Environment.Version.GetHashCode();
     }
 
     private async Task<ImmutableHashSet<string>> GetDefaultReferences()

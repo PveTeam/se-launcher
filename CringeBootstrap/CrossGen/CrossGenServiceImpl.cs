@@ -8,8 +8,8 @@ using NuGet.Versioning;
 
 namespace CringeBootstrap.CrossGen;
 
-internal class CrossGenServiceImpl(string gameDirectoryPath, string cachePath, ITransformationService transformationService)
-    : CrossGenService(gameDirectoryPath, cachePath, transformationService)
+internal class CrossGenServiceImpl(string gameDirectoryPath, string cachePath, string cacheKey, ITransformationService transformationService)
+    : CrossGenService(gameDirectoryPath, cacheKey, transformationService)
 {
     protected override string CrossGenCachePath { get; } =
         Directory.CreateDirectory(Path.Join(cachePath, "R2R")).FullName;
