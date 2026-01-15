@@ -11,6 +11,7 @@ using CringePlugins.Loader;
 using HarmonyLib;
 using MonoMod.Utils;
 using Pillar.Demystifier;
+using SharedCringe.Utils;
 
 namespace CringeLauncher.CrashPad;
 

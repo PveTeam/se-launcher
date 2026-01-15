@@ -3,6 +3,7 @@ using System.Diagnostics;
 using System.IO.Compression;
 using System.Text;
 using CringeBootstrap.Transformers;
+using NLog;
 using NuGet;
 using NuGet.Versioning;
 
@@ -11,6 +12,7 @@ namespace CringeBootstrap.CrossGen;
 internal class CrossGenServiceImpl(string gameDirectoryPath, string cachePath, string cacheKey, ITransformationService transformationService)
     : CrossGenService(gameDirectoryPath, cacheKey, transformationService)
 {
+    private static readonly Logger Log = LogManager.GetCurrentClassLogger();
     protected override string CrossGenCachePath { get; } =
         Directory.CreateDirectory(Path.Join(cachePath, "R2R")).FullName;
 

@@ -2,11 +2,13 @@
 using CringeBootstrap.Transformers;
 using NuGet.Deps;
 using System.Collections.Immutable;
+using NLog;
 
 namespace CringeBootstrap.CrossGen;
 
 internal abstract class CrossGenService(string gameDirectoryPath, string cacheKey, ITransformationService transformationService) : ICrossGenService
 {
+    private static readonly Logger Log = LogManager.GetCurrentClassLogger();
     public string CacheKey { get; } = $"{FormatVersion}_{cacheKey}_{Environment.Version}";
 
     private string? _crossGenPath;
@@ -87,9 +89,11 @@ internal abstract class CrossGenService(string gameDirectoryPath, string cacheKe
             catch (IOException e)
             {
                 Console.ForegroundColor = ConsoleColor.Yellow;
-                Console.WriteLine("Failed to clean previous crossgen cache");
+                const string message = "Failed to clean previous crossgen cache";
+                Console.WriteLine(message);
                 Console.ResetColor();
-                Console.WriteLine(e);
+                
+                Log.Warn(e, message);
             }
         }
     }
@@ -102,13 +106,14 @@ internal abstract class CrossGenService(string gameDirectoryPath, string cacheKe
     {
         _crossGenPath = await DownloadCrossGenAsync();
         var cacheDirectory = Path.Join(CrossGenCachePath, CacheKey);
-        if (Directory.Exists(cacheDirectory))
+        var finishedMarkerPath = Path.Join(cacheDirectory, ".finished");
+        if (Directory.Exists(cacheDirectory) && File.Exists(finishedMarkerPath))
         {
-            Console.WriteLine("Crossgen cache hit");
+            Log.Info("Crossgen cache hit");
             return new(cacheDirectory, CacheHit: true);
         }
 
-        Console.WriteLine("Starting coldstart crossgen");
+        Log.Info("Starting coldstart crossgen");
 
         CleanCache();
 
@@ -153,8 +158,11 @@ internal abstract class CrossGenService(string gameDirectoryPath, string cacheKe
         }
 
         Console.ForegroundColor = ConsoleColor.Green;
-        Console.WriteLine("Crossgen finished");
+        const string crossgenFinishedMessage = "Crossgen finished";
+        Console.WriteLine(crossgenFinishedMessage);
         Console.ResetColor();
+        Log.Info(crossgenFinishedMessage);
+        await File.WriteAllTextAsync(finishedMarkerPath, "OK");
         return new(cacheDirectory);
     }
 
@@ -212,7 +220,8 @@ internal abstract class CrossGenService(string gameDirectoryPath, string cacheKe
         Console.ForegroundColor = ConsoleColor.Red;
         Console.WriteLine(message);
         Console.ResetColor();
-        Console.WriteLine(e);
+        
+        Log.Error(e, message);
     }
 
     private async Task<ImmutableHashSet<string>> GetDefaultReferences()

@@ -7,6 +7,7 @@ using CringeBootstrap.CrossGen;
 using CringeBootstrap.Transformers;
 using CringeBootstrap.Transformers.Impl;
 using Microsoft.Extensions.DependencyInjection;
+using NLog;
 using Velopack;
 
 #if DEBUG
@@ -43,6 +44,11 @@ AssemblyLoadContext.Default.Resolving += (loadContext, name) =>
 };
 #endif
 
+SharedCringe.Utils.NLogLogging.Init();
+
+var logger = LogManager.GetLogger("CringeBootstrap");
+logger.Info("Bootstrapping");
+
 var dir = Path.GetDirectoryName(args[0])!;
 var gameDir = dir;
 
@@ -63,8 +69,8 @@ if (!args.Contains("--skip-crossgen", StringComparer.OrdinalIgnoreCase))
 }
 if (result is null or { Failed: true })
 {
-    if (result is null) Console.WriteLine("Running without crossgen as it has been skipped");
-    else if (result.Failed) Console.WriteLine("Running without crossgen as it has failed");
+    if (result is null) logger.Info("Running without crossgen as it has been skipped");
+    else if (result.Failed) logger.Info("Running without crossgen as it has failed");
     
     crossGenService = new NoOpCrossGenService(gameDir, cacheDir.FullName, cacheKey, transformationService);
         
@@ -87,7 +93,8 @@ CrossGenResult RunCrossGen(CrossGenService crossGen)
         Console.ForegroundColor = ConsoleColor.Red;
         Console.WriteLine("Crossgen encountered a fatal error and will be skipped for this session.");
         Console.ResetColor();
-        Console.WriteLine(e);
+        
+        logger.Error(e, "Crossgen has failed");
 
         crossGenResult = new(gameDir, Failed: true);
     }
@@ -119,6 +126,8 @@ if (!TypeName.TryParse(entrypoint, out var entrypointName) ||
     }
     return 1;
 }
+
+logger.Info("Selected entrypoint {EntrypointName}", entrypoint);
 
 var launcher = context.LoadFromAssemblyName(entrypointName.AssemblyName.ToAssemblyName());
 

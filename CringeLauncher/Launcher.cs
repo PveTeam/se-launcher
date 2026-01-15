@@ -38,6 +38,7 @@ using VRage.FileSystem;
 using VRageRender;
 using Windows.Win32;
 using Windows.Win32.System.Console;
+using SharedCringe.Utils;
 
 namespace CringeLauncher;
 
@@ -79,23 +80,9 @@ public class Launcher : ICorePlugin
         if (Type.GetType("GameAnalyticsSDK.Net.Logging.GALogger, GameAnalytics.Mono") is { } gaLoggerType)
             RuntimeHelpers.RunClassConstructor(gaLoggerType.TypeHandle);
 
-        LogManager.Setup()
-            .SetupExtensions(s =>
-            {
-                s.RegisterLayoutRenderer("cringe-exception", e =>
-                {
-                    if (e.Exception is null)
-                        return string.Empty;
-                    e.Exception.FormatStackTrace();
-                    return e.Exception.ToString();
-                });
-            })
-            .LoadConfigurationFromFile(optional: false);
+        NLogLogging.Init();
 
-        LogManager.ReconfigExistingLoggers();
-
-        var logger = LogManager.GetLogger("CringeBootstrap");
-        logger.Info("Bootstrapping");
+        var logger = LogManager.GetLogger("CringeLauncher");
 
         _crashPadService = new CrashPadService();
 

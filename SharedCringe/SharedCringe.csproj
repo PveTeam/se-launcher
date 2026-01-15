@@ -11,6 +11,8 @@
     <ItemGroup>
         <PackageReference Include="NLog" />
         <PackageReference Include="SpaceEngineersDedicated.ReferenceAssemblies" ExcludeAssets="runtime" />
+        <PackageReference Include="Lib.Harmony.Thin" />
+        <PackageReference Include="MonoMod.Core" />
     </ItemGroup>
     
     <ItemGroup>

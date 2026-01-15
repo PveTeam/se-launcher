@@ -6,7 +6,7 @@ using System.Runtime.Loader;
 using System.Text;
 using HarmonyLib;
 
-namespace CringeLauncher.Utils;
+namespace SharedCringe.Utils;
 
 public static class ExceptionFormatter
 {

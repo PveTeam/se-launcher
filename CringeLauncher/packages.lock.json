@@ -384,10 +384,8 @@
         "dependencies": {
           "ImGui.NET.DirectX": "[1.92.3, )",
           "JsonSchema.Net.Generation": "[6.0.0, )",
-          "Lib.Harmony.Thin": "[2.3.4-torch, )",
           "Microsoft.Extensions.DependencyInjection.Abstractions": "[10.0.2, )",
           "Microsoft.TemplateEngine.Utils": "[10.0.102, )",
-          "MonoMod.Core": "[1.3.3, )",
           "Newtonsoft.Json": "[13.0.4, )",
           "NuGet": "[1.0.0, )",
           "SharedCringe": "[1.0.0, )",
@@ -410,6 +408,8 @@
         "type": "Project",
         "dependencies": {
           "CringeBootstrap.Abstractions": "[1.0.0, )",
+          "Lib.Harmony.Thin": "[2.3.4-torch, )",
+          "MonoMod.Core": "[1.3.3, )",
           "NLog": "[6.0.7, )",
           "SpaceEngineersDedicated.ReferenceAssemblies": "[1.208.15, )"
         }

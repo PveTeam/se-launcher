@@ -33,9 +33,7 @@
         <PackageReference Include="JsonSchema.Net.Generation" />
         <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" />
         <PackageReference Include="Microsoft.TemplateEngine.Utils" />
-        <PackageReference Include="Lib.Harmony.Thin" />
         <PackageReference Include="ImGui.NET.DirectX" />
-        <PackageReference Include="MonoMod.Core" />
         <PackageReference Include="SpaceEngineersDedicated.ReferenceAssemblies" ExcludeAssets="runtime" />
         <PackageReference Include="dnlib" />
         <PackageReference Include="Steamworks.NET" />

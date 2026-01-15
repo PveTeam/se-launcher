@@ -1,6 +1,7 @@
 ﻿using System.Collections.Immutable;
 using System.Text.Json.Serialization;
 using CringeLauncher.Utils;
+using SharedCringe.Utils;
 
 namespace CringeLauncher.CrashPad;
 
