@@ -29,25 +29,25 @@
     </ItemGroup>
     
     <ItemGroup>
-        <PackageReference Include="Basic.Reference.Assemblies.Net100" Version="1.8.3" PrivateAssets="all" />
-        <PackageReference Include="JsonSchema.Net.Generation" Version="5.1.1" />
-        <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="9.0.9" />
-        <PackageReference Include="Microsoft.TemplateEngine.Utils" Version="9.0.302" />
-        <PackageReference Include="Lib.Harmony.Thin" Version="2.3.4-torch" />
-        <PackageReference Include="ImGui.NET.DirectX" Version="1.92.3" />
-        <PackageReference Include="MonoMod.Core" Version="1.3.3" />
-        <PackageReference Include="SpaceEngineersDedicated.ReferenceAssemblies" Version="1.208.14" ExcludeAssets="runtime" />
-        <PackageReference Include="dnlib" Version="4.5.0" />
-        <PackageReference Include="Steamworks.NET" Version="[20.1.0]" />
-        <PackageReference Include="SixLabors.ImageSharp" Version="4.0.0-compat" />
-        <PackageReference Include="Krafs.Publicizer" Version="2.3.0">
+        <PackageReference Include="Basic.Reference.Assemblies.Net100" PrivateAssets="all" />
+        <PackageReference Include="JsonSchema.Net.Generation" />
+        <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" />
+        <PackageReference Include="Microsoft.TemplateEngine.Utils" />
+        <PackageReference Include="Lib.Harmony.Thin" />
+        <PackageReference Include="ImGui.NET.DirectX" />
+        <PackageReference Include="MonoMod.Core" />
+        <PackageReference Include="SpaceEngineersDedicated.ReferenceAssemblies" ExcludeAssets="runtime" />
+        <PackageReference Include="dnlib" />
+        <PackageReference Include="Steamworks.NET" />
+        <PackageReference Include="SixLabors.ImageSharp" />
+        <PackageReference Include="Krafs.Publicizer">
             <PrivateAssets>all</PrivateAssets>
             <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
         </PackageReference>
         
         <!-- It is included only because some plugins were using it previously -->
         <!-- TODO Make this a reference in each plugin project when dependencies support is shipped -->
-        <PackageReference Include="Newtonsoft.Json" Version="13.0.4" />
+        <PackageReference Include="Newtonsoft.Json" />
     </ItemGroup>
 
 </Project>

@@ -13,9 +13,9 @@
     </PropertyGroup>
 
     <ItemGroup>
-        <PackageReference Include="CringePlugins" Version="*" ExcludeAssets="runtime; native" />
-        <PackageReference Include="CringePlugins.MSBuild" Version="*" PrivateAssets="All" />
-        <PackageReference Include="NodaTime" Version="3.2.2" />
+        <PackageReference Include="CringePlugins" ExcludeAssets="runtime; native" />
+        <PackageReference Include="CringePlugins.MSBuild" PrivateAssets="All" />
+        <PackageReference Include="NodaTime" />
     </ItemGroup>
 
 </Project>

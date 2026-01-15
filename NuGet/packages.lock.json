@@ -1,24 +1,24 @@
 {
-  "version": 1,
+  "version": 2,
   "dependencies": {
     "net10.0": {
       "NLog": {
         "type": "Direct",
-        "requested": "[6.0.4, )",
-        "resolved": "6.0.4",
-        "contentHash": "Xr+lIk1ZlTTFXEqnxQVLxrDqZlt2tm5X+/AhJbaY2emb/dVtGDiU5QuEtj3gHtwV/SWlP/rJ922I/BPuOJXlRw=="
+        "requested": "[6.0.7, )",
+        "resolved": "6.0.7",
+        "contentHash": "16kwDY6+/TCBToyXekpcl5mxprUWuXqltdOK26w44E0rTQTiRCjXv1VVLDtSbgMCR1RirVvr+V/9T+76cwuqnw=="
       },
       "NuGet.Frameworks": {
         "type": "Direct",
-        "requested": "[6.14.0, )",
-        "resolved": "6.14.0",
-        "contentHash": "xZ37J58DQAkVUX29qoMwla26iBYRScdcfSGNe1FIZjCX1tpafN9n7TinrkRxaJqYzW0D8Ob8a3eRSYhwEUauCA=="
+        "requested": "[7.0.1, )",
+        "resolved": "7.0.1",
+        "contentHash": "dUDwg8VYTyT+ZbLdC7hUUHFF530HeRl4jcxclKJY0o96f3nv0eZvojXwjRkq2HKzuyRCcVD4T24aEF83CUmBzA=="
       },
       "NuGet.Versioning": {
         "type": "Direct",
-        "requested": "[6.14.0, )",
-        "resolved": "6.14.0",
-        "contentHash": "4v4blkhCv8mpKtfx+z0G/X0daVCzdIaHSC51GkUspugi5JIMn2Bo8xm5PdZYF0U68gOBfz/+aPWMnpRd85Jbow=="
+        "requested": "[7.0.1, )",
+        "resolved": "7.0.1",
+        "contentHash": "tu68LnZqiLM/VyLQzPRqedopMi/M+5/6JqwB2Xkd0AWXRpUWewkVv77asVB7wgjMPVzQFK2sBy7AuxV49UzuvQ=="
       },
       "System.Linq.Async": {
         "type": "Direct",

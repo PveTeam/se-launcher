@@ -9,8 +9,8 @@
     </PropertyGroup>
     
     <ItemGroup>
-        <PackageReference Include="NLog" Version="6.0.4" />
-        <PackageReference Include="SpaceEngineersDedicated.ReferenceAssemblies" Version="1.208.14" ExcludeAssets="runtime" />
+        <PackageReference Include="NLog" />
+        <PackageReference Include="SpaceEngineersDedicated.ReferenceAssemblies" ExcludeAssets="runtime" />
     </ItemGroup>
     
     <ItemGroup>

@@ -1,35 +1,22 @@
 {
-  "version": 1,
+  "version": 2,
   "dependencies": {
     "net10.0": {
       "NLog": {
         "type": "Direct",
-        "requested": "[6.0.4, )",
-        "resolved": "6.0.4",
-        "contentHash": "Xr+lIk1ZlTTFXEqnxQVLxrDqZlt2tm5X+/AhJbaY2emb/dVtGDiU5QuEtj3gHtwV/SWlP/rJ922I/BPuOJXlRw=="
+        "requested": "[6.0.7, )",
+        "resolved": "6.0.7",
+        "contentHash": "16kwDY6+/TCBToyXekpcl5mxprUWuXqltdOK26w44E0rTQTiRCjXv1VVLDtSbgMCR1RirVvr+V/9T+76cwuqnw=="
       },
       "SpaceEngineersDedicated.ReferenceAssemblies": {
         "type": "Direct",
-        "requested": "[1.208.14, )",
-        "resolved": "1.208.14",
-        "contentHash": "7oA3MnwLCauVqaA9Q4TK68Akt7DhzJvCS+UrfYACo7SkJXO5+MNtTcA8C7Os4QDUrCbL6p2MGeyUMw1nH12FhQ==",
+        "requested": "[1.208.15, )",
+        "resolved": "1.208.15",
+        "contentHash": "jEgwgGMhjm8bHfYdTdwq1XAvjraKV68f9+2/kYAAbbXwuR7Aw+2PuBUDR8p27Z9tNbdbiD0BpUDPKikdqLEQ/Q==",
         "dependencies": {
           "SharpDX": "4.2.0-keen-cringe",
           "protobuf-net": "1.0.0"
         }
-      },
-      "Microsoft.Extensions.DependencyInjection": {
-        "type": "Transitive",
-        "resolved": "9.0.9",
-        "contentHash": "zQV2WOSP+3z1EuK91ULxfGgo2Y75bTRnmJHp08+w/YXAyekZutX/qCd88/HOMNh35MDW9mJJJxPpMPS+1Rww8A==",
-        "dependencies": {
-          "Microsoft.Extensions.DependencyInjection.Abstractions": "9.0.9"
-        }
-      },
-      "Microsoft.Extensions.DependencyInjection.Abstractions": {
-        "type": "Transitive",
-        "resolved": "9.0.9",
-        "contentHash": "/hymojfWbE9AlDOa0mczR44m00Jj+T3+HZO0ZnVTI032fVycI0ZbNOVFP6kqZMcXiLSYXzR2ilcwaRi6dzeGyA=="
       },
       "protobuf-net": {
         "type": "Transitive",
@@ -44,8 +31,23 @@
       "cringebootstrap.abstractions": {
         "type": "Project",
         "dependencies": {
-          "Microsoft.Extensions.DependencyInjection": "[9.0.9, )"
+          "Microsoft.Extensions.DependencyInjection": "[10.0.2, )"
         }
+      },
+      "Microsoft.Extensions.DependencyInjection": {
+        "type": "CentralTransitive",
+        "requested": "[10.0.2, )",
+        "resolved": "10.0.2",
+        "contentHash": "J/Zmp6fY93JbaiZ11ckWvcyxMPjD6XVwIHQXBjryTBgn7O6O20HYg9uVLFcZlNfgH78MnreE/7EH+hjfzn7VyA==",
+        "dependencies": {
+          "Microsoft.Extensions.DependencyInjection.Abstractions": "10.0.2"
+        }
+      },
+      "Microsoft.Extensions.DependencyInjection.Abstractions": {
+        "type": "CentralTransitive",
+        "requested": "[10.0.2, )",
+        "resolved": "10.0.2",
+        "contentHash": "zOIurr59+kUf9vNcsUkCvKWZv+fPosUZXURZesYkJCvl0EzTc9F7maAO4Cd2WEV7ZJJ0AZrFQvuH6Npph9wdBw=="
       }
     },
     "net10.0/win-x64": {}
