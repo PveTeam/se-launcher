@@ -8,8 +8,7 @@
         "resolved": "2.3.4-torch",
         "contentHash": "UnLUnLLiXfHZdKa1zhi6w8cl8tJTrpVixLtvjFEVtlDA6Rkf06OcZ2gSidcbcgKjTcR+fk5Qsdos3mU5oohzfg==",
         "dependencies": {
-          "MonoMod.Core": "1.2.2",
-          "System.Text.Json": "9.0.0"
+          "MonoMod.Core": "1.2.2"
         }
       },
       "MonoMod.Core": {
@@ -77,11 +76,6 @@
         "type": "Transitive",
         "resolved": "4.2.0-keen-cringe",
         "contentHash": "LaJN3h1Gi1FWVdef2I5WtOH9gwzKCBniH0CragarbkN2QheYY6Lqm+91PcOfp1w/4wdVb+k8Kjv3sO393Tphtw=="
-      },
-      "System.Text.Json": {
-        "type": "Transitive",
-        "resolved": "9.0.0",
-        "contentHash": "js7+qAu/9mQvnhA4EfGMZNEzXtJCDxgkgj8ohuxq/Qxv+R56G+ljefhiJHOxTNiw54q8vmABCWUwkMulNdlZ4A=="
       },
       "cringebootstrap.abstractions": {
         "type": "Project",
