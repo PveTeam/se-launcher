@@ -2,6 +2,7 @@
 using System.Reflection;
 using CringePlugins.Utils;
 using dnlib.DotNet;
+using dnlib.PE;
 using NuGet.Versioning;
 
 namespace CringePlugins.Loader;
@@ -35,7 +36,8 @@ public record PluginMetadata(string Id, string Name, NuGetVersion Version, strin
 
     internal static string ResolveEntrypointTypeName(string entrypointPath)
     {
-        var module = ModuleDefMD.Load(entrypointPath, IntrospectionContext.Global.Context);
+        using var peImage = new PEImage(entrypointPath);
+        var module = ModuleDefMD.Load(peImage, IntrospectionContext.Global.Context);
         return ResolveEntrypointTypeName(module);
     }
 
