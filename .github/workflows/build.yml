@@ -50,7 +50,7 @@ jobs:
         name: Pack Project
         
       - name: Push Project
-        run: dotnet nuget push -s https://ng.zznty.ru/v3/index.json -k ${{ secrets.NUGET_API_KEY  }} ./pub/${{ matrix.project }}.${{ needs.compute-version.outputs.version }}.nupkg
+        run: dotnet nuget push --skip-duplicate -s https://ng.zznty.ru/v3/index.json -k ${{ secrets.NUGET_API_KEY  }} ./pub/${{ matrix.project }}.${{ needs.compute-version.outputs.version }}.nupkg
   
   build:
     name: Build Launcher
@@ -65,19 +65,11 @@ jobs:
 
       - uses: actions/setup-dotnet@v5
 
-      - run: dotnet restore CringeBootstrap/CringeBootstrap.csproj --locked-mode -r win-x64
-        name: Restore Project
-
-      - run: dotnet publish -c Release -o ./pub CringeBootstrap/CringeBootstrap.csproj --no-restore -p:Version="${{ needs.compute-version.outputs.version }}" -r win-x64 --no-self-contained
+      - run: dotnet publish -c Release -o ./pub CringeBootstrap/CringeBootstrap.csproj -p:Version="${{ needs.compute-version.outputs.version }}" -r win-x64 --no-self-contained
         id: publish
         name: Build Project
 
       - run: dotnet tool install -g vpk
-        
-        # dotnet version for vpk to use as it doesnt want to use preview 10.x
-      - uses: actions/setup-dotnet@v5
-        with:
-          dotnet-version: 9.0.x
       
       - run: ~/.dotnet/tools/vpk download s3 --bucket $VPK_BUCKET --endpoint $VPK_ENDPOINT
         name: Download previous release
