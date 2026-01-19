@@ -267,7 +267,7 @@
           "Basic.Reference.Assemblies.Net100": "[1.8.4, )",
           "CringeBootstrap.Abstractions": "[1.0.0, )",
           "CringePlugins": "[1.0.0, )",
-          "Demystifier": "[1.0.1, )",
+          "Demystifier": "[1.0.2, )",
           "EOSSDK": "[1.0.4, )",
           "Microsoft.CodeAnalysis.CSharp": "[5.0.0, )",
           "Microsoft.Extensions.Http.Polly": "[10.0.2, )",
@@ -335,9 +335,9 @@
       },
       "Demystifier": {
         "type": "CentralTransitive",
-        "requested": "[1.0.1, )",
-        "resolved": "1.0.1",
-        "contentHash": "5rPwlxYjJcaGFDu0mTawjwvbnkcZTHEs66VBO32rLgMnpFVIaYtEViBx/iSUJQD2K6qe/3DutMZtlH4/HRGxvA==",
+        "requested": "[1.0.2, )",
+        "resolved": "1.0.2",
+        "contentHash": "Bfy5tYtN0AyInSiP/h0IYFke0rLAj/qEdBAqdBZ1H9HjipCWRlICJNKuUiMCyidY9EkAL9gFjBQrLP+2tWm96w==",
         "dependencies": {
           "ZString": "2.6.0"
         }

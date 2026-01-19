@@ -10,6 +10,7 @@ using CringeLauncher.Utils;
 using CringePlugins.Loader;
 using HarmonyLib;
 using MonoMod.Utils;
+using NLog;
 using Pillar.Demystifier;
 using SharedCringe.Utils;
 
@@ -17,6 +18,8 @@ namespace CringeLauncher.CrashPad;
 
 internal class CrashPadService
 {
+    private static readonly Logger Log = LogManager.GetCurrentClassLogger();
+    
     private readonly Lock _lock = new();
     private readonly string _nextInfoPath;
 
@@ -130,7 +133,8 @@ internal class CrashPadService
 
         var builder = ImmutableArray.CreateBuilder<ExceptionInformation.ExceptionStackFrame>(stackTrace.FrameCount);
         var sb = new StringBuilder();
-        var options = new StackTraceOptions(new HarmonyStackFrameMethodResolver(), new PortableDebugSymbolsResolver());
+        var options = new StackTraceOptions(new HarmonyStackFrameMethodResolver(), new PortableDebugSymbolsResolver(),
+            new NLogLoggerWrapper(Log));
 
         foreach (var frame in await EnhancedStackTrace.GetFramesAsync(stackTrace, options))
         {
@@ -138,6 +142,10 @@ internal class CrashPadService
 
             var method = frame.MethodInfo.MethodBase;
             if (method is null) continue;
+            
+            const string pad = "   ";
+            
+            sb.Append(pad + "at ");
 
             frame.MethodInfo.Append(sb);
             sb.AppendPatchInformation(method);

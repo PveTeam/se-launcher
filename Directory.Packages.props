@@ -35,7 +35,7 @@
     <PackageVersion Include="Autofac.Extensions.DependencyInjection" Version="10.0.0" />
     <PackageVersion Include="Basic.Reference.Assemblies.Net100" Version="1.8.4" />
     <PackageVersion Include="Krafs.Publicizer" Version="2.3.0" />
-    <PackageVersion Include="Demystifier" Version="1.0.1" />
+    <PackageVersion Include="Demystifier" Version="1.0.2" />
     <PackageVersion Include="NLog" Version="6.0.7" />
     <PackageVersion Include="NLog.Schema" Version="6.0.7" />
     <PackageVersion Include="JsonSchema.Net.Generation" Version="6.0.0" />
