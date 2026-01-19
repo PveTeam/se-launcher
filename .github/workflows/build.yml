@@ -7,6 +7,7 @@ on:
 env:
   DOTNET_CLI_TELEMETRY_OPTOUT: true
   DOTNET_SKIP_FIRST_TIME_EXPERIENCE: true
+  DOTNET_ROLL_FORWARD: LatestMajor
 
 jobs:
   compute-version:
@@ -65,7 +66,10 @@ jobs:
 
       - uses: actions/setup-dotnet@v5
 
-      - run: dotnet publish -c Release -o ./pub CringeBootstrap/CringeBootstrap.csproj -p:Version="${{ needs.compute-version.outputs.version }}" -r win-x64 --no-self-contained
+      - run: dotnet restore CringeBootstrap/CringeBootstrap.csproj --locked-mode -r win-x64
+        name: Restore Project
+
+      - run: dotnet publish -c Release -o ./pub CringeBootstrap/CringeBootstrap.csproj --no-restore -p:Version="${{ needs.compute-version.outputs.version }}" -r win-x64 --no-self-contained
         id: publish
         name: Build Project
 
