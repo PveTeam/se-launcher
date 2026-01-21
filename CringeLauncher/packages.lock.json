@@ -23,9 +23,9 @@
       },
       "Demystifier": {
         "type": "Direct",
-        "requested": "[1.0.2, )",
-        "resolved": "1.0.2",
-        "contentHash": "Bfy5tYtN0AyInSiP/h0IYFke0rLAj/qEdBAqdBZ1H9HjipCWRlICJNKuUiMCyidY9EkAL9gFjBQrLP+2tWm96w==",
+        "requested": "[1.0.3, )",
+        "resolved": "1.0.3",
+        "contentHash": "CBRMdAhKmYVRwaJkQpSPEQJbbaTQP+6F4pcbUNArw2wDLAec9kVZvSYqwFX6I+zgK2wSk6x+45j1H3uVIzSDng==",
         "dependencies": {
           "ZString": "2.6.0"
         }
