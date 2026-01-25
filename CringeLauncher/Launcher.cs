@@ -73,10 +73,7 @@ public class Launcher : ICorePlugin
         if (stdErrRedirectIndex != -1)
         {
             var redirectPath = args[stdErrRedirectIndex + 1];
-            var handle = File.OpenHandle(redirectPath, FileMode.Create, FileAccess.Write);
-            PInvoke.SetStdHandle(STD_HANDLE.STD_ERROR_HANDLE, handle);
-            // prevent GC from closing the handle
-            handle.SetHandleAsInvalid();
+            ConsoleHandler.RedirectStandardError(redirectPath);
         }
 
         if (Type.GetType("GameAnalyticsSDK.Net.Logging.GALogger, GameAnalytics.Mono") is { } gaLoggerType)
