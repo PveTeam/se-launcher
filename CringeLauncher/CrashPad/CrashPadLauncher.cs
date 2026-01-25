@@ -45,9 +45,9 @@ public sealed class CrashPadLauncher : ICorePlugin
         {
             RestartRequested = false;
             Directory.CreateDirectory(_logsDir);
-            _stderrPath = FindFreePath("crashpad-stderr-redirect", _logsDir);
-            _dumpPath = FindFreePath("crashpad-dump", _logsDir);
-            _dumpLogPath = FindFreePath("crashpad-dump-log", _logsDir);
+            _stderrPath = FindFreePath("crashpad-stderr-redirect.txt", _logsDir);
+            _dumpPath = FindFreePath("crashpad-dump.dmp", _logsDir);
+            _dumpLogPath = FindFreePath("crashpad-dump-log.log", _logsDir);
             var appHost = FindValidAppHostPath(args);
 
             _actualHostProcess = Process.Start(new ProcessStartInfo(appHost, [..args, "--crashpad-stderr-redirect", _stderrPath])
@@ -168,11 +168,13 @@ public sealed class CrashPadLauncher : ICorePlugin
         return _actualHostProcess.ExitCode is 0 or -2;
     }
 
-    private static string FindFreePath(string key, string basePath)
+    private static string FindFreePath(string fileName, string basePath)
     {
+        var key = Path.GetFileNameWithoutExtension(fileName);
+        var ext = Path.GetExtension(fileName);
         for (var i = 0; i < 1000; i++)
         {
-            var path = Path.Join(basePath, $"{key}-{DateTime.Now:yyyy-MM-dd_HH}-{i}");
+            var path = Path.Join(basePath, $"{key}-{DateTime.Now:yyyy-MM-dd_HH}-{i}{ext}");
             if (!File.Exists(path)) return path;
         }
 
