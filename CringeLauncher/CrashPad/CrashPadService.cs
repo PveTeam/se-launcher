@@ -148,6 +148,7 @@ internal class CrashPadService
             sb.Append(pad + "at ");
 
             frame.MethodInfo.Append(sb);
+            sb.AppendFileInfo(frame);
             sb.AppendPatchInformation(method);
             
             var stringRepresentation = sb.ToString();

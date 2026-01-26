@@ -118,12 +118,12 @@ public static class ExceptionFormatter
             return sb;
         }
 
-        private StringBuilder AppendFileInfo(StackFrame frame)
+        internal StringBuilder AppendFileInfo(StackFrame frame)
         {
             var fileName = frame.GetFileName();
             if (!string.IsNullOrEmpty(fileName))
             {
-                sb.Append(" in ").Append(fileName).Append('(').Append(frame.GetFileLineNumber()).Append(':').Append(frame.GetFileColumnNumber()).Append(')');
+                sb.Append(" in ").Append(fileName).Append(":line ").Append(frame.GetFileLineNumber()).Append(':').Append(frame.GetFileColumnNumber());
             }
         
             return sb;
