@@ -41,7 +41,7 @@ internal class PluginListComponent : IRenderComponent
 
     private readonly DirectoryInfo _dataDir;
     private readonly DirectoryInfo _cacheDir;
-    private readonly IReadOnlyDictionary<string, CachedPackage> _loadedPackages;
+    private ImmutableDictionary<string, CachedPackage> _loadedPackages;
     private bool _disableUpdates;
     private bool _disablePluginUpdates;
     private bool _usePreviewBranch;
@@ -87,7 +87,7 @@ internal class PluginListComponent : IRenderComponent
 
         _dataDir = dataDir;
         _cacheDir = cacheDir;
-        _loadedPackages = loadedPackages;
+        _loadedPackages = loadedPackages.ToImmutableDictionary();
 
         MyScreenManager.ScreenAdded += ScreenChanged;
         MyScreenManager.ScreenRemoved += ScreenChanged;
@@ -774,21 +774,24 @@ internal class PluginListComponent : IRenderComponent
 
                         Vector4 col;
                         string statusText;
-                        if (_packages.ContainsKey(package.Id))
+                        var isSelected = _packages.ContainsKey(package.Id);
+                        var isLoaded = _loadedPackages.ContainsKey(package.Id);
+                        if (isSelected && isLoaded)
                         {
                             col = new(0f, 1f, 0f, 1f);
                             statusText = "Installed";
                         } 
-                        else if (_loadedPackages.ContainsKey(package.Id))
+                        else if (isLoaded || isSelected)
                         {
                             col = new(1f, 1f, 0f, 1f);
-                            statusText = "Transient";
+                            statusText = isLoaded ? "Transient" : "Queued";
                         }
                         else
                         {
                             col = new(1f, 0f, 0f, 1f);
                             statusText = "Not Installed";
                         }
+
                         TextColored(col, statusText);
                     }
                 }
@@ -879,6 +882,10 @@ internal class PluginListComponent : IRenderComponent
                 _packages = installed
                     ? _packages.Remove(selected.Id)
                     : _packages.Add(selected.Id, new(selected.Version));
+
+                // if install state was changed by user we want to always treat it as queued even if it was rolled back
+                if (installed)
+                    _loadedPackages = _loadedPackages.Remove(selected.Id);
 
                 Save();
             }
