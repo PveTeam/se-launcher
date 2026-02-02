@@ -13,7 +13,7 @@ internal static class ResourceFreePatch
 {
     private static readonly Logger Log = LogManager.GetCurrentClassLogger();
     
-    private static readonly ConcurrentDictionary<ulong, Stream> Streams = []; 
+    private static readonly ConcurrentDictionary<ulong, WeakReference<Stream>> Streams = []; 
     private static ulong _idCounter;
     
     private static IEnumerable<MethodInfo> TargetMethods()
@@ -44,7 +44,7 @@ internal static class ResourceFreePatch
         var id = Interlocked.Increment(ref _idCounter);
         var trackingStream = new TrackingStream(id, stream);
 
-        Streams.TryAdd(id, trackingStream);
+        Streams.TryAdd(id, new WeakReference<Stream>(trackingStream));
         return trackingStream;
     }
 
@@ -53,8 +53,11 @@ internal static class ResourceFreePatch
         if (Streams.IsEmpty) return;
         
         Log.Info("Closing {Count} leftover files", Streams.Count);
-        foreach (var s in Streams.Values)
+        foreach (var r in Streams.Values)
         {
+            if (!r.TryGetTarget(out var s))
+                continue;
+            
             try
             {
                 s.Dispose();
