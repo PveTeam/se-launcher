@@ -59,10 +59,24 @@ public class IntrospectionContext
 
         return moduleDef.GetTypes()
             .Where(b => (typeof(T).IsInterface
-                ? b.Interfaces.Any(i => i.Interface.FullName == token.FullName)
+                ? MatchInterface(b, token)
                 : MatchBaseType(b, token)) && (allowAbstract || !b.IsAbstract));
     }
 
+    private static bool MatchInterface(TypeDef? typeDef, TypeSig token)
+    {
+        if (typeDef == null)
+            return false;
+
+        do
+        {
+            if (typeDef.Interfaces.Any(i => i.Interface.FullName == token.FullName))
+                return true;
+            
+        } while ((typeDef = typeDef.GetBaseType()?.ResolveTypeDef()) != null);
+        
+        return false;
+    }
     private static bool MatchBaseType(ITypeDefOrRef? defOrRef, TypeSig token)
     {
         while ((defOrRef = defOrRef.GetBaseType()) != null)
