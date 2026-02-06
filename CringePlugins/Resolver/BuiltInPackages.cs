@@ -41,7 +41,7 @@ public static class BuiltInPackages
             nlog.AsDependency(libraries)
         ], SeReferenceAssemblies, new(seVersion));
         var imGui = FromAssembly<ImGuiKey>(framework, id: ImGui);
-        var harmony = FromAssembly<HarmonyLib.Harmony>(framework, id: Harmony, version: NuGetVersion.Parse("2.3.4-torch"));
+        var harmony = FromAssembly<HarmonyLib.Harmony>(framework, id: Harmony, version: NuGetVersion.Parse("2.4.2-torch"));
         var steam = FromAssembly<Steamworks.CSteamID>(framework, id: Steamworks);
 
         BuiltInSdkPackage MapSdkPackage(
