@@ -23,6 +23,7 @@
 
     <ItemGroup>
         <PackageReference Include="NLog.Schema" />
+        <PackageReference Include="NLog.Targets.AtomicFile" />
         <PackageReference Include="Velopack" />
         <PackageReference Include="System.Runtime.Serialization.Formatters" />
     </ItemGroup>

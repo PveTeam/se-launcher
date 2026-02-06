@@ -247,7 +247,7 @@
       "nuget": {
         "type": "Project",
         "dependencies": {
-          "NLog": "[6.0.7, )",
+          "NLog": "[6.1.0, )",
           "NuGet.Frameworks": "[7.0.1, )",
           "NuGet.Versioning": "[7.0.1, )",
           "System.Linq.Async": "[7.0.0, )"
@@ -259,7 +259,7 @@
           "CringeBootstrap.Abstractions": "[1.0.0, )",
           "Lib.Harmony.Thin": "[2.3.4-torch, )",
           "MonoMod.Core": "[1.3.3, )",
-          "NLog": "[6.0.7, )",
+          "NLog": "[6.1.0, )",
           "SpaceEngineersDedicated.ReferenceAssemblies": "[1.208.15, )"
         }
       },
@@ -296,9 +296,9 @@
       },
       "NLog": {
         "type": "CentralTransitive",
-        "requested": "[6.0.7, )",
-        "resolved": "6.0.7",
-        "contentHash": "16kwDY6+/TCBToyXekpcl5mxprUWuXqltdOK26w44E0rTQTiRCjXv1VVLDtSbgMCR1RirVvr+V/9T+76cwuqnw=="
+        "requested": "[6.1.0, )",
+        "resolved": "6.1.0",
+        "contentHash": "K4UdxS4fuJeCM0sm+JTXWoJgOtcXX7X5kvE94bR07UB8JOB6A2+ski7q1tf2qdv+N0H3gsoWtteScJCHa3+zpw=="
       },
       "NuGet.Frameworks": {
         "type": "CentralTransitive",
