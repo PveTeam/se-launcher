@@ -39,8 +39,11 @@ internal static class ResourceFreePatch
     }
 
     // todo ideally track calling mod for debug purposes, not super important anyways
-    private static Stream Wrap(Stream stream)
+    private static Stream? Wrap(Stream? stream)
     {
+        if (stream == null)
+            return null;
+        
         var id = Interlocked.Increment(ref _idCounter);
         var trackingStream = new TrackingStream(id, stream);
 
