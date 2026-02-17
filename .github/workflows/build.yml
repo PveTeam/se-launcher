@@ -95,7 +95,7 @@ jobs:
           VPK_PACK_DIR: ./pub
           VPK_MAIN_EXE: CringeBootstrap.exe
           VPK_NO_PORTABLE: true
-          VPK_FRAMEWORK: net9.0-x64-desktop,vcredist120-x64,vcredist143-x64
+          VPK_FRAMEWORK: net10.0-x64-desktop,vcredist120-x64,vcredist143-x64
           VPK_SHORTCUTS: 'None'
           VPK_EXCLUDE: ''
           
