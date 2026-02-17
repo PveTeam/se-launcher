@@ -17,7 +17,7 @@ internal record GameCacheKey(string Value)
         var value = VersionToString(versionNumber);
 
         if (buildNumber > 0)
-            value += $"b{buildNumber}";
+            value += $".{buildNumber}";
 
         return new(value);
     }
