@@ -38,7 +38,7 @@ internal class CheckUpdatesStage(
             AllowVersionDowngrade = true, // in case preview version is higher than stable
             ExplicitChannel = config?.UsePreviewBranch is true ? "win-preview" : "win"
         };
-        var mgr = new UpdateManager("https://dl.zznty.ru/CringeLauncher/", updateOptions,
+        var mgr = new UpdateManager(config?.UpdatesSource ?? LauncherConfig.Default.UpdatesSource, updateOptions,
             new WindowsVelopackLocator(Path.Join(AppContext.BaseDirectory, "CringeBoostrap.exe"),
                 (uint)Environment.ProcessId, null));
 
