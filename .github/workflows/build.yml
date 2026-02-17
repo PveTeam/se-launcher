@@ -108,3 +108,12 @@ jobs:
           VPK_BUCKET: ${{ secrets.S3_BUCKET }}
           VPK_PREFIX: CringeLauncher
           VPK_KEEP_MAX_RELEASES: 15
+
+      - run: ~/.dotnet/tools/vpk upload s3 -o $VPK_OUTPUT_DIR --bucket $VPK_BUCKET --endpoint $VPK_ENDPOINT
+        name: Upload new release to mirror
+        env:
+          VPK_KEY_ID: ${{ secrets.MIRROR_S3_KEY_ID }}
+          VPK_SECRET: ${{ secrets.MIRROR_S3_SECRET }}
+          VPK_ENDPOINT: ${{ secrets.MIRROR_S3_ENDPOINT }}
+          VPK_BUCKET: ${{ secrets.MIRROR_S3_BUCKET }}
+          VPK_KEEP_MAX_RELEASES: 15
