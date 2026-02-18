@@ -1,11 +1,26 @@
-﻿namespace CringePlugins.Config;
+﻿using System.Globalization;
+
+namespace CringePlugins.Config;
+
 public sealed record LauncherConfig(
     bool DisableLauncherUpdates,
     bool DisablePluginUpdates,
     bool UsePreviewBranch = false,
     bool CacheModAssemblies = true,
     bool CacheScriptAssemblies = true,
-    string UpdatesSource = "https://dl.zznty.ru/CringeLauncher/")
+    string? UpdatesSource = null)
 {
     public static LauncherConfig Default => new(false, false);
+}
+
+internal record LauncherConfigRegionalDefaults(string UpdatesSource, string NugetSource)
+{
+    private static readonly LauncherConfigRegionalDefaults GlobalDefaults =
+        new("https://dl.zznty.ru/CringeLauncher/", "https://ng.zznty.ru/v3/index.json");
+    
+    private static readonly LauncherConfigRegionalDefaults RuDefaults =
+        new("https://dl3.zznty.ru/launcher/", "https://ng3.zznty.ru/v3/index.json");
+
+    public static LauncherConfigRegionalDefaults Current { get; } =
+        RegionInfo.CurrentRegion.Equals(new RegionInfo(1049)) ? RuDefaults : GlobalDefaults;
 }
