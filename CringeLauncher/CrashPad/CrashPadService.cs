@@ -43,7 +43,7 @@ internal class CrashPadService
 
     public void PullPluginInfo(PluginsLifetime lifetime)
     {
-        var installedPlugins = lifetime.Plugins.Select(b => new CrashInformation.InstalledPlugin(b.Metadata.Name,
+        var installedPlugins = lifetime.LoadedPlugins.Select(b => new CrashInformation.InstalledPlugin(b.Metadata.Name,
             b.Metadata.Version.ToString(),
             b.Metadata.Source)
         {

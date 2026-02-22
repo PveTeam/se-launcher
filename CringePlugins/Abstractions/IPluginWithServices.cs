@@ -1,8 +1,7 @@
-﻿using CringePlugins.Abstractions;
-using Microsoft.Extensions.DependencyInjection;
+﻿using Microsoft.Extensions.DependencyInjection;
 using VRage.Plugins;
 
-namespace CringePlugins.Loader;
+namespace CringePlugins.Abstractions;
 
 public interface IPluginWithServices : IPlugin
 {

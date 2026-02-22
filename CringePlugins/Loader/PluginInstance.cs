@@ -22,7 +22,8 @@ internal sealed class PluginInstance(
     bool local,
     IPluginServiceProviderFactory serviceProviderFactory,
     AssemblyDependencyResolver? dependencyResolver,
-    PluginInstance? parent = null)
+    PluginsLifetime pluginsLifetime,
+    PluginInstance? parent = null) : IEquatable<PluginInstance>
 {
     private static readonly MethodInfo RegisterServicesMethod =
         typeof(PluginInstance).GetMethod(nameof(RegisterServices), BindingFlags.NonPublic | BindingFlags.Static)!;
@@ -86,7 +87,7 @@ internal sealed class PluginInstance(
             }
         }
 
-        WrappedInstance = new PluginWrapper(new PluginContext(Metadata, _serviceProviderScope.Provider), _instance);
+        WrappedInstance = new PluginWrapper(new PluginContext(Metadata, _serviceProviderScope.Provider, pluginsLifetime), _instance);
         
         var loadAssetsMethod = implementationType.GetMethod("LoadAssets", [typeof(string)]);
 
@@ -200,8 +201,18 @@ internal sealed class PluginInstance(
         T.RegisterServices(services);
     }
 
-    private record PluginContext(PluginMetadata Metadata, IServiceProvider Provider) : IPluginContext
+    private record PluginContext(PluginMetadata Metadata, IServiceProvider Provider, PluginsLifetime Lifetime) : IPluginContext
     {
         public object? GetService(Type serviceType) => Provider.GetService(serviceType);
+
+        public ImmutableDictionary<string, PluginMetadata> Plugins => Lifetime.Plugins;
     }
+
+    public bool Equals(PluginInstance? other) => 
+        Metadata.Id.Equals(other?.Metadata.Id, StringComparison.OrdinalIgnoreCase);
+    
+    public override bool Equals(object? obj) => 
+        obj is PluginInstance other && Equals(other);
+    
+    public override int GetHashCode() => Metadata.Id.GetHashCode(StringComparison.OrdinalIgnoreCase);
 }

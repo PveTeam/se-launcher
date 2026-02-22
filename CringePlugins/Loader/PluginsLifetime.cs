@@ -29,7 +29,8 @@ internal class PluginsLifetime(ConfigHandler configHandler, IPluginServiceProvid
 
     public string Name => "Loading Plugins";
 
-    internal ImmutableArray<PluginInstance> Plugins = [];
+    internal ImmutableHashSet<PluginInstance> LoadedPlugins = [];
+    internal ImmutableDictionary<string, PluginMetadata> Plugins = [];
     internal bool SomeSourcesAreUnavailable { get; private set; }
 
     private readonly NuGetRuntimeFramework _runtimeFramework =
@@ -103,7 +104,7 @@ internal class PluginsLifetime(ConfigHandler configHandler, IPluginServiceProvid
         await LoadPlugins(loadedPackages.Values, sourceMapping, packagesConfig, builtInPackages, cacheDir);
 
         RenderHandler.Current.RegisterComponent(new PluginListComponent(_configReference, _launcherConfig,
-            sourceMapping, MyFileSystem.ExePath, Plugins, dir, cacheDir, loadedPackages));
+            sourceMapping, MyFileSystem.ExePath, LoadedPlugins, dir, cacheDir, loadedPackages));
 
         SomeSourcesAreUnavailable = sourceMapping.SomeSourcesAreUnavailable;
     }
@@ -128,7 +129,7 @@ internal class PluginsLifetime(ConfigHandler configHandler, IPluginServiceProvid
     public void RegisterLifetime()
     {
         var contextBuilder = Contexts.ToBuilder();
-        foreach (var instance in Plugins)
+        foreach (var instance in LoadedPlugins)
         {
             try
             {
@@ -147,7 +148,7 @@ internal class PluginsLifetime(ConfigHandler configHandler, IPluginServiceProvid
     private async Task LoadPlugins(IReadOnlyCollection<CachedPackage> packages, PackageSourceMapping sourceMapping,
         PackagesConfig packagesConfig, ImmutableDictionary<string, ResolvedPackage> builtInPackages, DirectoryInfo cacheDir)
     {
-        var plugins = Plugins.ToBuilder();
+        var plugins = LoadedPlugins.ToBuilder();
 
         var resolvedPackages = builtInPackages.ToDictionary();
         foreach (var package in packages)
@@ -260,7 +261,8 @@ internal class PluginsLifetime(ConfigHandler configHandler, IPluginServiceProvid
                     string.Join(", ", sortedElements.Select(b => b.Entry.Title ?? b.Entry.Id)));
         }
         
-        Plugins = plugins.ToImmutable();
+        LoadedPlugins = plugins.ToImmutable();
+        Plugins = plugins.ToImmutableDictionary(b => b.Metadata.Id, b => b.Metadata, StringComparer.OrdinalIgnoreCase);
     }
 
     private async ValueTask<(ImmutableArray<CachedPackage>localPlugins, ImmutableArray<PackageReference> references)>
@@ -327,15 +329,20 @@ internal class PluginsLifetime(ConfigHandler configHandler, IPluginServiceProvid
         return (localPlugins.ToImmutable(), references.ToImmutable());
     }
 
-    private PluginInstance? LoadComponent(ImmutableArray<PluginInstance>.Builder plugins, string path,
+    private PluginInstance? LoadComponent(ImmutableHashSet<PluginInstance>.Builder plugins, string path,
         PluginMetadata metadata, AssemblyDependencyResolver? dependencyResolver, bool local = false,
         PluginInstance? parent = null)
     {
         try
         {
-            var instance = new PluginInstance(metadata, path, local, serviceProviderFactory, dependencyResolver, parent);
-            plugins.Add(instance);
-            return instance;
+            var instance = new PluginInstance(metadata, path, local, serviceProviderFactory, dependencyResolver, this, parent);
+            if (plugins.Add(instance)) return instance;
+
+            plugins.TryGetValue(instance, out var actualInstance);
+            Log.Warn(
+                "Plugin Id {PluginId} is already occupied, using previously loaded {PreviousMetadata} instead of {NewMetadata}",
+                metadata.Id, actualInstance, metadata);
+            return actualInstance;
         }
         catch (Exception e)
         {

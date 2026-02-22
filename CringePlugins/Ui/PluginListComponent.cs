@@ -67,14 +67,14 @@ internal class PluginListComponent : IRenderComponent
 
     public PluginListComponent(ConfigReference<PackagesConfig> packagesConfig,
         ConfigReference<LauncherConfig> launcherConfig,
-        PackageSourceMapping sourceMapping, string gameFolder, ImmutableArray<PluginInstance> plugins,
+        PackageSourceMapping sourceMapping, string gameFolder, ImmutableHashSet<PluginInstance> plugins,
         DirectoryInfo dataDir, DirectoryInfo cacheDir, IReadOnlyDictionary<string, CachedPackage> loadedPackages)
     {
         _packagesConfig = packagesConfig;
         _launcherConfig = launcherConfig;
         _sourceMapping = sourceMapping;
         _gameFolder = gameFolder;
-        _plugins = plugins;
+        _plugins = [..plugins];
         _packages = packagesConfig.Value.Packages.ToImmutableDictionary(b => b.Id, b => b.Range,
             StringComparer.OrdinalIgnoreCase);
         _profiles = packagesConfig.Value.Profiles;
