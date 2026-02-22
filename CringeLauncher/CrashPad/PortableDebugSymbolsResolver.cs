@@ -2,6 +2,7 @@
 using System.Reflection;
 using System.Runtime.Loader;
 using CringeBootstrap.Abstractions;
+using CringePlugins.Config;
 using NLog;
 using Pillar.Demystifier;
 
@@ -12,7 +13,7 @@ internal class PortableDebugSymbolsResolver : IPortableDebugSymbolsResolver
     private static readonly Logger Log = LogManager.GetCurrentClassLogger();
     private readonly HttpClient _client = new()
     {
-        BaseAddress = new("https://ng.zznty.ru/api/download/symbols/")
+        BaseAddress = new(LauncherConfigRegionalDefaults.Current.SymbolsSource)
     };
     private readonly string _cacheDir = Directory.CreateDirectory(Path.Join(
         Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
