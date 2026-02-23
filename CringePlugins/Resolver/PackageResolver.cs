@@ -34,8 +34,18 @@ public class PackageResolver(NuGetFramework runtimeFramework, ImmutableHashSet<P
                 continue;
             }
 
-            var version = items.Values.Where(b => b.CatalogEntry.PackageTypes is ["CringePlugin"])
-                .Select(b => b.CatalogEntry.Version).OrderDescending().First(reference.Range.Satisfies);
+            var availableVersions = items.Values.Where(b => b.CatalogEntry.PackageTypes is ["CringePlugin"])
+                .Select(b => b.CatalogEntry.Version).OrderDescending().ToImmutableArray();
+            var version = availableVersions.FirstOrDefault(reference.Range.Satisfies);
+
+            if (version is null)
+            {
+                Log.Error(
+                    "No available versions of {Package} that satisfy range {ReferenceRange}. Found {AvailableCount} in {NuGetFeeed} (Latest available: {MaxiumumAvailableVersion})",
+                    reference.Id, reference.Range, availableVersions.Length, client,
+                    availableVersions.FirstOrDefault());
+                continue;
+            }
 
             if (client != null && disableUpdates)
             {
