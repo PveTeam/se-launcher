@@ -19,7 +19,7 @@
   </ItemGroup>
   <ItemGroup>
     <!-- Test Plugin Dependencies -->
-    <PackageVersion Include="CringePlugins" Version="*" />
+    <PackageVersion Include="CringePlugins" Version="*-preview*" />
     <PackageVersion Include="CringePlugins.MSBuild" Version="*" />
     <PackageVersion Include="NodaTime" Version="3.3.0" />
   </ItemGroup>

@@ -1,10 +1,11 @@
-﻿using VRage.Plugins;
+﻿using CringePlugins.Abstractions;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace $projectName$;
 
-public class Plugin : IPlugin
+public class Plugin : IPluginWithServices
 {
-    public void Init(object gameInstance)
+    public void Init(IPluginContext context)
     {
     }
 
@@ -13,6 +14,10 @@ public class Plugin : IPlugin
     }
 
     public void Dispose()
+    {
+    }
+    
+    public static void RegisterServices(IServiceCollection services)
     {
     }
 }
