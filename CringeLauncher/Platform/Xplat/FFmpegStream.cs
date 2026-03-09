@@ -57,7 +57,7 @@ public sealed unsafe class FFmpegStream : IDisposable
 
         // Setup resampler
         AVChannelLayout outLayout = default;
-        av_channel_layout_from_mask(&outLayout, AV_CH_LAYOUT_STEREO);
+        av_channel_layout_from_mask(&outLayout, _codecContext->ch_layout.nb_channels == 2 ? AV_CH_LAYOUT_STEREO : AV_CH_LAYOUT_MONO);
         av_channel_layout_default(&_codecContext->ch_layout, _codecContext->ch_layout.nb_channels);
         fixed (SwrContext** ctx = &_swrContext)
             if (swr_alloc_set_opts2(ctx,
@@ -87,7 +87,7 @@ public sealed unsafe class FFmpegStream : IDisposable
                         byte* output;
                         var outSamples = (int)av_rescale_rnd(swr_get_delay(_swrContext, SampleRate) +
                                                          _frame->nb_samples, SampleRate, _codecContext->sample_rate, AVRounding.AV_ROUND_UP);
-                        av_samples_alloc(&output, null, 2, outSamples, AVSampleFormat.AV_SAMPLE_FMT_S16, 0);
+                        av_samples_alloc(&output, null, Channels, outSamples, AVSampleFormat.AV_SAMPLE_FMT_S16, 0);
                         outSamples = swr_convert(_swrContext, &output, outSamples,
                             _frame->extended_data, _frame->nb_samples);
                         _decodedStream.Write(new(output, outSamples * Channels * sizeof(short)));
@@ -104,20 +104,18 @@ public sealed unsafe class FFmpegStream : IDisposable
 
     public void Dispose()
     {
-        var pPacket = _packet;
-        av_packet_free(&pPacket);
-        var pFrame = _frame;
-        av_frame_free(&pFrame);
+        fixed (AVPacket** packet = &_packet)
+            av_packet_free(packet);
+        fixed (AVFrame** frame = &_frame)
+            av_frame_free(frame);
 
-        fixed (SwrContext** swr = &_swrContext)
-        {
+        fixed (SwrContext** swr = &_swrContext) 
             swr_free(swr);
-        }
             
-        var pCodecContext = _codecContext;
-        avcodec_free_context(&pCodecContext);
-        var pFormatContext = _formatContext;
-        avformat_close_input(&pFormatContext);
+        fixed (AVCodecContext** ctx = &_codecContext)
+            avcodec_free_context(ctx);
+        fixed (AVFormatContext** ctx = &_formatContext)
+            avformat_close_input(ctx);
 
         _decodedStream?.Dispose();
     }

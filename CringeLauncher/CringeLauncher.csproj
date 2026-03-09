@@ -66,6 +66,7 @@
         <PackageReference Include="Microsoft.Extensions.Http.Polly" />
         <PackageReference Include="Demystifier" />
         <PackageReference Include="Silk.NET.OpenAL" />
+        <PackageReference Include="Silk.NET.OpenAL.Extensions.Creative" />
         <PackageReference Include="System.Management" />
         <PackageReference Include="System.Private.ServiceModel" />
         <PackageReference Include="System.Formats.Nrbf" />

@@ -1,5 +1,6 @@
 using System.Text;
 using Silk.NET.OpenAL;
+using Silk.NET.OpenAL.Extensions.Creative;
 using VRage.Audio;
 using VRage.Collections;
 using VRage.Data.Audio;
@@ -23,6 +24,7 @@ public unsafe class XplatAudio : IMyAudio
 
     private readonly ALContext _alc;
     private readonly AL _al;
+    private readonly EffectExtension _effectExtension;
     private readonly Device* _device;
     private readonly Context* _audioContext;
     private AlBufferBank? _bufferBank;
@@ -31,6 +33,11 @@ public unsafe class XplatAudio : IMyAudio
 
     private readonly List<XplatSourceVoice> _voicePool = [];
     private readonly List<XplatSourceVoice> _activeVoices = [];
+    private readonly List<XplatAudioEffect> _activeEffects = [];
+
+    private uint _reverbEffectSlot;
+    private uint _reverbEffect;
+    private bool _reverbSet;
 
     private MyMusicState _musicState;
     private bool _loopMusic;
@@ -52,7 +59,27 @@ public unsafe class XplatAudio : IMyAudio
 
     public Dictionary<MyCueId, MySoundData>.ValueCollection? CueDefinitions => _bufferBank?.Sounds.Values;
     public MySoundData? SoloCue { get; set; }
-    public bool ApplyReverb { get; set; }
+    private bool _applyReverb;
+    public bool ApplyReverb
+    {
+        get => _applyReverb;
+        set
+        {
+            if (!_reverbSet || _applyReverb == value) return;
+            _applyReverb = value;
+            
+            lock (_activeVoices)
+            {
+                foreach (var voice in _activeVoices.Where(voice => voice is { IsMusic: false, IsHud: false }))
+                {
+                    if (value)
+                        _effectExtension.SetSourceProperty(voice.Source, EFXSourceInteger3.AuxiliarySendFilter, (int)_reverbEffectSlot, 0, 0);
+                    else
+                        _effectExtension.SetSourceProperty(voice.Source, EFXSourceInteger3.AuxiliarySendFilter, 0, 0, 0);
+                }
+            }
+        }
+    }
 
     private float _volumeMusic;
     private float _volumeHud;
@@ -135,7 +162,20 @@ public unsafe class XplatAudio : IMyAudio
     public bool EnableVoiceChat { get; set; }
     public bool UseVolumeLimiter { get; set; }
     public bool UseSameSoundLimiter { get; set; }
-    public bool EnableReverb { get; set; }
+    public bool EnableReverb
+    {
+        get => _reverbSet;
+        set
+        {
+            if (!value || _reverbSet) return;
+            
+            _reverbEffectSlot = _effectExtension.GenAuxiliaryEffectSlot();
+            _reverbEffect = _effectExtension.GenEffect();
+            _effectExtension.SetEffectProperty(_reverbEffect, EffectInteger.EffectType, (int)EffectType.Reverb);
+            _effectExtension.SetAuxiliaryEffectSlotProperty(_reverbEffectSlot, EffectSlotInteger.Effect, (int)_reverbEffect);
+            _reverbSet = true;
+        }
+    }
     public int SampleRate { get; }
     public bool EnableDoppler { get; set; }
     public bool CacheLoaded { get; set; }
@@ -147,6 +187,7 @@ public unsafe class XplatAudio : IMyAudio
     {
         _alc = ALContext.GetApi();
         _al = AL.GetApi();
+        _al.TryGetExtension(out _effectExtension);
         _device = _alc.OpenDevice("");
         if (_device == null)
             throw new OpenAlException("Could not create device");
@@ -207,7 +248,9 @@ public unsafe class XplatAudio : IMyAudio
 
     public void SetReverbParameters(float diffusion, float roomSize)
     {
-        // Not supported in OpenAL Soft
+        if (!_reverbSet) return;
+        _effectExtension.SetEffectProperty(_reverbEffect, EffectFloat.ReverbDensity, roomSize);
+        _effectExtension.SetEffectProperty(_reverbEffect, EffectFloat.ReverbDiffusion, diffusion);
     }
 
     public void PauseGameSounds()
@@ -384,6 +427,23 @@ public unsafe class XplatAudio : IMyAudio
                 _activeVoices[i].Update();
             }
         }
+        
+        lock (_activeEffects)
+        {
+            for (var i = _activeEffects.Count - 1; i >= 0; i--)
+            {
+                var effect = _activeEffects[i];
+                if (effect.Finished)
+                {
+                    effect.Dispose();
+                    _activeEffects.RemoveAt(i);
+                }
+                else
+                {
+                    effect.Update(stepSizeInMs);
+                }
+            }
+        }
 
         UpdateMusic(stepSizeInMs);
         Update3DCuesPositions();
@@ -513,6 +573,20 @@ public unsafe class XplatAudio : IMyAudio
         if (SoloCue != null && SoloCue != cue)
             return null;
 
+        var originalType = type;
+        var buffer = _bufferBank.GetBuffer(cueId, type, out var part);
+        if (buffer == 0 && source?.Force3D == true)
+        {
+            type = type == MySoundDimensions.D3 ? MySoundDimensions.D2 : MySoundDimensions.D3;
+            buffer = _bufferBank.GetBuffer(cueId, type, out part);
+        }
+        
+        if (buffer == 0)
+        {
+            // Could not get a buffer, even with fallback.
+            return null;
+        }
+
         XplatSourceVoice voice;
         lock (_voicePool)
         {
@@ -531,13 +605,6 @@ public unsafe class XplatAudio : IMyAudio
         lock (_activeVoices)
         {
             _activeVoices.Add(voice);
-        }
-        
-        var buffer = _bufferBank.GetBuffer(cueId, type, out var part);
-        if (buffer == 0)
-        {
-            ReturnVoiceToPool(voice);
-            return null;
         }
         
         _al.SetSourceProperty(voice.Source, SourceInteger.Buffer, (int)buffer);
@@ -719,8 +786,20 @@ public unsafe class XplatAudio : IMyAudio
     public IMyAudioEffect? ApplyEffect(IMySourceVoice input, MyStringHash effect, MyCueId[]? cueIds = null, float? duration = null,
         bool musicEffect = false)
     {
-        // Not implemented
-        return null;
+        if (input is not XplatSourceVoice)
+            return null;
+        
+        var audioEffect = _effects.FirstOrDefault(e => e.EffectId == effect);
+
+        if (audioEffect == null)
+            return null;
+
+        var effectInstance = new XplatAudioEffect(_al, _effectExtension, input, audioEffect);
+        lock (_activeEffects)
+        {
+            _activeEffects.Add(effectInstance);
+        }
+        return effectInstance;
     }
 
     public Vector3 GetListenerPosition()

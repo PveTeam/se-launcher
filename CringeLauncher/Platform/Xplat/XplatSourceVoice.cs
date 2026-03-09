@@ -74,7 +74,7 @@ public class XplatSourceVoice(AL al, Action<XplatSourceVoice> onStop) : IMySourc
             al.SetSourceProperty(Source, SourceFloat.ReferenceDistance, 1);
             al.SetSourceProperty(Source, SourceFloat.MaxDistance, float.MaxValue);
         }
-        else if (Emitter is not null)
+        if (Emitter is not null)
         {
             al.SetSourceProperty(Source, SourceFloat.ReferenceDistance, Emitter.CustomMaxDistance ?? cue.MaxDistance);
             al.SetSourceProperty(Source, SourceFloat.MaxDistance, Emitter.CustomMaxDistance ?? cue.MaxDistance);
@@ -88,13 +88,14 @@ public class XplatSourceVoice(AL al, Action<XplatSourceVoice> onStop) : IMySourc
 
     public void Start(bool skipIntro = false, bool skipToEnd = false)
     {
-        Console.WriteLine($"Play {CueEnum}");
+        Console.WriteLine($"Play {SoundDimensions} {CueEnum}");
         al.SourcePlay(_source);
         IsPlaying = true;
     }
 
     public void Stop(bool force = false)
     {
+        Console.WriteLine($"Stop {SoundDimensions} {CueEnum}");
         al.SourceStop(_source);
         IsPlaying = false;
         StoppedPlaying?.Invoke(this);

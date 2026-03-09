@@ -110,6 +110,16 @@
           "System.Numerics.Vectors": "4.6.1"
         }
       },
+      "Silk.NET.OpenAL.Extensions.Creative": {
+        "type": "Direct",
+        "requested": "[2.23.0, )",
+        "resolved": "2.23.0",
+        "contentHash": "++3+P3G2CuV4ZbD9EG81XAxsu2enofp6jFhz6GmqEf96ZrC+3COMJPgzFtjDnPswuNOFK8FWzTCucdbw1jGXBQ==",
+        "dependencies": {
+          "Silk.NET.Core": "2.23.0",
+          "Silk.NET.OpenAL": "2.23.0"
+        }
+      },
       "SpaceEngineersDedicated.ReferenceAssemblies": {
         "type": "Direct",
         "requested": "[1.208.15, )",
@@ -862,6 +872,16 @@
           "Silk.NET.Core": "2.23.0",
           "System.Buffers": "4.6.1",
           "System.Numerics.Vectors": "4.6.1"
+        }
+      },
+      "Silk.NET.OpenAL.Extensions.Creative": {
+        "type": "Direct",
+        "requested": "[2.23.0, )",
+        "resolved": "2.23.0",
+        "contentHash": "++3+P3G2CuV4ZbD9EG81XAxsu2enofp6jFhz6GmqEf96ZrC+3COMJPgzFtjDnPswuNOFK8FWzTCucdbw1jGXBQ==",
+        "dependencies": {
+          "Silk.NET.Core": "2.23.0",
+          "Silk.NET.OpenAL": "2.23.0"
         }
       },
       "SpaceEngineersDedicated.ReferenceAssemblies": {

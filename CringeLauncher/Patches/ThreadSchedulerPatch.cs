@@ -31,7 +31,8 @@ internal static class ThreadSchedulerPatch
             .MatchStartForward(CodeMatch.IsLdarg(0),
                 CodeMatch.LoadsField(AccessTools.DeclaredField(original.DeclaringType, "m_thread")))
             .RemoveInstructions(codeMatcher.Remaining)
-            .Insert(new CodeInstruction(OpCodes.Pop), new CodeInstruction(OpCodes.Ret))
+            .End()
+            .InsertAfter(new CodeInstruction(OpCodes.Pop), new CodeInstruction(OpCodes.Ret))
             .InstructionEnumeration();
     }
 }

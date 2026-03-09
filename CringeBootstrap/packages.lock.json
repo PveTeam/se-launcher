@@ -398,6 +398,7 @@
           "NLog": "[6.1.0, )",
           "Silk.NET.GLFW": "[2.23.0, )",
           "Silk.NET.OpenAL": "[2.23.0, )",
+          "Silk.NET.OpenAL.Extensions.Creative": "[2.23.0, )",
           "SpaceEngineersDedicated.ReferenceAssemblies": "[1.208.15, )",
           "System.Formats.Nrbf": "[10.0.3, )",
           "System.Management": "[10.0.2, )",
@@ -612,6 +613,16 @@
           "Silk.NET.Core": "2.23.0",
           "System.Buffers": "4.6.1",
           "System.Numerics.Vectors": "4.6.1"
+        }
+      },
+      "Silk.NET.OpenAL.Extensions.Creative": {
+        "type": "CentralTransitive",
+        "requested": "[2.23.0, )",
+        "resolved": "2.23.0",
+        "contentHash": "++3+P3G2CuV4ZbD9EG81XAxsu2enofp6jFhz6GmqEf96ZrC+3COMJPgzFtjDnPswuNOFK8FWzTCucdbw1jGXBQ==",
+        "dependencies": {
+          "Silk.NET.Core": "2.23.0",
+          "Silk.NET.OpenAL": "2.23.0"
         }
       },
       "SixLabors.ImageSharp": {
@@ -1166,6 +1177,7 @@
           "Microsoft.Extensions.Http.Polly": "[10.0.2, )",
           "NLog": "[6.1.0, )",
           "Silk.NET.OpenAL": "[2.23.0, )",
+          "Silk.NET.OpenAL.Extensions.Creative": "[2.23.0, )",
           "SpaceEngineersDedicated.ReferenceAssemblies": "[1.208.15, )",
           "System.Formats.Nrbf": "[10.0.3, )",
           "System.Management": "[10.0.2, )",
@@ -1379,6 +1391,16 @@
           "Silk.NET.Core": "2.23.0",
           "System.Buffers": "4.6.1",
           "System.Numerics.Vectors": "4.6.1"
+        }
+      },
+      "Silk.NET.OpenAL.Extensions.Creative": {
+        "type": "CentralTransitive",
+        "requested": "[2.23.0, )",
+        "resolved": "2.23.0",
+        "contentHash": "++3+P3G2CuV4ZbD9EG81XAxsu2enofp6jFhz6GmqEf96ZrC+3COMJPgzFtjDnPswuNOFK8FWzTCucdbw1jGXBQ==",
+        "dependencies": {
+          "Silk.NET.Core": "2.23.0",
+          "Silk.NET.OpenAL": "2.23.0"
         }
       },
       "SixLabors.ImageSharp": {
