@@ -197,7 +197,7 @@ internal class DllImportTransformer : ITransformer
             EntrypointInteropAttributes)
         {
             ImplMap = new ImplMapUser(new ModuleRefUser(moduleDefinition, EntrypointModuleName),
-                "CringeBootstrap_CreateTrampoline", ImplMapAttributes)
+                "CringeBootstrap_CreateTrampoline", (ImplMapAttributes & ~PInvokeAttributes.CharSetUnicode) | PInvokeAttributes.CharSetAnsi)
         };
         marshaller.Methods.Add(createMethod);
         

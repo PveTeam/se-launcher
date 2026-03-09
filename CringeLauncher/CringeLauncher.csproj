@@ -46,17 +46,22 @@
 		<Publicize Include="Sandbox.Game:Sandbox.Engine.Platform.Game.m_gameTimer" />
 		<Publicize Include="VRage.Scripting:VRage.Scripting.MyScriptCompiler" />
 		<Publicize Include="VRage.Library:ParallelTasks.PrioritizedScheduler+Worker" />
+		<Publicize Include="VRage.Audio:VRage.Audio.MyMusicState" />
 	</ItemGroup>
 
     <ItemGroup>
         <PackageReference Include="Basic.Reference.Assemblies.Net90" Version="1.8.3" />
         <PackageReference Include="dnlib" Version="4.5.0" />
         <PackageReference Include="EOSSDK" Version="1.0.3" Condition="'$(TargetPlatformIdentifier)' == 'Windows'" />
+        <PackageReference Include="FFmpeg.AutoGen.Bindings.DynamicallyLoaded" Version="8.0.0" />
         <PackageReference Include="Krafs.Publicizer" Version="2.3.0">
             <PrivateAssets>all</PrivateAssets>
             <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
         </PackageReference>
         <PackageReference Include="Microsoft.Extensions.Http.Polly" Version="9.0.9" />
+        <PackageReference Include="Silk.NET.Direct3D11" Version="2.23.0" />
+        <PackageReference Include="Silk.NET.OpenAL" Version="2.23.0" />
+        <PackageReference Include="Silk.NET.OpenAL.Extensions.EXT" Version="2.23.0" />
         <PackageReference Include="System.Diagnostics.PerformanceCounter" Version="9.0.9" />
         <PackageReference Include="System.Formats.Nrbf" Version="10.0.2" />
         <PackageReference Include="System.Management" Version="9.0.9" />
@@ -74,6 +79,7 @@
 
     <ItemGroup>
         <ProjectReference Include="..\CringeBootstrap.Abstractions\CringeBootstrap.Abstractions.csproj" />
+        <ProjectReference Include="..\CringeLauncher.Render.Xplat.DxVk\CringeLauncher.Render.Xplat.DxVk.csproj" />
         <ProjectReference Include="..\CringePlugins\CringePlugins.csproj" />
     </ItemGroup>
 

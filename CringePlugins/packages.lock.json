@@ -19,9 +19,9 @@
       },
       "ImGui.NET.DirectX": {
         "type": "Direct",
-        "requested": "[1.92.3.2, )",
-        "resolved": "1.92.3.2",
-        "contentHash": "WRlDM1swPCmgEQ5Gm/Z7BEhYMPzLSG7+6GMDgcuTg074nlf68+D+RNyQkCNC0PusvmeZqT24l8CgBPgZKQuWuQ=="
+        "requested": "[1.92.3.3, )",
+        "resolved": "1.92.3.3",
+        "contentHash": "gxtcjpZRybPcB/LljmMZnf2AI3D9aIf0O6KkJjpLVt7Gf2JXl/o8aYPE7Az6bp4IpbHaYMAQZM2/RAWtmmYaOQ=="
       },
       "JsonSchema.Net.Generation": {
         "type": "Direct",
@@ -256,9 +256,9 @@
     "net9.0/linux-x64": {
       "ImGui.NET.DirectX": {
         "type": "Direct",
-        "requested": "[1.92.3.2, )",
-        "resolved": "1.92.3.2",
-        "contentHash": "WRlDM1swPCmgEQ5Gm/Z7BEhYMPzLSG7+6GMDgcuTg074nlf68+D+RNyQkCNC0PusvmeZqT24l8CgBPgZKQuWuQ=="
+        "requested": "[1.92.3.3, )",
+        "resolved": "1.92.3.3",
+        "contentHash": "gxtcjpZRybPcB/LljmMZnf2AI3D9aIf0O6KkJjpLVt7Gf2JXl/o8aYPE7Az6bp4IpbHaYMAQZM2/RAWtmmYaOQ=="
       },
       "Steamworks.NET": {
         "type": "Direct",
@@ -270,9 +270,9 @@
     "net9.0/win-x64": {
       "ImGui.NET.DirectX": {
         "type": "Direct",
-        "requested": "[1.92.3.2, )",
-        "resolved": "1.92.3.2",
-        "contentHash": "WRlDM1swPCmgEQ5Gm/Z7BEhYMPzLSG7+6GMDgcuTg074nlf68+D+RNyQkCNC0PusvmeZqT24l8CgBPgZKQuWuQ=="
+        "requested": "[1.92.3.3, )",
+        "resolved": "1.92.3.3",
+        "contentHash": "gxtcjpZRybPcB/LljmMZnf2AI3D9aIf0O6KkJjpLVt7Gf2JXl/o8aYPE7Az6bp4IpbHaYMAQZM2/RAWtmmYaOQ=="
       },
       "Steamworks.NET": {
         "type": "Direct",

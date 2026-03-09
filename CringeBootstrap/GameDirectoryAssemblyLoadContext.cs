@@ -39,6 +39,10 @@ public partial class GameDirectoryAssemblyLoadContext : AssemblyLoadContext, ICo
                 // if we are trying to load native image
             }
         }
+
+#if !WINDOWS
+        LoadReexport(unmanagedAssembliesDir);
+#endif
     }
 
     public void AddOverride(AssemblyName name, string file)
@@ -84,12 +88,15 @@ public partial class GameDirectoryAssemblyLoadContext : AssemblyLoadContext, ICo
 
         // prefer System32 over ours
         // avoid using _dir because it may be a crossgen directory without unmanaged assemblies
-        ReadOnlySpan<string> dirs = [
-            Environment.SystemDirectory, 
-            _unmanagedAssembliesDir, 
+        ReadOnlySpan<string> dirs =
+        [
+            Environment.SystemDirectory,
+            _unmanagedAssembliesDir,
             AppContext.BaseDirectory,
 #if DEBUG
-            Directory.GetCurrentDirectory(),
+            ..Environment.GetEnvironmentVariable("LD_LIBRARY_PATH") is { } ldPath
+                ? ldPath.Split(Path.PathSeparator, StringSplitOptions.RemoveEmptyEntries)
+                : [],
 #endif
         ];
         foreach (var dir in dirs)
@@ -134,6 +141,10 @@ public partial class GameDirectoryAssemblyLoadContext : AssemblyLoadContext, ICo
         var mainHandle = NativeLibrary.Load(Transformers.Impl.DllImportTransformer.EntrypointModuleName);
         return mainHandle;
     }
+
+    [DllImport(Transformers.Impl.DllImportTransformer.EntrypointModuleName, EntryPoint = "CringeBootstrap_LoadReexport",
+        ExactSpelling = true, CharSet = CharSet.Ansi, PreserveSig = false)]
+    private static extern void LoadReexport(string path);
 #endif
 
     public Assembly? ResolveFromAssemblyName(AssemblyName assemblyName) => Load(assemblyName);

@@ -1,4 +1,5 @@
-﻿using CringeLauncher.Platform.Xplat;
+﻿using System.Runtime.InteropServices;
+using CringeLauncher.Platform.Xplat;
 using CringeLauncher.Render;
 using VRage;
 using VRage.Analytics;
@@ -50,6 +51,8 @@ internal class VRageLauncherPlatform(string applicationName, string? appdataPath
             WindowHandle = surrogate?.Window.Handle ?? 0
         });
 #else
+        if (!RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
+            throw new PlatformNotSupportedException("Platforms other than linux are not supported");
         var input = new XplatGameInput(surrogate!.Window);
         Input2 = input;
         
@@ -99,7 +102,7 @@ internal class VRageLauncherPlatform(string applicationName, string? appdataPath
 #if WINDOWS
         new MyXAudio2(new MyPlatformAudio());
 #else
-        new MyNullAudio();
+        new XplatAudio();
 #endif
     public IMyImeProcessor ImeProcessor { get; } =
 #if WINDOWS

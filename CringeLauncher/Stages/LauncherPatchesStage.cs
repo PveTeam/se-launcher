@@ -13,7 +13,7 @@ public class LauncherPatchesStage : ILoadingStage
         
         try
         {
-            new Harmony("CringeBootstrap").PatchAll(typeof(Launcher).Assembly);
+            new Harmony("CringeBootstrap").PatchAllUncategorized(typeof(Launcher).Assembly);
         }
         catch (Exception e)
         {

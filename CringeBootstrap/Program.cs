@@ -103,8 +103,11 @@ var context = new GameDirectoryAssemblyLoadContext(dir, gameDir);
 
 // a list of assemblies which are not in the game binaries but reference them
 context.AddDependencyOverride("CringeLauncher");
+context.AddDependencyOverride("CringeLauncher.Render.Xplat.DxVk");
 context.AddDependencyOverride("CringePlugins");
 context.AddDependencyOverride("EOSSDK");
+//temp
+context.AddDependencyOverride("ImGui.NET");
 
 const string crashPadEntrypoint = "CringeLauncher.CrashPad.CrashPadLauncher, CringeLauncher";
 

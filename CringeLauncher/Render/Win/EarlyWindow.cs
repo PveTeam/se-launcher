@@ -121,9 +121,9 @@ internal sealed class EarlyWindow : Form, IEarlyWindow
 
         if (_newSize.HasValue)
         {
-            _guiHandler!.CleanupRenderTarget();
+            WinImGuiHandler.Instance!.CleanupRenderTarget();
             _swapChain.ResizeBuffers(0, _newSize.Value.Width, _newSize.Value.Height, Format.Unknown, SwapChainFlags.AllowModeSwitch);
-            _guiHandler.CreateRenderTarget(_device!, _swapChain);
+            WinImGuiHandler.Instance.CreateRenderTarget(_device!, _swapChain);
             _newSize = null;
         }
         

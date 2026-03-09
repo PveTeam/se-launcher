@@ -1,28 +1,29 @@
+using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 
 namespace CringeLauncher.Utils;
 
 internal static class PlatformApi
 {
-    private const string PlatformDllName = "CringeBootstrap.Native.so";
-    private const string CallPrefix = "CringeBootstrap_";
+    internal const string PlatformDllName = "CringeBootstrap.Native.so";
+    internal const string CallPrefix = "CringeBootstrap_";
 
     public static void CreateThread(ThreadStart start, string threadName)
     {
-        Console.Error.WriteLine($"Platform Thread Request {threadName}");
-        var startHandle = GCHandle.Alloc(start);
-        var handle = PlatformCreateThread(0, () =>
+        var box = new StrongBox<GCHandle>();
+        ThreadStart threadStart = () =>
         {
-            Console.Error.WriteLine($"Platform Thread Proc {threadName}");
-            startHandle.Free();
+            Thread.CurrentThread.Name = threadName;
             start();
-            GC.KeepAlive(start);
-        }, threadName, threadName.Length);
+            if (box.Value.IsAllocated) box.Value.Free();
+        };
+        box.Value = GCHandle.Alloc(threadStart);
+        var handle = PlatformCreateThread(8 * 1024 * 1024, threadStart, threadName, threadName.Length);
 
         PlatformStartThread(handle);
     }
 
-    [DllImport(PlatformDllName, EntryPoint = $"{CallPrefix}PlatformCreateThread", CharSet = CharSet.Unicode, PreserveSig = false, ExactSpelling = true)]
+    [DllImport(PlatformDllName, EntryPoint = $"{CallPrefix}PlatformCreateThread", CharSet = CharSet.Ansi, PreserveSig = false, ExactSpelling = true)]
     private static extern nint PlatformCreateThread(nuint stackSize, ThreadStart start, string threadName, int threadNameLength);
 
     [DllImport(PlatformDllName, EntryPoint = $"{CallPrefix}PlatformStartThread", PreserveSig = false, ExactSpelling = true)]

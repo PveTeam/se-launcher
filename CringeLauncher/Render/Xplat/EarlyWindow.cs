@@ -1,29 +1,33 @@
 #if !WINDOWS
 using System.Collections.Concurrent;
+using System.Runtime.Versioning;
 using NLog;
 using SharpDX.Direct3D;
 using SharpDX.Direct3D11;
 using SharpDX.DXGI;
 using Silk.NET.GLFW;
-using Device = SharpDX.Direct3D11.Device;
+using D3D11Device = SharpDX.Direct3D11.Device;
+using Format = SharpDX.DXGI.Format;
 
 namespace CringeLauncher.Render.Xplat;
 
+[SupportedOSPlatform("linux")]
 internal unsafe class EarlyWindow : IEarlyWindow
 {
     private static readonly Logger Log = LogManager.GetCurrentClassLogger();
     private WindowHandle* _handle;
     private readonly Thread _ownerThread = Thread.CurrentThread;
     private readonly ConcurrentQueue<PendingInvocation> _invokeQueue = new();
-    private EarlyImGuiHandler? _guiHandler;
     private readonly IRenderLoop _renderLoop;
     private Size? _newSize;
-    private Device? _device;
+    private D3D11Device? _device;
     private SwapChain? _swapChain;
+    private readonly XplatImGuiHandler _guiHandler;
 
     public EarlyWindow()
     {
         _renderLoop = new GlfwRenderLoop(this);
+        _guiHandler = (XplatImGuiHandler)ImGuiHandler.Instance!;
     }
 
     private bool InvokeRequired => Thread.CurrentThread != _ownerThread;
@@ -39,7 +43,7 @@ internal unsafe class EarlyWindow : IEarlyWindow
 
     public WindowState State { get; set; } = WindowState.Maximized;
     public FullScreenMode CurrentMode { get; private set; } = FullScreenMode.Borderless;
-    public Device? DeviceInstance => _device;
+    public D3D11Device? DeviceInstance => _device;
     public SwapChain? SwapChainInstance => _swapChain;
     public VRageWindowSurrogate Surrogate => field ??= new(this, _renderLoop);
     public nint Handle => (nint)_handle;
@@ -93,8 +97,8 @@ internal unsafe class EarlyWindow : IEarlyWindow
     {
         if (!_renderLoop.NextFrame())
             return false;
-
-        if (_swapChain!.Present(0, PresentFlags.Test) == (int)DXGIStatus.Occluded || _guiHandler is null)
+        
+        if (_swapChain!.Present(0, PresentFlags.Test) == (int)DXGIStatus.Occluded)
         {
             DoEvents();
             return true;
@@ -103,14 +107,14 @@ internal unsafe class EarlyWindow : IEarlyWindow
         if (_newSize.HasValue)
         {
             _guiHandler.CleanupRenderTarget();
-            _swapChain.ResizeBuffers(0, _newSize.Value.Width, _newSize.Value.Height, Format.Unknown, SwapChainFlags.AllowModeSwitch);
+            _swapChain!.ResizeBuffers(0, _newSize.Value.Width, _newSize.Value.Height, Format.Unknown, SwapChainFlags.AllowModeSwitch);
             _guiHandler.CreateRenderTarget(_device!, _swapChain);
             _newSize = null;
         }
-        
-        _device!.ImmediateContext.ClearRenderTargetView(_guiHandler!.RenderTarget, default);
-        Draw();
 
+        _device!.ImmediateContext.ClearRenderTargetView(_guiHandler.Rtv, default);
+        Draw();
+        
         _swapChain.Present(0, PresentFlags.None);
         
         UpdateFrame();
@@ -123,7 +127,7 @@ internal unsafe class EarlyWindow : IEarlyWindow
     {
     }
 
-    public void Draw() => _guiHandler?.Render();
+    public void Draw() => _guiHandler.DoRender();
 
     public void Close()
     {
@@ -287,6 +291,7 @@ internal unsafe class EarlyWindow : IEarlyWindow
 
     private void CreateHandle()
     {
+        Log.Debug("Glfw init");
         var api = GlfwProvider.GLFW.Value;
         
         api.WindowHint(WindowHintBool.Resizable, false);
@@ -304,6 +309,7 @@ internal unsafe class EarlyWindow : IEarlyWindow
         
         api.WindowHint(WindowHintInt.RefreshRate, videoMode->RefreshRate);
         
+        Log.Debug("Create window");
         _handle = api.CreateWindow(videoMode->Width, videoMode->Height, Title, null, null);
 
         api.SetFramebufferSizeCallback(_handle, FramebufferSizeCallback);
@@ -321,18 +327,13 @@ internal unsafe class EarlyWindow : IEarlyWindow
         ClientRectangle = new(x, y, width, height);
         
         CreateD3D11Device();
-        //CreateImGui();
-    }
-    
-    private void CreateImGui()
-    {
-        _guiHandler = new();
-        _guiHandler.CreateContext(Handle, _device!, _swapChain!);
+        Log.Debug("ImGui init");
+        InitImGui();
     }
 
     private void CreateD3D11Device()
     {
-        Device.CreateWithSwapChain(DriverType.Hardware, DeviceCreationFlags.None, new()
+        D3D11Device.CreateWithSwapChain(DriverType.Hardware, DeviceCreationFlags.None, new()
         {
             BufferCount = 2,
             Flags = SwapChainFlags.AllowModeSwitch,
@@ -350,6 +351,13 @@ internal unsafe class EarlyWindow : IEarlyWindow
 
         using var factory = _swapChain.GetParent<Factory>();
         factory.MakeWindowAssociation(Handle, WindowAssociationFlags.IgnoreAll);
+    }
+
+    private void InitImGui()
+    {
+        _guiHandler.CleanupRenderTarget();
+        _guiHandler.CreateRenderTarget(_device!, _swapChain!);
+        _guiHandler.Init(_handle, _device!, _device!.ImmediateContext);
     }
 
     private void WindowCharCallback(WindowHandle* window, uint codepoint)

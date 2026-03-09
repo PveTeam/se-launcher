@@ -1,4 +1,5 @@
-﻿using CringeLauncher.Utils;
+﻿using System.Runtime.InteropServices;
+using CringeLauncher.Utils;
 using Sandbox.Engine.Utils;
 using VRage;
 using VRage.Library.Utils;
@@ -35,6 +36,12 @@ internal class EarlyRenderThread : IDisposable
         RenderThread.Start();
 #else
         PlatformApi.CreateThread(RunLoop, threadName);
+        // RenderThread = new Thread(RunLoop)
+        // {
+        //     Name = threadName
+        // };
+        //
+        // RenderThread.Start();
 #endif
     }
 
@@ -68,6 +75,8 @@ internal class EarlyRenderThread : IDisposable
 #if WINDOWS
         Window = new Win.EarlyWindow
 #else
+        if (!RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
+            throw new PlatformNotSupportedException("Platforms other than linux are not supported");
         Window = new Xplat.EarlyWindow
 #endif
             { Title = "Cringe Launcher" };
@@ -87,6 +96,7 @@ internal class EarlyRenderThread : IDisposable
             }
 
             if (!Surrogate.UpdateRenderThread()) break;
+            Window.DoEvents();
             RenderFrame();
         }
 

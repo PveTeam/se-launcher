@@ -98,7 +98,12 @@ public sealed class CrashPadLauncher : ICorePlugin
         InitializeCrashDialogServices();
 
         var configDir = Path.Join(_appdataDir, "config");
-        ImGuiHandler.Instance = new(Directory.CreateDirectory(configDir));
+        ImGuiHandler.Instance =
+#if WINDOWS
+            new Render.Win.WinImGuiHandler(Directory.CreateDirectory(configDir));
+#else
+            new Render.Xplat.XplatImGuiHandler(Directory.CreateDirectory(configDir));
+#endif
 
         var exitEvent = new ManualResetEventSlim();
 

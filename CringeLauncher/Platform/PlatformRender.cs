@@ -8,6 +8,7 @@ using VRage;
 using VRage.Platform.Windows.Render;
 using VRageRender;
 using Buffer = SharpDX.Direct3D11.Buffer;
+using Device = SharpDX.DXGI.Device;
 using Device1 = SharpDX.Direct3D11.Device1;
 
 namespace CringeLauncher.Platform;
@@ -22,6 +23,7 @@ internal class PlatformRender(VRageWindowSurrogate surrogate) : IVRageRender
     private ulong _voxelTextureArraysMemoryBudget = MyVRage.Platform.System.GetTotalPhysicalMemory() / 10UL;
     
     private MyRenderDeviceSettings? _currentSettings;
+    private AdaptersList? _adaptersList;
     
     public void CreateRenderDevice(ref MyRenderDeviceSettings? settings, [UnscopedRef] out object? deviceInstance,
         [UnscopedRef] out object? swapChain)
@@ -29,17 +31,17 @@ internal class PlatformRender(VRageWindowSurrogate surrogate) : IVRageRender
         deviceInstance = MyPlatformRender.DeviceInstance = surrogate.Window.DeviceInstance?.QueryInterface<Device1>();
         swapChain = MyPlatformRender.m_swapchain = surrogate.Window.SwapChainInstance?.QueryInterface<SwapChain>();
         MyPlatformRender.m_factory = surrogate.Window.SwapChainInstance?.GetParent<Factory>();
-        
+
+        GetRenderAdapterList();
         var settingsValue = settings ?? MyPlatformRender.GetDefaultDeviceSettings();
         settingsValue.NewAdapterOrdinal = settingsValue.AdapterOrdinal = MyPlatformRender.ValidateAdapterIndex(settingsValue.AdapterOrdinal);
         MyPlatformRender.GetAdapter(settingsValue.AdapterOrdinal, out var adapter, out var adapterInfo);
-        MyPlatformRender.FixSettings(ref settingsValue, adapter, adapterInfo, MyPlatformRender.GetAdaptersList());
+        MyPlatformRender.FixSettings(ref settingsValue, adapter, adapterInfo, GetRenderAdapterList());
 
         if (settingsValue.WindowMode != MyWindowModeEnum.FullscreenWindow || surrogate.Window.ClientSize !=
             new Size(settingsValue.BackBufferWidth, settingsValue.BackBufferHeight))
         {
-            ImGuiHandler.Rtv?.Dispose();
-            ImGuiHandler.Rtv = null;
+            ImGuiHandler.Instance?.CleanupRenderTarget();
             MyPlatformRender.m_swapchain!.ResizeBuffers(2, settingsValue.BackBufferWidth,
                 settingsValue.BackBufferHeight,
                 Format.Unknown, SwapChainFlags.AllowModeSwitch);
@@ -65,7 +67,13 @@ internal class PlatformRender(VRageWindowSurrogate surrogate) : IVRageRender
 
     public MyRenderPresetEnum GetRenderQualityHint() => MyRenderPresetEnum.NORMAL;
 
-    public MyAdapterInfo[] GetRenderAdapterList() => MyPlatformRender.GetAdaptersList();
+    public MyAdapterInfo[] GetRenderAdapterList() =>
+#if WINDOWS
+        MyPlatformRender.GetAdaptersList();
+#else
+        MyPlatformRender.m_adapterInfoList ??= (_adaptersList ??= new(MyPlatformRender.m_factory,
+            MyPlatformRender.DeviceInstance.QueryInterface<Device>(), MyPlatformRender.m_swapchain)).Value;
+#endif
 
     public void ApplyRenderSettings(MyRenderDeviceSettings? settings)
     {
@@ -77,7 +85,7 @@ internal class PlatformRender(VRageWindowSurrogate surrogate) : IVRageRender
         if (_currentSettings.HasValue && _currentSettings.Value.Equals(ref settingsValue)) return;
         _currentSettings = settings;
 
-        var adapterInfo = MyPlatformRender.GetAdaptersList()[settingsValue.NewAdapterOrdinal];
+        var adapterInfo = GetRenderAdapterList()[settingsValue.NewAdapterOrdinal];
         var desktopBounds = adapterInfo.DesktopBounds;
         surrogate.Window.ResizeFullScreen((FullScreenMode)settingsValue.WindowMode,
             new Rectangle(desktopBounds.X, desktopBounds.Y, desktopBounds.Width, desktopBounds.Height),

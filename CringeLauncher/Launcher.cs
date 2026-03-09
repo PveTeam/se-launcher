@@ -102,9 +102,13 @@ public class Launcher : ICorePlugin
         {
 #if WINDOWS
             Application.SetHighDpiMode(HighDpiMode.PerMonitorV2);
+            ImGuiHandler.Instance = new Render.Win.WinImGuiHandler(_configDir);
+#else
+            new HarmonyLib.Harmony("CringeBootstrap").PatchCategory(typeof(Launcher).Assembly, "EarlyRender");
+            if (!RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
+                throw new PlatformNotSupportedException("Platforms other than linux are not supported");
+            ImGuiHandler.Instance = new Render.Xplat.XplatImGuiHandler(_configDir);
 #endif
-            //ImGuiHandler.Instance = new(_configDir);
-            RenderHandler.InitializeNoop();
         
             _renderThread = new EarlyRenderThread(ConsoleHandler.ShouldKeepConsole(args));
         }
@@ -112,6 +116,8 @@ public class Launcher : ICorePlugin
         
         using var splash = new Splash();
         RenderHandler.Current.RegisterComponent(splash);
+        
+        //Thread.Sleep(Timeout.Infinite);
         
         splash.DefineStage(new CheckUpdatesStage(args, ReadUpdateConfigAsync, _crashPadService));
         splash.DefineStage(new LauncherPatchesStage());

@@ -1,4 +1,8 @@
-﻿using HarmonyLib;
+﻿using CringeLauncher.Render;
+#if WINDOWS
+using CringeLauncher.Render.Win;
+#endif
+using HarmonyLib;
 using SharpDX.Direct3D11;
 using SharpDX.DXGI;
 using SharpDX.Mathematics.Interop;
@@ -76,13 +80,8 @@ public static class SwapChainPatch
             Dimension = RenderTargetViewDimension.Texture2D,
         });
         __instance.m_srv = new ShaderResourceView(MyRender11.DeviceInstance, swapChainBB);
-
-        ImGuiHandler.Rtv?.Dispose();
-        ImGuiHandler.Rtv = new RenderTargetView(MyRender11.DeviceInstance, swapChainBB, new()
-        {
-            Format = Format.R8G8B8A8_UNorm,
-            Dimension = RenderTargetViewDimension.Texture2D,
-        });
+        
+        ImGuiHandler.Instance?.CreateRenderTarget(MyRender11.DeviceInstance, swapChainBB);
 
         return false;
     }
@@ -90,10 +89,7 @@ public static class SwapChainPatch
     [HarmonyPrefix, HarmonyPatch(typeof(MyBackbuffer), nameof(MyBackbuffer.Release))]
     private static void SwapChainBBReleasePrefix(MyBackbuffer __instance)
     {
-        if (ImGuiHandler.Rtv is null) return;
-
-        ImGuiHandler.Rtv.Dispose();
-        ImGuiHandler.Rtv = null;
+        ImGuiHandler.Instance?.CleanupRenderTarget();
     }
 
     [HarmonyTranspiler, HarmonyPatch(typeof(MyRender11), nameof(MyRender11.SimpleDraw))]

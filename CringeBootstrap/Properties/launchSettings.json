@@ -14,10 +14,7 @@
       "commandLineArgs": "\"/home/zznty/.steam/steam/steamapps/common/SpaceEngineers/Bin64/SpaceEngineers.exe\" --skip-crossgen",
       "environmentVariables": {
         "DOTNET_BOOTSTRAP_ENTRYPOINT": "CringeLauncher.Dedicated.DedicatedLauncher, CringeLauncher",
-        "DOTNET_USERDEV_RUNDIR": "data-dedicated",
-        "DOTNET_ROOT": "/usr/share/dotnet/",
-        "LD_DEBUG": "all",
-        "LD_DEBUG_OUTPUT": "ldstd.log"
+        "DOTNET_USERDEV_RUNDIR": "data-dedicated"
       },
       "nativeDebugging": true
     }

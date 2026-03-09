@@ -63,8 +63,8 @@ internal class PlatformInitializationStage(
             MyPlatformGameSettings.SIMPLIFIED_SIMULATION_OVERRIDE = false;
         }
 
-        // MyFakes.ENABLE_HAVOK_MULTITHREADING = false;
-        // MyFakes.ENABLE_HAVOK_PARALLEL_SCHEDULING = false;
+        MyFakes.ENABLE_HAVOK_MULTITHREADING = false;
+        MyFakes.ENABLE_HAVOK_PARALLEL_SCHEDULING = false;
         
         progress.Report("Loading configuration");
 

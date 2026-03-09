@@ -1,13 +1,17 @@
 #if !WINDOWS
+using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
+using System.Runtime.Versioning;
 using CringeLauncher.Render;
 using CringeLauncher.Render.Xplat;
 using Silk.NET.GLFW;
 using VRage.Input;
 using VRage.Input.Keyboard;
+using VRageMath;
 
 namespace CringeLauncher.Platform.Xplat;
 
+[SupportedOSPlatform("linux")]
 internal unsafe class XplatGameInput : IVRageInput2
 {
     private readonly Lock _lock = new();
@@ -23,6 +27,7 @@ internal unsafe class XplatGameInput : IVRageInput2
     private MyKeyboardBuffer _keyboardBuffer;
 
     private int? _gamepadId;
+    private Vector2I _lastMousePos;
 
     public XplatGameInput(IEarlyWindow windowInstance)
     {
@@ -39,7 +44,22 @@ internal unsafe class XplatGameInput : IVRageInput2
     private void WindowKeyCallback(WindowHandle* window, Keys key, int scanCode, InputAction action, KeyModifiers mods)
     {
         using (_lock.EnterScope())
-            _keyboardBuffer.SetBit((byte)Map(key), action == InputAction.Press);
+        {
+            var value = action is InputAction.Press or InputAction.Repeat;
+            _keyboardBuffer.SetBit((byte)Map(key), value);
+            switch (key)
+            {
+                case Keys.AltRight or Keys.AltLeft:
+                    _keyboardBuffer.SetBit((byte)MyKeys.Alt, value);
+                    break;
+                case Keys.ShiftRight or Keys.ShiftLeft:
+                    _keyboardBuffer.SetBit((byte)MyKeys.Shift, value);
+                    break;
+                case Keys.ControlRight or Keys.ControlLeft:
+                    _keyboardBuffer.SetBit((byte)MyKeys.Control, value);
+                    break;
+            }
+        }
         
         _keyCallback?.Invoke(window, key, scanCode, action, mods);
     }
@@ -48,6 +68,7 @@ internal unsafe class XplatGameInput : IVRageInput2
         key switch
         {
             >= Keys.A and <= Keys.Z or >= Keys.Number0 and <= Keys.Number9 => (MyKeys)key,
+            >= Keys.F1 and <= Keys.F24 => MyKeys.F1 + (byte)(key - Keys.F1),
             Keys.Unknown => MyKeys.None,
             Keys.Space => MyKeys.Space,
             Keys.Apostrophe => MyKeys.OemPipe,
@@ -118,7 +139,9 @@ internal unsafe class XplatGameInput : IVRageInput2
     {
         if (!_disposed)
             using (_lock.EnterScope())
-                _mouseState.ScrollWheelValue += (int)Math.Floor(offsetY);
+            {
+                _mouseState.ScrollWheelValue = (int)Math.Floor(offsetY * 120);
+            }
         
         _scrollCallback?.Invoke(window, offsetX, offsetY);
     }
@@ -153,8 +176,11 @@ internal unsafe class XplatGameInput : IVRageInput2
     {
         if (_disposed) return;
         using var scope = _lock.EnterScope();
-        _mouseState.X = _window.LastMousePosition.X;
-        _mouseState.Y = _window.LastMousePosition.Y;
+        var curPos = new Vector2I(_window.LastMousePosition.X, _window.LastMousePosition.Y);
+        var deltaPos = curPos - _lastMousePos;
+        _mouseState.X = deltaPos.X;
+        _mouseState.Y = deltaPos.Y;
+        _lastMousePos = curPos;
     }
     
     public void Dispose()
@@ -165,35 +191,33 @@ internal unsafe class XplatGameInput : IVRageInput2
     public void GetMouseState([UnscopedRef] out MyMouseState state)
     {
         using (_lock.EnterScope())
+        {
             state = _mouseState;
+            _mouseState.ScrollWheelValue = 0;
+        }
     }
 
-    public List<string> EnumerateJoystickNames()
-    {
-        throw new NotImplementedException();
-    }
+    public List<string> EnumerateJoystickNames() => [];
 
-    public string InitializeJoystickIfPossible(string joystickInstanceName)
+    public string? InitializeJoystickIfPossible(string joystickInstanceName)
     {
-        throw new NotImplementedException();
+        return null;
     }
 
     public bool IsJoystickAxisSupported(MyJoystickAxesEnum axis)
     {
-        throw new NotImplementedException();
+        return false;
     }
 
     public bool IsJoystickConnected() => _gamepadId.HasValue;
 
     public void GetJoystickState(ref MyJoystickState state)
     {
-        throw new NotImplementedException();
     }
 
     public void ShowVirtualKeyboardIfNeeded(Action<string> onSuccess, Action? onCancel = null, string? defaultText = null,
         string? title = null, int maxLength = 0)
     {
-        throw new NotImplementedException();
     }
 
     public void GetAsyncKeyStates(byte* data)
@@ -209,7 +233,13 @@ internal unsafe class XplatGameInput : IVRageInput2
         }
     }
 
-    public uint[] DeveloperKeys { get; } = [];
+    public uint[] DeveloperKeys { get; } =
+    [
+        2726635697U,
+        644003104U,
+        3810731010U,
+        2191594058U
+    ];
     public bool IsCorrectlyInitialized { get; } = true;
 }
 #endif
