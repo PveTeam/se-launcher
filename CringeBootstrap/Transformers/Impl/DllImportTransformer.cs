@@ -37,8 +37,9 @@ internal class DllImportTransformer : ITransformer
             new($"{HavokWrapper}, Version=0.1.1.0, Culture=neutral, PublicKeyToken=null"),
             new($"{VRageNativeWrapper}, Version=0.1.1.0, Culture=neutral, PublicKeyToken=null"),
         ];
-    public bool Transform(ModuleDefMD moduleDefinition)
+    public bool Transform(TransformationContext context)
     {
+        var moduleDefinition = context.Module;
         if (moduleDefinition.Name.String is not (HavokWrapperModule or VRageNativeWrapperModule)) return false;
         
         var methods = CollectInteropMethods(moduleDefinition);

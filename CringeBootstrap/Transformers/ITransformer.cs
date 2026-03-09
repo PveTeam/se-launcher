@@ -8,8 +8,7 @@ public interface ITransformer
 {
     ImmutableArray<AssemblyName> AcceptedAssemblies { get; }
 
-    // todo change this to TransformationContext
-    bool Transform(ModuleDefMD moduleDefinition);
+    bool Transform(TransformationContext context);
     
     // todo add a way to force invalidate the assembly instead of waiting for global cache invalidation
 }

@@ -1,4 +1,5 @@
 ﻿using System.Formats.Nrbf;
+using System.Reflection.Emit;
 using HarmonyLib;
 using VRage.GameServices;
 #pragma warning disable SYSLIB5005
@@ -95,4 +96,19 @@ public static class BinaryFormatterPatch
     }
 
     private static string PropertyName(string name) => $"<{name}>k__BackingField";
+
+#pragma warning disable SYSLIB0011 // required just for the target
+    [HarmonyPatch(typeof(System.Runtime.Serialization.Formatters.Binary.BinaryFormatter),
+        nameof(System.Runtime.Serialization.Formatters.Binary.BinaryFormatter.Deserialize))]
+#pragma warning restore SYSLIB0011
+    [HarmonyTranspiler]
+    private static IEnumerable<CodeInstruction> DeserializeTranspiler(IEnumerable<CodeInstruction> instructions)
+    {
+        return new CodeMatcher(instructions)
+            .Start()
+            .ThrowIfNotMatch("app switch should be first", 
+                CodeMatch.WithOpcodes([OpCodes.Call]))
+            .SetInstruction(new(OpCodes.Ldc_I4_0))
+            .InstructionEnumeration();
+    }
 }

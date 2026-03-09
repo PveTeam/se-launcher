@@ -1,4 +1,5 @@
 using CringeLauncher.CrashPad;
+using CringeLauncher.Patches;
 using CringeLauncher.Platform;
 using CringeLauncher.Render;
 using CringeLauncher.Utils;
@@ -6,6 +7,7 @@ using CringePlugins.Splash;
 using Sandbox;
 using Sandbox.Engine.Utils;
 using Sandbox.Game;
+using Sandbox.Game.World;
 using SpaceEngineers.Game;
 using System.Globalization;
 using VRage;
@@ -83,6 +85,7 @@ internal class PlatformInitializationStage(
                 MyFakes.VOICE_CHAT_MIC_SENSITIVITY = MySandboxGame.Config.MicSensitivity;
                 MyPlatformGameSettings.VOICE_CHAT_AUTOMATIC_ACTIVATION =
                     MySandboxGame.Config.AutomaticVoiceChatActivation;
+                MyFakes.ENABLE_WAIT_UNTIL_CLIPMAPS_READY = false;
             });
         CultureInfo.DefaultThreadCurrentCulture = CultureInfo.InvariantCulture;
         MyVRage.Platform.Init();
@@ -90,6 +93,7 @@ internal class PlatformInitializationStage(
         ConfigureSettings();
         InitThreadPool();
         MyVRage.Platform.System.OnThreadpoolInitialized();
+        MySession.OnUnloaded += ResourceFreePatch.OnUnloaded;
         
         return default;
     }

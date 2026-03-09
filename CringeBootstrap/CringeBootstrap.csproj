@@ -2,7 +2,7 @@
 
     <PropertyGroup>
         <OutputType>Exe</OutputType>
-        <TargetFrameworks>net9.0-windows10.0.19041.0;net9.0</TargetFrameworks>
+        <TargetFrameworks>net10.0-windows10.0.19041.0;net10.0</TargetFrameworks>
         <ImplicitUsings>enable</ImplicitUsings>
         <Nullable>enable</Nullable>
         <LangVersion>preview</LangVersion>
@@ -21,20 +21,21 @@
     </PropertyGroup>
 
     <!-- Xplat -->
-    <PropertyGroup Condition="'$(TargetFramework)' == 'net9.0'">
+    <PropertyGroup Condition="'$(TargetFramework)' == 'net10.0'">
         <RuntimeIdentifier>linux-x64</RuntimeIdentifier>
     </PropertyGroup>
 
     <!-- Windows only -->
-    <PropertyGroup Condition="'$(TargetFramework)' != 'net9.0'">
+    <PropertyGroup Condition="'$(TargetFramework)' != 'net10.0'">
         <UseWindowsForms>true</UseWindowsForms>
         <RuntimeIdentifier>win-x64</RuntimeIdentifier>
     </PropertyGroup>
 
     <ItemGroup>
-        <PackageReference Include="NLog.Schema" Version="6.0.4" />
-        <PackageReference Include="Velopack" Version="0.0.1298" />
-        <PackageReference Include="System.Runtime.Serialization.Formatters" Version="9.0.9" />
+        <PackageReference Include="NLog.Schema" />
+        <PackageReference Include="NLog.Targets.AtomicFile" />
+        <PackageReference Include="Velopack" />
+        <PackageReference Include="System.Runtime.Serialization.Formatters" />
     </ItemGroup>
 
     <ItemGroup>

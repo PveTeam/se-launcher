@@ -7,9 +7,10 @@ using CringeBootstrap.CrossGen;
 using CringeBootstrap.Transformers;
 using CringeBootstrap.Transformers.Impl;
 using Microsoft.Extensions.DependencyInjection;
+using NLog;
 using Velopack;
 
-#if false
+#if DEBUG
 while (!Debugger.IsAttached)
     Thread.Sleep(100);
 #endif
@@ -43,13 +44,21 @@ AssemblyLoadContext.Default.Resolving += (loadContext, name) =>
 };
 #endif
 
+SharedCringe.Utils.NLogLogging.Init();
+
+var logger = LogManager.GetLogger("CringeBootstrap");
+logger.Info("Bootstrapping");
+
 var dir = Path.GetDirectoryName(args[0])!;
 var gameDir = dir;
 
 var customEntrypoint = Environment.GetEnvironmentVariable("DOTNET_BOOTSTRAP_ENTRYPOINT");
 
+var cacheKey = GameCacheKey.FromDirectory(gameDir).Value;
+
 var transformationService = new TransformationService(gameDir, [
-    new ImageSharpTransformer(),
+    new ImageSharpTransformer(), 
+    new DebugSymbolsTransformer(cacheKey),
 #if !WINDOWS
     new DllImportTransformer(),
     new SharpDxTransformer(),
@@ -60,17 +69,17 @@ var cacheDir = Directory.CreateDirectory(Path.Join(
     "CringeLauncher", "cache"));
 
 CrossGenResult? result = null;
-CrossGenService crossGenService = new CrossGenServiceImpl(gameDir, cacheDir.FullName, transformationService);
+CrossGenService crossGenService = new CrossGenServiceImpl(gameDir, cacheDir.FullName, cacheKey, transformationService);
 if (!args.Contains("--skip-crossgen", StringComparer.OrdinalIgnoreCase))
 {
     result = RunCrossGen(crossGenService);
 }
 if (result is null or { Failed: true })
 {
-    if (result is null) Console.WriteLine("Running without crossgen as it has been skipped");
-    else if (result.Failed) Console.WriteLine("Running without crossgen as it has failed");
+    if (result is null) logger.Info("Running without crossgen as it has been skipped");
+    else if (result.Failed) logger.Info("Running without crossgen as it has failed");
     
-    crossGenService = new NoOpCrossGenService(gameDir, cacheDir.FullName, transformationService);
+    crossGenService = new NoOpCrossGenService(gameDir, cacheDir.FullName, cacheKey, transformationService);
         
     result = RunCrossGen(crossGenService);
 }
@@ -91,7 +100,8 @@ CrossGenResult RunCrossGen(CrossGenService crossGen)
         Console.ForegroundColor = ConsoleColor.Red;
         Console.WriteLine("Crossgen encountered a fatal error and will be skipped for this session.");
         Console.ResetColor();
-        Console.WriteLine(e);
+        
+        logger.Error(e, "Crossgen has failed");
 
         crossGenResult = new(gameDir, Failed: true);
     }
@@ -126,6 +136,8 @@ if (!TypeName.TryParse(entrypoint, out var entrypointName) ||
     }
     return 1;
 }
+
+logger.Info("Selected entrypoint {EntrypointName}", entrypoint);
 
 var launcher = context.LoadFromAssemblyName(entrypointName.AssemblyName.ToAssemblyName());
 

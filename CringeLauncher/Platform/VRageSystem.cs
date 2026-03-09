@@ -147,8 +147,17 @@ internal class VRageSystem(string applicationName, VRageWindowSurrogate? surroga
     }
 
     public long RemainingMemoryForGame => long.MaxValue;
-    public long ProcessPrivateMemory => Process.GetCurrentProcess().PrivateMemorySize64;
+    public long ProcessPrivateMemory
+    {
+        get
+        {
+            var info = GC.GetGCMemoryInfo();
+            return info.MemoryLoadBytes;
+        }
+    }
+
     public bool IsUsingGeforceNow => false; // not really an option for us kek
+
     public bool IsUsingGeforceNowCloud => false;
 
     public string Clipboard

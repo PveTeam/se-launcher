@@ -4,7 +4,6 @@ using VRage.Collections;
 using VRage.Data.Audio;
 using VRage.FileSystem;
 using VRage.Utils;
-using Silk.NET.OpenAL.Extensions.EXT;
 
 namespace CringeLauncher.Platform.Xplat;
 
@@ -13,7 +12,6 @@ internal class AlBufferBank
     public static readonly MyStringId MusicCategory = MyStringId.GetOrCompute("Music");
     
     private readonly AL _al;
-    private readonly MCFormats _alMc;
     private readonly Dictionary<MyStringId, Dictionary<MyStringId, MyCueId>> _musicTransitionCues = new(MyStringId.Comparer);
     private readonly Dictionary<string, uint> _buffers = new(StringComparer.OrdinalIgnoreCase);
     public Dictionary<MyStringId, List<MyCueId>> MusicTracks { get; } = new(MyStringId.Comparer);
@@ -24,7 +22,6 @@ internal class AlBufferBank
     public AlBufferBank(AL al, ListReader<MySoundData> cues, bool cacheLoaded)
     {
         _al = al;
-        _al.TryGetExtension(out _alMc);
         Sounds = new(cues.Count, MyCueId.Comparer);
         
         foreach (var soundData in cues)

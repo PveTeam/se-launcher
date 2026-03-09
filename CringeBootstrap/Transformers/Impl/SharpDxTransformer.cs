@@ -15,8 +15,9 @@ internal class SharpDxTransformer : ITransformer
     [
         new($"{SharpDxName}, Version=4.2.0.0, Culture=neutral, PublicKeyToken=null")
     ];
-    public bool Transform(ModuleDefMD moduleDefinition)
+    public bool Transform(TransformationContext context)
     {
+        var moduleDefinition = context.Module;
         if (moduleDefinition.Assembly.Name != SharpDxName) return false;
 
         var launcherAssembly = moduleDefinition.Context.AssemblyResolver.Resolve("CringeLauncher", moduleDefinition);

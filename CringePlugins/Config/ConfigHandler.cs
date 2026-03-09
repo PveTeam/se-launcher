@@ -51,14 +51,13 @@ public sealed class ConfigHandler
             var path = Path.Join(_configDirectory.FullName, $"{name}.json");
             var backupPath = path + $".bak.{DateTimeOffset.Now.ToUnixTimeSeconds()}";
 
-            JsonNode? jsonNode = null;
+            JsonElement? jsonElement = null;
             if (File.Exists(path))
             {
                 using var stream = File.OpenRead(path);
                 try
                 {
-                    jsonNode = JsonNode.Parse(stream, new JsonNodeOptions { PropertyNameCaseInsensitive = true },
-                        new JsonDocumentOptions { CommentHandling = JsonCommentHandling.Skip, AllowTrailingCommas = true });
+                    jsonElement = JsonSerializer.Deserialize<JsonElement>(stream, SerializerOptions);
                 }
                 catch (JsonException e)
                 {
@@ -67,7 +66,7 @@ public sealed class ConfigHandler
             }
 
             var reference = new ConfigReference<T>(name, this);
-            if (jsonNode == null || (spec != null && !TryValidate(name, spec, jsonNode)))
+            if (jsonElement?.ValueKind is JsonValueKind.Null or null || (spec != null && !TryValidate(name, spec, jsonElement.Value)))
             {
                 if (File.Exists(path))
                     File.Move(path, backupPath);
@@ -79,7 +78,7 @@ public sealed class ConfigHandler
             T instance;
             try
             {
-                instance = jsonNode.Deserialize<T>(SerializerOptions)!;
+                instance = jsonElement.Value.Deserialize<T>(SerializerOptions)!;
             }
             catch (JsonException e)
             {
@@ -97,9 +96,9 @@ public sealed class ConfigHandler
     {
         var spec = IConfigurationSpecProvider.FromType(typeof(T));
 
-        var jsonNode = JsonSerializer.SerializeToNode(newValue, SerializerOptions)!;
+        var jsonElement = JsonSerializer.SerializeToElement(newValue, SerializerOptions);
 
-        if (spec != null && !TryValidate(name, spec, jsonNode))
+        if (spec != null && !TryValidate(name, spec, jsonElement))
             throw new JsonException($"Supplied config value for {name} is invalid");
 
         var path = Path.Join(_configDirectory.FullName, $"{name}.json");
@@ -109,23 +108,23 @@ public sealed class ConfigHandler
         {
             Indented = true
         });
-        jsonNode.WriteTo(writer, SerializerOptions);
+        jsonElement.WriteTo(writer);
 
         ConfigReloaded?.Invoke(this, new ConfigValue<T>(name, newValue));
     }
 
-    private bool TryValidate(string name, JsonSchema schema, JsonNode jsonNode)
+    private bool TryValidate(string name, JsonSchema schema, JsonElement jsonElement)
     {
-        var results = schema.Evaluate(jsonNode, _evaluationOptions);
+        var results = schema.Evaluate(jsonElement, _evaluationOptions);
 
         if (results.IsValid)
             return true;
 
         Log.Error("Config {Name} is invalid:", name);
-        foreach (var detail in results.Details)
+        foreach (var detail in results.Details ?? [])
         {
             Log.Error("Property {PropertyPath} is invalid:", detail.EvaluationPath);
-            foreach (var error in detail.Errors?.Values ?? [])
+            foreach (var error in detail.Errors?.Values.AsEnumerable() ?? [])
             {
                 Log.Error("\t- {Error}", error);
             }

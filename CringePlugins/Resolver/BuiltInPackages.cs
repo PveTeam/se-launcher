@@ -41,7 +41,7 @@ public static class BuiltInPackages
             nlog.AsDependency(libraries)
         ], SeReferenceAssemblies, new(seVersion));
         var imGui = FromAssembly<ImGuiKey>(framework, id: ImGui);
-        var harmony = FromAssembly<HarmonyLib.Harmony>(framework, id: Harmony, version: NuGetVersion.Parse("2.3.4-torch"));
+        var harmony = FromAssembly<HarmonyLib.Harmony>(framework, id: Harmony, version: NuGetVersion.Parse("2.4.2-torch"));
         var steam = FromAssembly<Steamworks.CSteamID>(framework, id: Steamworks);
 
         BuiltInSdkPackage MapSdkPackage(
@@ -64,7 +64,7 @@ public static class BuiltInPackages
 
         ResolvedPackage[] packages =
         [
-            ..Net90.ReferenceInfos.AllValues.Select(MapSdkPackage),
+            ..Net100.ReferenceInfos.AllValues.Select(MapSdkPackage),
             se,
 
             ..libraries.Where(kvp =>
@@ -87,7 +87,7 @@ public static class BuiltInPackages
                     steam.AsDependency(libraries)
                 ]
 #if DEBUG
-                , version: new(0, 1, 84)
+                , version: new(0, 14, 84)
 #endif
             ),
         ];

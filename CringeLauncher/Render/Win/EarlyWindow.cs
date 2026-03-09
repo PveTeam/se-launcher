@@ -1,4 +1,5 @@
 ﻿#if WINDOWS
+using System.Runtime.InteropServices;
 using Windows.Win32;
 using Windows.Win32.Foundation;
 using Windows.Win32.Graphics.Dwm;
@@ -228,6 +229,7 @@ internal sealed class EarlyWindow : Form, IEarlyWindow
             PInvoke.DwmIsCompositionEnabled(out var compositionEnabled).Failed || !compositionEnabled)
             return;
 
+        HRESULT result;
         if (enableBlurBehind)
         {
             using var region = PInvoke.CreateRectRgn_SafeHandle(0, 0, -1, -1);
@@ -239,16 +241,21 @@ internal sealed class EarlyWindow : Form, IEarlyWindow
                 fEnable = true
             };
 
-            PInvoke.DwmEnableBlurBehindWindow((HWND)Handle, in blurBehind).ThrowOnFailure();
-            return;
+            result = PInvoke.DwmEnableBlurBehindWindow((HWND)Handle, in blurBehind);
+        }
+        else
+        {
+            var blurBehindDisable = new DWM_BLURBEHIND
+            {
+                dwFlags = PInvoke.DWM_BB_ENABLE,
+                fEnable = false
+            };
+            result = PInvoke.DwmEnableBlurBehindWindow((HWND)Handle, in blurBehindDisable);
         }
         
-        var blurBehindDisable = new DWM_BLURBEHIND
-        {
-            dwFlags = PInvoke.DWM_BB_ENABLE,
-            fEnable = false
-        };
-        PInvoke.DwmEnableBlurBehindWindow((HWND)Handle, in blurBehindDisable).ThrowOnFailure();
+        if (result.Succeeded) return;
+        
+        Log.Error(Marshal.GetExceptionForHR(result), "Failed to change Dwm blur behind state");
     }
 
     void IEarlyWindow.DisableCrop()

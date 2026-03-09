@@ -22,6 +22,7 @@ using System.Xml.Serialization;
 using VRageMath;
 using static ImGuiNET.ImGui;
 using Vector2 = System.Numerics.Vector2;
+using Vector4 = System.Numerics.Vector4;
 
 namespace CringePlugins.Ui;
 
@@ -42,6 +43,7 @@ internal class PluginListComponent : IRenderComponent
 
     private readonly DirectoryInfo _dataDir;
     private readonly DirectoryInfo _cacheDir;
+    private ImmutableDictionary<string, CachedPackage> _loadedPackages;
     private bool _disableUpdates;
     private bool _disablePluginUpdates;
     private bool _usePreviewBranch;
@@ -65,14 +67,16 @@ internal class PluginListComponent : IRenderComponent
     private readonly IImGuiImageService _imageService = GameServicesExtension.GameServices.GetRequiredService<IImGuiImageService>();
     private readonly ICorePlugin _corePlugin = GameServicesExtension.GameServices.GetRequiredService<ICorePlugin>();
 
-    public PluginListComponent(ConfigReference<PackagesConfig> packagesConfig, ConfigReference<LauncherConfig> launcherConfig,
-        PackageSourceMapping sourceMapping, string gameFolder, ImmutableArray<PluginInstance> plugins, DirectoryInfo dataDir, DirectoryInfo cacheDir)
+    public PluginListComponent(ConfigReference<PackagesConfig> packagesConfig,
+        ConfigReference<LauncherConfig> launcherConfig,
+        PackageSourceMapping sourceMapping, string gameFolder, ImmutableHashSet<PluginInstance> plugins,
+        DirectoryInfo dataDir, DirectoryInfo cacheDir, IReadOnlyDictionary<string, CachedPackage> loadedPackages)
     {
         _packagesConfig = packagesConfig;
         _launcherConfig = launcherConfig;
         _sourceMapping = sourceMapping;
         _gameFolder = gameFolder;
-        _plugins = plugins;
+        _plugins = [..plugins];
         _packages = packagesConfig.Value.Packages.ToImmutableDictionary(b => b.Id, b => b.Range,
             StringComparer.OrdinalIgnoreCase);
         _profiles = packagesConfig.Value.Profiles;
@@ -85,6 +89,7 @@ internal class PluginListComponent : IRenderComponent
 
         _dataDir = dataDir;
         _cacheDir = cacheDir;
+        _loadedPackages = loadedPackages.ToImmutableDictionary();
 
         MyScreenManager.ScreenAdded += ScreenChanged;
         MyScreenManager.ScreenRemoved += ScreenChanged;
@@ -163,7 +168,7 @@ internal class PluginListComponent : IRenderComponent
                         {
                             if (Button($"Reload##{i}"))
                             {
-                                PluginsLifetime.ReloadPlugin(plugin).ConfigureAwait(false);
+                                PluginsLifetime.ReloadPluginAsync(plugin).ConfigureAwait(false);
                             }
                             EndPopup();
                         }
@@ -769,9 +774,27 @@ internal class PluginListComponent : IRenderComponent
 
                         TableNextColumn();
 
-                        var installed = _packages.ContainsKey(package.Id);
-                        TextColored(installed ? new(0f, 1f, 0f, 1f) : new(1f, 0f, 0f, 1f),
-                            installed ? "Installed" : "Not Installed");
+                        Vector4 col;
+                        string statusText;
+                        var isSelected = _packages.ContainsKey(package.Id);
+                        var isLoaded = _loadedPackages.ContainsKey(package.Id);
+                        if (isSelected && isLoaded)
+                        {
+                            col = new(0f, 1f, 0f, 1f);
+                            statusText = "Installed";
+                        } 
+                        else if (isLoaded || isSelected)
+                        {
+                            col = new(1f, 1f, 0f, 1f);
+                            statusText = isLoaded ? "Transient" : "Queued";
+                        }
+                        else
+                        {
+                            col = new(1f, 0f, 0f, 1f);
+                            statusText = "Not Installed";
+                        }
+
+                        TextColored(col, statusText);
                     }
                 }
 
@@ -861,6 +884,10 @@ internal class PluginListComponent : IRenderComponent
                 _packages = installed
                     ? _packages.Remove(selected.Id)
                     : _packages.Add(selected.Id, new(selected.Version));
+
+                // if install state was changed by user we want to always treat it as queued even if it was rolled back
+                if (installed)
+                    _loadedPackages = _loadedPackages.Remove(selected.Id);
 
                 Save();
             }

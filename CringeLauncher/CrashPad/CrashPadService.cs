@@ -10,11 +10,16 @@ using CringeLauncher.Utils;
 using CringePlugins.Loader;
 using HarmonyLib;
 using MonoMod.Utils;
+using NLog;
+using Pillar.Demystifier;
+using SharedCringe.Utils;
 
 namespace CringeLauncher.CrashPad;
 
 internal class CrashPadService
 {
+    private static readonly Logger Log = LogManager.GetCurrentClassLogger();
+    
     private readonly Lock _lock = new();
     private readonly string _nextInfoPath;
 
@@ -38,7 +43,7 @@ internal class CrashPadService
 
     public void PullPluginInfo(PluginsLifetime lifetime)
     {
-        var installedPlugins = lifetime.Plugins.Select(b => new CrashInformation.InstalledPlugin(b.Metadata.Name,
+        var installedPlugins = lifetime.LoadedPlugins.Select(b => new CrashInformation.InstalledPlugin(b.Metadata.Name,
             b.Metadata.Version.ToString(),
             b.Metadata.Source)
         {
@@ -86,10 +91,10 @@ internal class CrashPadService
         MarkSavePoint();
     }
 
-    private static ExceptionInformation CaptureExceptionInformation(Exception exception, Thread? thread = null) =>
+    private ExceptionInformation CaptureExceptionInformation(Exception exception, Thread? thread = null) =>
         new(thread is null ? null : CaptureThreadInformation(thread), CaptureExceptionFrame(exception));
 
-    private static ExceptionInformation.ExceptionFrame CaptureExceptionFrame(Exception exception)
+    private ExceptionInformation.ExceptionFrame CaptureExceptionFrame(Exception exception)
     {
         ImmutableArray<ExceptionInformation.ExceptionFrame> innerFrames =
             exception is AggregateException { InnerExceptions: var innerExceptions }
@@ -100,7 +105,8 @@ internal class CrashPadService
                     ? []
                     : [CaptureExceptionFrame(exception.InnerException)];
 
-        return new(CaptureTypeFullName(exception.GetType()), exception.Message, CaptureExceptionStackFrames(exception),
+        return new(CaptureTypeFullName(exception.GetType()), exception.Message,
+            CaptureExceptionStackFrames(exception).Result,
             CaptureExceptionStringRepresentation(exception), innerFrames);
     }
 
@@ -121,18 +127,29 @@ internal class CrashPadService
         }
     }
 
-    private static ImmutableArray<ExceptionInformation.ExceptionStackFrame> CaptureExceptionStackFrames(Exception exception)
+    private async Task<ImmutableArray<ExceptionInformation.ExceptionStackFrame>> CaptureExceptionStackFrames(Exception exception)
     {
         var stackTrace = new StackTrace(exception, true);
 
         var builder = ImmutableArray.CreateBuilder<ExceptionInformation.ExceptionStackFrame>(stackTrace.FrameCount);
         var sb = new StringBuilder();
+        var options = new StackTraceOptions(new HarmonyStackFrameMethodResolver(), new PortableDebugSymbolsResolver(),
+            new NLogLoggerWrapper(Log));
 
-        var i = 0;
-        while (stackTrace.GetFrame(i++) is { } frame)
+        foreach (var frame in await EnhancedStackTrace.GetFramesAsync(stackTrace, options))
         {
             sb.Clear();
-            if (!sb.AppendStackFrame(frame, out var method)) continue;
+
+            var method = frame.MethodInfo.MethodBase;
+            if (method is null) continue;
+            
+            const string pad = "   ";
+            
+            sb.Append(pad + "at ");
+
+            frame.MethodInfo.Append(sb);
+            sb.AppendFileInfo(frame);
+            sb.AppendPatchInformation(method);
             
             var stringRepresentation = sb.ToString();
             
@@ -289,9 +306,9 @@ internal class CrashPadService
             
         return assemblyLoadContext switch
         {
-            ICoreLoadContext => new ExceptionInformation.BootstrapAssemblyContextInformation(),
             PluginAssemblyLoadContext pluginContext => new ExceptionInformation.PluginAssemblyContextInformation(
                 pluginContext.Name!),
+            ICoreLoadContext => new ExceptionInformation.BootstrapAssemblyContextInformation(),
             PbAssemblyLoadContext pbContext => new ExceptionInformation.ProgrammableBlockContextInformation(
                 pbContext.Name!),
             ModAssemblyLoadContext => new ExceptionInformation.WorldAssemblyContextInformation(),

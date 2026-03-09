@@ -29,6 +29,7 @@ using System.Runtime.CompilerServices;
 using System.Runtime.Loader;
 using System.Security.Cryptography;
 using System.Text;
+using Microsoft.CodeAnalysis.Emit;
 using VRage;
 using VRage.Collections;
 using VRage.ModAPI;
@@ -403,7 +404,7 @@ public static class ModScriptCompilerPatch
 
         await using var assemblyStream = new MemoryStream();
 
-        var emitResult = compilation.Emit(assemblyStream);
+        var emitResult = compilation.Emit(assemblyStream, options: new(debugInformationFormat: DebugInformationFormat.Embedded));
         var success = emitResult.Success;
         var myBlacklistSyntaxVisitor = new MyBlacklistSyntaxVisitor();
         foreach (var syntaxTree in compilation.SyntaxTrees)

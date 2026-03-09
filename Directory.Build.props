@@ -1,0 +1,8 @@
+﻿<Project>
+    <PropertyGroup>
+        <NoWarn>$(NoWarn);NU1701;NU1903</NoWarn>
+        
+        <!-- I love .NET 10 when its pruning references that are missing on build platform -->
+        <RestoreEnablePackagePruning>false</RestoreEnablePackagePruning>
+    </PropertyGroup>
+</Project>

@@ -44,13 +44,13 @@ public class Splash : ISplashProgress, IRenderComponent, IDisposable
     {
     }
 
-    public void ExecuteLoadingStages()
+    public Exception? ExecuteLoadingStages()
     {
         // todo sync context
-        ExecuteLoadingStagesAsync().GetAwaiter().GetResult();
+        return ExecuteLoadingStagesAsync().GetAwaiter().GetResult();
     }
 
-    private async Task ExecuteLoadingStagesAsync()
+    private async Task<Exception?> ExecuteLoadingStagesAsync()
     {
         foreach (var loadingStage in _loadingStages)
         {
@@ -61,11 +61,13 @@ public class Splash : ISplashProgress, IRenderComponent, IDisposable
             catch (Exception e)
             {
                 Logger.Fatal(e, "Failed to execute loading stage {StageName}", loadingStage.Name);
+                return e;
             }
             _lastInfo = null;
         }
         
         _loadingStages.Clear();
+        return null;
     }
 
     public void OnFrame()

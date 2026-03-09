@@ -4,6 +4,11 @@ on:
   push:
     branches: [master, preview]
 
+env:
+  DOTNET_CLI_TELEMETRY_OPTOUT: true
+  DOTNET_SKIP_FIRST_TIME_EXPERIENCE: true
+  DOTNET_ROLL_FORWARD: LatestMajor
+
 jobs:
   compute-version:
     name: Compute Version
@@ -24,11 +29,12 @@ jobs:
           major_pattern: 'breaking:'
           minor_pattern: 'feature:'
           bump_each_commit: true
+          version_format: ${{ github.ref_name == 'master' && '${major}.${minor}.${patch}' || '${major}.${minor}.${patch}-preview.${increment}' }}
           
   build-nuget:
     name: Build Nuget package
     runs-on: ubuntu-latest
-    if: "!contains(github.event.commits[0].message, '[skip ci]') && github.ref_name == 'master'"
+    if: "!contains(github.event.commits[0].message, '[skip ci]')"
     needs: [compute-version]
     strategy: 
       matrix:
@@ -45,7 +51,7 @@ jobs:
         name: Pack Project
         
       - name: Push Project
-        run: dotnet nuget push -s https://ng.zznty.ru/v3/index.json -k ${{ secrets.NUGET_API_KEY  }} ./pub/${{ matrix.project }}.${{ needs.compute-version.outputs.version }}.nupkg
+        run: dotnet nuget push --skip-duplicate -s https://ng.zznty.ru/v3/index.json -k ${{ secrets.NUGET_API_KEY  }} ./pub/${{ matrix.project }}.${{ needs.compute-version.outputs.version }}.nupkg
   
   build:
     name: Build Launcher
@@ -68,11 +74,6 @@ jobs:
         name: Build Project
 
       - run: dotnet tool install -g vpk
-        
-        # dotnet version for vpk to use as it doesnt want to use preview 10.x
-      - uses: actions/setup-dotnet@v5
-        with:
-          dotnet-version: 9.0.x
       
       - run: ~/.dotnet/tools/vpk download s3 --bucket $VPK_BUCKET --endpoint $VPK_ENDPOINT
         name: Download previous release
@@ -94,8 +95,9 @@ jobs:
           VPK_PACK_DIR: ./pub
           VPK_MAIN_EXE: CringeBootstrap.exe
           VPK_NO_PORTABLE: true
-          VPK_FRAMEWORK: net9.0-x64-desktop,vcredist120-x64,vcredist143-x64
+          VPK_FRAMEWORK: net10.0-x64-desktop,vcredist120-x64,vcredist143-x64
           VPK_SHORTCUTS: 'None'
+          VPK_EXCLUDE: ''
           
       - run: ~/.dotnet/tools/vpk upload s3 -o $VPK_OUTPUT_DIR --bucket $VPK_BUCKET --endpoint $VPK_ENDPOINT
         name: Upload new release
@@ -105,4 +107,13 @@ jobs:
           VPK_ENDPOINT: ${{ secrets.S3_ENDPOINT }}
           VPK_BUCKET: ${{ secrets.S3_BUCKET }}
           VPK_PREFIX: CringeLauncher
-          VPK_KEEP_MAX_RELEASES: 3
+          VPK_KEEP_MAX_RELEASES: 15
+
+      - run: ~/.dotnet/tools/vpk upload s3 -o $VPK_OUTPUT_DIR --bucket $VPK_BUCKET --endpoint $VPK_ENDPOINT
+        name: Upload new release to mirror
+        env:
+          VPK_KEY_ID: ${{ secrets.MIRROR_S3_KEY_ID }}
+          VPK_SECRET: ${{ secrets.MIRROR_S3_SECRET }}
+          VPK_ENDPOINT: ${{ secrets.MIRROR_S3_ENDPOINT }}
+          VPK_BUCKET: ${{ secrets.MIRROR_S3_BUCKET }}
+          VPK_KEEP_MAX_RELEASES: 15

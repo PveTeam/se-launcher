@@ -3,11 +3,12 @@ using System.Reflection;
 using System.Runtime.Loader;
 using CringeBootstrap.Abstractions;
 using CringePlugins.Utils;
+using dnlib.DotNet;
 using SharedCringe.Loader;
 
 namespace CringePlugins.Loader;
 
-internal class PluginAssemblyLoadContext : DerivedAssemblyLoadContext
+internal class PluginAssemblyLoadContext : DerivedAssemblyLoadContext, ICoreLoadContext
 {
     //todo: refactor?
     public static readonly ConcurrentDictionary<string, Assembly> TypeToAssembly = [];
@@ -16,11 +17,13 @@ internal class PluginAssemblyLoadContext : DerivedAssemblyLoadContext
     private readonly AssemblyDependencyResolver _dependencyResolver;
     private readonly HashSet<string> _loadedTypes = [];
     private Assembly? _assembly;
+    private readonly AssemblyName _entrypointName;
 
-    internal PluginAssemblyLoadContext(ICoreLoadContext parentContext, string entrypointPath) : base(parentContext, $"Plugin Context {Path.GetFileNameWithoutExtension(entrypointPath)}")
+    internal PluginAssemblyLoadContext(ICoreLoadContext parentContext, string entrypointPath, AssemblyDependencyResolver dependencyResolver) : base(parentContext, $"Plugin Context {Path.GetFileNameWithoutExtension(entrypointPath)}")
     {
         _entrypointPath = entrypointPath;
-        _dependencyResolver = new(entrypointPath);
+        _dependencyResolver = dependencyResolver;
+        _entrypointName = AssemblyName.GetAssemblyName(entrypointPath);
 
         Unloading += OnUnload;
     }
@@ -31,10 +34,10 @@ internal class PluginAssemblyLoadContext : DerivedAssemblyLoadContext
             return _assembly;
 
         _assembly = LoadAssemblyFile(_entrypointPath);
+        
+        var moduleDef = ModuleDefMD.Load(_assembly.GetMainModule(), IntrospectionContext.Global.Context);
 
-        var module = _assembly.GetMainModule();
-
-        foreach (var type in module.GetTypes())
+        foreach (var type in moduleDef.GetTypes())
         {
             var name = type.FullName?.Replace('/', '+');
 
@@ -51,16 +54,16 @@ internal class PluginAssemblyLoadContext : DerivedAssemblyLoadContext
     {
         if (_dependencyResolver.ResolveAssemblyToPath(assemblyName) is { } path)
             return LoadAssemblyFile(path);
-
-        return base.Load(assemblyName);
+        return ResolveFromAssemblyName(assemblyName) ?? base.Load(assemblyName);
     }
 
     protected override nint LoadUnmanagedDll(string unmanagedDllName)
     {
         if (_dependencyResolver.ResolveUnmanagedDllToPath(unmanagedDllName) is { } path)
             return LoadUnmanagedDllFromPath(path);
-
-        return base.LoadUnmanagedDll(unmanagedDllName);
+        
+        var handle = ResolveUnmanagedDll(unmanagedDllName);
+        return handle != nint.Zero ? handle : base.LoadUnmanagedDll(unmanagedDllName);
     }
 
     protected virtual Assembly LoadAssemblyFile(string path) => LoadFromAssemblyPath(path);
@@ -75,5 +78,15 @@ internal class PluginAssemblyLoadContext : DerivedAssemblyLoadContext
             TypeToAssembly.Remove(typeStr);
         }
         pluginContext._loadedTypes.Clear();
+    }
+
+    public Assembly? ResolveFromAssemblyName(AssemblyName assemblyName)
+    {
+        return AssemblyName.ReferenceMatchesDefinition(assemblyName, _entrypointName) ? LoadEntrypoint() : base.Load(assemblyName);
+    }
+
+    public nint ResolveUnmanagedDll(string unmanagedDllName)
+    {
+        return base.LoadUnmanagedDll(unmanagedDllName);
     }
 }

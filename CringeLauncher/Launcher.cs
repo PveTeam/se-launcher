@@ -25,6 +25,11 @@ using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Runtime.Loader;
 using System.Text.Json;
+using Autofac;
+using Autofac.Extensions.DependencyInjection;
+using CringeLauncher.Services;
+using CringePlugins.Abstractions;
+using Velopack;
 using VRage;
 using VRage.Audio;
 using VRage.FileSystem;
@@ -33,6 +38,7 @@ using Windows.Win32;
 using Windows.Win32.System.Console;
 using CringeLauncher.Platform;
 using CringeLauncher.Platform.Xplat;
+using SharedCringe.Utils;
 
 namespace CringeLauncher;
 
@@ -69,30 +75,15 @@ public class Launcher : ICorePlugin
         if (stdErrRedirectIndex != -1)
         {
             var redirectPath = args[stdErrRedirectIndex + 1];
-            var handle = File.OpenHandle(redirectPath, FileMode.Create, FileAccess.Write);
-            PInvoke.SetStdHandle(STD_HANDLE.STD_ERROR_HANDLE, handle);
+            ConsoleHandler.RedirectStandardError(redirectPath);
         }
-        
+
         if (Type.GetType("GameAnalyticsSDK.Net.Logging.GALogger, GameAnalytics.Mono") is { } gaLoggerType)
             RuntimeHelpers.RunClassConstructor(gaLoggerType.TypeHandle);
 
-        LogManager.Setup()
-            .SetupExtensions(s =>
-            {
-                s.RegisterLayoutRenderer("cringe-exception", e =>
-                {
-                    if (e.Exception is null)
-                        return string.Empty;
-                    e.Exception.FormatStackTrace();
-                    return e.Exception.ToString();
-                });
-            })
-            .LoadConfigurationFromFile(optional: false);
+        NLogLogging.Init();
 
-        LogManager.ReconfigExistingLoggers();
-
-        var logger = LogManager.GetLogger("CringeBootstrap");
-        logger.Info("Bootstrapping");
+        var logger = LogManager.GetLogger("CringeLauncher");
 
         _crashPadService = new CrashPadService();
 
@@ -116,9 +107,7 @@ public class Launcher : ICorePlugin
         
         using var splash = new Splash();
         RenderHandler.Current.RegisterComponent(splash);
-        
-        //Thread.Sleep(Timeout.Infinite);
-        
+
         splash.DefineStage(new CheckUpdatesStage(args, ReadUpdateConfigAsync, _crashPadService));
         splash.DefineStage(new LauncherPatchesStage());
 
@@ -131,21 +120,33 @@ public class Launcher : ICorePlugin
 #if WINDOWS
         NativeLibrary.SetDllImportResolver(typeof(Epic.OnlineServices.VRage.EosService).Assembly, (name, _, _) => NativeLibrary.Load(Path.Join(AppContext.BaseDirectory, name)));
 #endif
-        
-        splash.ExecuteLoadingStages();
 
-        MyFileSystem.ExePath = Path.GetDirectoryName(args.ElementAtOrDefault(0) ?? Assembly.GetExecutingAssembly().Location)!;
+        if (splash.ExecuteLoadingStages() is { } preInitException)
+        {
+            logger.Fatal("Failed to run pre-init stages");
+            _crashPadService?.CaptureCurrentThreadException(preInitException);
+            return false;
+        }
+
+        MyFileSystem.ExePath =
+            Path.GetDirectoryName(args.ElementAtOrDefault(0) ?? Assembly.GetExecutingAssembly().Location)!;
         MyFileSystem.RootPath = new DirectoryInfo(MyFileSystem.ExePath).Parent!.FullName;
-        
-        splash.DefineStage(new PlatformInitializationStage(_renderThread, _gameDataDirectoryPathOverride, _crashPadService));
+
+        splash.DefineStage(new PlatformInitializationStage(_renderThread, _gameDataDirectoryPathOverride,
+            _crashPadService));
         splash.DefineStage(new RenderInitializationStage(_renderThread));
         splash.DefineStage(_lifetime = serviceProvider.GetRequiredService<IPluginsLifetime>());
 
         Initialize(splash);
-        
+
         // this technically should wait for render thread init, but who cares
-        splash.ExecuteLoadingStages();
-        
+        if (splash.ExecuteLoadingStages() is { } initException)
+        {
+            logger.Fatal("Failed to run init stages");
+            _crashPadService?.CaptureCurrentThreadException(initException);
+            return false;
+        }
+
         MyFileSystem.InitUserSpecific(MyGameService.UserId.ToString());
 #if !WINDOWS
         MyFileSystem.ReplaceFileProvider<MyClassicFileProvider>(new LauncherFileProvider());
@@ -222,8 +223,9 @@ public class Launcher : ICorePlugin
         var retryPolicy = HttpPolicyExtensions.HandleTransientHttpError()
             .WaitAndRetryAsync(5, _ => TimeSpan.FromSeconds(1));
 
-        services.AddHttpClient<PluginsLifetime, PluginsLifetime>((client, provider) =>
-                new PluginsLifetime(provider.GetRequiredService<ConfigHandler>(), client, _dir))
+        services.AddHttpClient<PluginsLifetime, PluginsLifetime>((client, provider) => 
+                new PluginsLifetime(provider.GetRequiredService<ConfigHandler>(),
+                    provider.GetRequiredService<IPluginServiceProviderFactory>(), client, _dir))
             .ConfigurePrimaryHttpMessageHandler(() => new HttpClientHandler
             {
                 AutomaticDecompression = DecompressionMethods.All
@@ -242,8 +244,13 @@ public class Launcher : ICorePlugin
             .AddSingleton<IImGuiImageService>(s => s.GetRequiredService<ImGuiImageService>())
             .AddSingleton(_ => new ConfigHandler(_configDir))
             .AddSingleton(_crashPadService!);
+        
+        var factory = new AutofacServiceProviderFactory();
 
-        return GameServicesExtension.GameServices = services.BuildServiceProvider();
+        services.AddSingleton<IServiceProviderFactory<ContainerBuilder>>(factory)
+            .AddTransient<IPluginServiceProviderFactory, PluginServiceProviderFactory>();
+
+        return GameServicesExtension.GameServices = factory.CreateServiceProvider(factory.CreateBuilder(services));
     }
 
     protected virtual async ValueTask<LauncherConfig?> ReadUpdateConfigAsync(Logger logger)

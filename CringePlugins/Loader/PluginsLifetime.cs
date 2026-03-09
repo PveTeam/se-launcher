@@ -1,10 +1,14 @@
 ﻿using System.Collections.Immutable;
 using System.Runtime.InteropServices;
+using System.Runtime.Loader;
+using CringePlugins.Abstractions;
 using CringePlugins.Config;
 using CringePlugins.Render;
 using CringePlugins.Resolver;
 using CringePlugins.Splash;
 using CringePlugins.Ui;
+using CringePlugins.Utils;
+using Microsoft.TemplateEngine.Utils;
 using NLog;
 using NuGet;
 using NuGet.Deps;
@@ -12,10 +16,11 @@ using NuGet.Frameworks;
 using NuGet.Models;
 using SharedCringe.Loader;
 using VRage.FileSystem;
+using Dependency = NuGet.Models.Dependency;
 
 namespace CringePlugins.Loader;
 
-internal class PluginsLifetime(ConfigHandler configHandler, HttpClient client, DirectoryInfo dir) : IPluginsLifetime
+internal class PluginsLifetime(ConfigHandler configHandler, IPluginServiceProviderFactory serviceProviderFactory, HttpClient client, DirectoryInfo dir) : IPluginsLifetime
 {
     public static ImmutableArray<DerivedAssemblyLoadContext> Contexts { get; private set; } = [];
     private static readonly Lock ContextsLock = new();
@@ -24,11 +29,12 @@ internal class PluginsLifetime(ConfigHandler configHandler, HttpClient client, D
 
     public string Name => "Loading Plugins";
 
-    internal ImmutableArray<PluginInstance> Plugins = [];
+    internal ImmutableHashSet<PluginInstance> LoadedPlugins = [];
+    internal ImmutableDictionary<string, PluginMetadata> Plugins = [];
     internal bool SomeSourcesAreUnavailable { get; private set; }
 
     private readonly NuGetRuntimeFramework _runtimeFramework =
-        new(NuGetFramework.ParseFolder("net9.0-windows10.0.19041.0"), RuntimeInformation.RuntimeIdentifier);
+        new(NuGetFramework.ParseFolder("net10.0-windows10.0.19041.0"), RuntimeInformation.RuntimeIdentifier);
 
     private ConfigReference<PackagesConfig>? _configReference;
     private ConfigReference<LauncherConfig>? _launcherConfig;
@@ -39,11 +45,11 @@ internal class PluginsLifetime(ConfigHandler configHandler, HttpClient client, D
 
         progress.Report("Discovering local plugins");
 
-#if false
-        await Task.Delay(10000);
+#if DEBUG
+        // await Task.Delay(10000);
 #endif
 
-        DiscoverLocalPlugins(dir.CreateSubdirectory("plugins"));
+        var (localPlugins, localRequestedReferences) = await DiscoverLocalPlugins(dir.CreateSubdirectory("plugins"));
 
         progress.Report("Loading config");
 
@@ -56,7 +62,7 @@ internal class PluginsLifetime(ConfigHandler configHandler, HttpClient client, D
 
         var sourceMapping = new PackageSourceMapping(packagesConfig.Sources, client);
         // TODO take into account the target framework runtime identifier
-        var resolver = new PackageResolver(_runtimeFramework.Framework, packagesConfig.Packages, sourceMapping);
+        var resolver = new PackageResolver(_runtimeFramework.Framework, [..packagesConfig.Packages, ..localRequestedReferences], sourceMapping);
 
         var cacheDir = dir.CreateSubdirectory("cache");
         
@@ -91,15 +97,19 @@ internal class PluginsLifetime(ConfigHandler configHandler, HttpClient client, D
         //we can move this, but it should be before plugin init
         RenderHandler.Current.RegisterComponent(new NotificationsComponent());
 
-        await LoadPlugins(cachedPackages, sourceMapping, packagesConfig, builtInPackages);
+        var loadedPackages = cachedPackages.Concat(localPlugins)
+            .Order()
+            .DistinctBy(b => b.Package.Id)
+            .ToDictionary(b => b.Package.Id, StringComparer.OrdinalIgnoreCase);
+        await LoadPlugins(loadedPackages.Values, sourceMapping, packagesConfig, builtInPackages, cacheDir);
 
         RenderHandler.Current.RegisterComponent(new PluginListComponent(_configReference, _launcherConfig,
-            sourceMapping, MyFileSystem.ExePath, Plugins, dir, cacheDir));
+            sourceMapping, MyFileSystem.ExePath, LoadedPlugins, dir, cacheDir, loadedPackages));
 
         SomeSourcesAreUnavailable = sourceMapping.SomeSourcesAreUnavailable;
     }
 
-    public static async Task ReloadPlugin(PluginInstance instance)
+    public static async Task ReloadPluginAsync(PluginInstance instance)
     {
         try
         {
@@ -119,7 +129,7 @@ internal class PluginsLifetime(ConfigHandler configHandler, HttpClient client, D
     public void RegisterLifetime()
     {
         var contextBuilder = Contexts.ToBuilder();
-        foreach (var instance in Plugins)
+        foreach (var instance in LoadedPlugins)
         {
             try
             {
@@ -136,9 +146,9 @@ internal class PluginsLifetime(ConfigHandler configHandler, HttpClient client, D
     }
 
     private async Task LoadPlugins(IReadOnlyCollection<CachedPackage> packages, PackageSourceMapping sourceMapping,
-        PackagesConfig packagesConfig, ImmutableDictionary<string, ResolvedPackage> builtInPackages)
+        PackagesConfig packagesConfig, ImmutableDictionary<string, ResolvedPackage> builtInPackages, DirectoryInfo cacheDir)
     {
-        var plugins = Plugins.ToBuilder();
+        var plugins = LoadedPlugins.ToBuilder();
 
         var resolvedPackages = builtInPackages.ToDictionary();
         foreach (var package in packages)
@@ -146,84 +156,198 @@ internal class PluginsLifetime(ConfigHandler configHandler, HttpClient client, D
             resolvedPackages.TryAdd(package.Package.Id, package);
         }
 
-        var manifestBuilder = new DependencyManifestBuilder(dir.CreateSubdirectory("cache"), sourceMapping,
+        var manifestBuilder = new DependencyManifestBuilder(cacheDir, sourceMapping,
             dependency =>
             {
                 resolvedPackages.TryGetValue(dependency.Id, out var package);
                 return package?.Entry;
             });
 
-        foreach (var package in packages)
+        var pluginPackages = packages.Where(package =>
+                !builtInPackages.ContainsKey(package.Package.Id) && package.Entry.PackageTypes is ["CringePlugin"])
+            .ToImmutableArray();
+
+        var dependenciesMap = pluginPackages.OfType<ResolvedPackage>().ToDictionary(b => b, b =>
         {
-            if (builtInPackages.ContainsKey(package.Package.Id) || package.Entry.PackageTypes is not ["CringePlugin"]) continue;
+            if (b.Entry.DependencyGroups is null or []) return [];
 
-            var packageClient = await sourceMapping.GetClientAsync(package.Package.Id);
+            var nearest = NuGetFrameworkUtility.GetNearest(b.Entry.DependencyGroups.Value,
+                _runtimeFramework.Framework,
+                g => g.TargetFramework);
 
+            if (nearest?.Dependencies is null or [])
+                return [];
 
-            var packageDir = Path.Join(package.Directory.FullName, "lib", package.ResolvedFramework.GetShortFolderName());
-
-            var path = Path.Join(packageDir, $"{package.Package.Id}.deps.json");
-            if (!File.Exists(path))
+            return nearest.Dependencies.Value.Select(p =>
             {
-                if (packageClient == null)
-                {
-                    Log.Warn("No package source found for {Package}, cannot generate dependency manifest", package.Package.Id);
-                    continue;
-                }
+                resolvedPackages.TryGetValue(p.Id, out var package);
+                return package;
+            }).Where(p => p is { Entry.PackageTypes: ["CringePlugin"] }).ToHashSet();
+        });
 
-                try
-                {
-                    await using var stream = File.Create(path);
+        foreach (var subGraph in DependenciesUtils.SplitIntoSubGraphs(dependenciesMap!))
+        {
+            DirectedGraph<ResolvedPackage> graph = subGraph;
+            if (!graph.TryGetTopologicalSort(out var sortedElements))
+                throw new Exception("Plugin dependency cycle detected");
 
-                    //client should not be null for calls to this
-                    await manifestBuilder.WriteDependencyManifestAsync(stream, package.Entry, _runtimeFramework);
-                }
-                catch (Exception ex)
+            PluginInstance? parent = null;
+            var anyLoaded = false;
+            foreach (var package in sortedElements.OfType<CachedPackage>().Where(b => b.Entry.PackageTypes is ["CringePlugin"]))
+            {
+                anyLoaded = true;
+                var packageClient = await sourceMapping.GetClientAsync(package.Package.Id);
+
+                string packageDir;
+                if (package is LocalPluginPackage)
+                    packageDir = package.Directory.FullName;
+                else
                 {
-                    Log.Error(ex, $"Failed to write dependency manifest for {path}");
-                    File.Delete(path); //delete file to avoid breaking cache
-                    throw;
+                    packageDir = Path.Join(package.Directory.FullName, "lib",
+                        package.ResolvedFramework.GetShortFolderName());
+                    
+                    var path = Path.Join(packageDir, $"{package.Package.Id}.deps.json");
+                    if (!File.Exists(path))
+                    {
+                        if (packageClient == null)
+                        {
+                            Log.Warn("No package source found for {Package}, cannot generate dependency manifest",
+                                package.Package.Id);
+                            continue;
+                        }
+
+                        try
+                        {
+                            await using var stream = File.Create(path);
+
+                            //client should not be null for calls to this
+                            //filter out plugins from the dependency tree so they're loaded as port of their own trees
+                            await manifestBuilder.WriteDependencyManifestAsync(stream, package.Entry, _runtimeFramework,
+                                entry => entry.PackageTypes is not ["CringePlugin"]);
+                        }
+                        catch (Exception ex)
+                        {
+                            Log.Error(ex, $"Failed to write dependency manifest for {path}");
+                            File.Delete(path); //delete file to avoid breaking cache
+                            throw;
+                        }
+                    }
                 }
+                
+                var assetsDirectory = new DirectoryInfo(Path.Join(package.Directory.FullName, "assets"));
+                if (!assetsDirectory.Exists) assetsDirectory = null;
+
+                var sourceName = package is LocalPluginPackage
+                    ? "Local"
+                    : packageClient == null
+                        ? "Local Cache"
+                        : packagesConfig.Sources.First(b => b.Url == packageClient.ToString()).Name;
+                var entrypointPath = Path.Join(packageDir, $"{package.Package.Id}.dll");
+                parent = LoadComponent(plugins, entrypointPath,
+                    new(package.Package.Id, package.Entry.Title ?? package.Package.Id, package.Package.Version,
+                        sourceName)
+                    {
+                        EntrypointTypeName = PluginMetadata.ResolveEntrypointTypeName(entrypointPath),
+                        AssetsDirectory = assetsDirectory
+                    },
+                    dependencyResolver: package is LocalPluginPackage pluginPackage
+                        ? pluginPackage.DependencyResolver
+                        : new(entrypointPath),
+                    parent: parent);
             }
-
-            var sourceName = packageClient == null ? "Local Cache" : packagesConfig.Sources.First(b => b.Url == packageClient.ToString()).Name;
-            LoadComponent(plugins, Path.Join(packageDir, $"{package.Package.Id}.dll"),
-                new(package.Entry.Title ?? package.Package.Id, package.Package.Version, sourceName));
+            
+            if (anyLoaded)
+                Log.Info("Topological Sorted Leaf: {Leaf}",
+                    string.Join(", ", sortedElements.Select(b => b.Entry.Title ?? b.Entry.Id)));
         }
-
-        Plugins = plugins.ToImmutable();
+        
+        LoadedPlugins = plugins.ToImmutable();
+        Plugins = plugins.ToImmutableDictionary(b => b.Metadata.Id, b => b.Metadata, StringComparer.OrdinalIgnoreCase);
     }
 
-    private void DiscoverLocalPlugins(DirectoryInfo dir)
+    private async ValueTask<(ImmutableArray<CachedPackage>localPlugins, ImmutableArray<PackageReference> references)>
+        DiscoverLocalPlugins(DirectoryInfo dir)
     {
-        var plugins = ImmutableArray<PluginInstance>.Empty.ToBuilder();
-
+        var localPlugins = ImmutableArray.CreateBuilder<CachedPackage>();
+        var references = ImmutableArray.CreateBuilder<PackageReference>();
+        
         foreach (var directory in Environment.GetEnvironmentVariable("DOTNET_USERDEV_PLUGINDIR") is { } userDevPlugin
                      ? [new(userDevPlugin), ..dir.GetDirectories()]
                      : dir.EnumerateDirectories())
         {
-            var files = directory.GetFiles("*.deps.json");
+            const string depsExtension = ".deps.json";
+            var files = directory.GetFiles($"*{depsExtension}");
 
             if (files.Length != 1) continue;
 
-            var path = files[0].FullName[..^".deps.json".Length] + ".dll";
+            DependenciesManifest manifest;
+            await using (var stream = files[0].OpenRead())
+                manifest = await DependencyManifestSerializer.DeserializeAsync(stream);
+            
+            var packageReferences = manifest.Libraries.Where(b => b.Value.Serviceable)
+                .Select(b =>
+                {
+                    var ((id, version), _) = b;
+                    return new PackageReference(id, new(version));
+                }).ToArray();
+            references.AddRange(packageReferences);
 
-            LoadComponent(plugins, path, null, true);
+            var resolver = new AssemblyDependencyResolver(files[0].FullName[..^depsExtension.Length] + ".dll");
+
+            var targetLibraries = manifest.Targets[manifest.RuntimeTarget.RuntimeFramework];
+            foreach (var (packageKey, _) in manifest.Libraries.Where(b => b.Value is
+                         { Serviceable: false, Type: LibraryType.Project }))
+            {
+                if (resolver.ResolveAssemblyToPath(new(packageKey.Id)) is not { } path)
+                {
+                    Log.Warn("Failed to resolve {PackageKey} from {DepsPath}. This dependency would be skipped.",
+                        packageKey, files[0].Name);
+                    continue;
+                }
+                
+                var metadata = PluginMetadata.ReadFromEntrypoint(path);
+                
+                if (metadata is null) continue;
+
+                var dependencies = targetLibraries[packageKey].Dependencies
+                    ?.Select(b => new ManifestPackageKey(b.Key, b.Value))
+                    .Where(b => manifest.Libraries[b] is { Type: LibraryType.Package, Serviceable: true } or
+                        { Type: LibraryType.Project })
+                    .Select(b => new Dependency(b.Id, new(b.Version)))
+                    .ToImmutableArray() ?? [];
+                
+                var package = new Package(int.MinValue, metadata.Id, metadata.Version);
+                var entry = new CatalogEntry(metadata.Id, metadata.Version, [
+                    new DependencyGroup(_runtimeFramework.Framework,
+                        dependencies)
+                ], ["CringePlugin"], [], metadata.Name);
+
+                localPlugins.Add(new LocalPluginPackage(package, _runtimeFramework.Framework, directory, entry, resolver));
+            }
         }
-
-        Plugins = plugins.ToImmutable();
+        
+        return (localPlugins.ToImmutable(), references.ToImmutable());
     }
 
-    private static void LoadComponent(ImmutableArray<PluginInstance>.Builder plugins, string path,
-        PluginMetadata? metadata = null, bool local = false)
+    private PluginInstance? LoadComponent(ImmutableHashSet<PluginInstance>.Builder plugins, string path,
+        PluginMetadata metadata, AssemblyDependencyResolver? dependencyResolver, bool local = false,
+        PluginInstance? parent = null)
     {
         try
         {
-            plugins.Add(metadata is null ? new PluginInstance(path, local) : new(metadata, path, local));
+            var instance = new PluginInstance(metadata, path, local, serviceProviderFactory, dependencyResolver, this, parent);
+            if (plugins.Add(instance)) return instance;
+
+            plugins.TryGetValue(instance, out var actualInstance);
+            Log.Warn(
+                "Plugin Id {PluginId} is already occupied, using previously loaded {PreviousMetadata} instead of {NewMetadata}",
+                metadata.Id, actualInstance, metadata);
+            return actualInstance;
         }
         catch (Exception e)
         {
             Log.Error(e, "Failed to load plugin {PluginPath}", path);
+            return null;
         }
     }
 
