@@ -253,7 +253,8 @@ internal class PluginsLifetime(ConfigHandler configHandler, IPluginServiceProvid
                     dependencyResolver: package is LocalPluginPackage pluginPackage
                         ? pluginPackage.DependencyResolver
                         : new(entrypointPath),
-                    parent: parent);
+                    package is LocalPluginPackage,
+                    parent);
             }
             
             if (anyLoaded)
@@ -330,8 +331,7 @@ internal class PluginsLifetime(ConfigHandler configHandler, IPluginServiceProvid
     }
 
     private PluginInstance? LoadComponent(ImmutableHashSet<PluginInstance>.Builder plugins, string path,
-        PluginMetadata metadata, AssemblyDependencyResolver? dependencyResolver, bool local = false,
-        PluginInstance? parent = null)
+        PluginMetadata metadata, AssemblyDependencyResolver? dependencyResolver, bool local, PluginInstance? parent)
     {
         try
         {
