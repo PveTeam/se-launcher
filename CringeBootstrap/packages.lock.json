@@ -41,11 +41,6 @@
           "System.Diagnostics.DiagnosticSource": "8.0.1"
         }
       },
-      "FFmpeg.AutoGen.Abstractions": {
-        "type": "Transitive",
-        "resolved": "8.0.0",
-        "contentHash": "XhNcFKxRGtGB8whLirsPaMEn1G4XfYOMQ5/GUvzA2BjqM5N004ZTUpIMNrVMraG/btVhOW0RnMK/k8ln93HcqQ=="
-      },
       "Humanizer.Core": {
         "type": "Transitive",
         "resolved": "3.0.1",
@@ -247,8 +242,8 @@
       },
       "MonoMod.Utils": {
         "type": "Transitive",
-        "resolved": "25.0.11",
-        "contentHash": "RBbGIxk3fIIQIL4ERCZSIwW9BXBCG4HCCHgGJ/QIhwkTpF6Edxu0dLPJi/Efhx4qYkuWEJdhlA3q41GCNUZL5g==",
+        "resolved": "25.0.12",
+        "contentHash": "8i/uRhkl7vW2DNMmDsIz+D7VaMtv9/jH+m7f4y5Zz3FJGbm15MVSwVfOp/fVV/1Ld6YFxk6jophDNVbAZUKR1Q==",
         "dependencies": {
           "Mono.Cecil": "0.11.6",
           "MonoMod.Backports": "1.1.2",
@@ -290,11 +285,6 @@
           "System.Numerics.Vectors": "4.6.1",
           "System.Runtime.CompilerServices.Unsafe": "6.1.2"
         }
-      },
-      "System.Buffers": {
-        "type": "Transitive",
-        "resolved": "4.6.1",
-        "contentHash": "N8GXpmiLMtljq7gwvyS+1QvKT/W2J8sNAvx+HVg4NGmsG/H+2k/y9QI23auLJRterrzCiDH+IWAw4V/GPwsMlw=="
       },
       "System.CodeDom": {
         "type": "Transitive",
@@ -368,11 +358,6 @@
         "resolved": "5.0.0",
         "contentHash": "t0MGLukB5WAVU9bO3MGzvlGnyJPgUlcwerXn1kzBRjwLKixT96XV0Uza41W49gVd8zEMFu9vQEFlv0IOrytICA=="
       },
-      "Ultz.Native.GLFW": {
-        "type": "Transitive",
-        "resolved": "3.4.0",
-        "contentHash": "Iy22JopynbOJ32vA0lBhFEzGi65GQJBuJHYBYRBpydrDpNoTiHnjIXfA65Gu+8qsOr/ZEoIF8r9aHCgAXuO6DA=="
-      },
       "ZString": {
         "type": "Transitive",
         "resolved": "2.6.0",
@@ -392,17 +377,15 @@
           "CringeBootstrap.Abstractions": "[1.0.0, )",
           "CringePlugins": "[1.0.0, )",
           "Demystifier": "[1.0.3, )",
-          "FFmpeg.AutoGen.Bindings.DynamicallyLoaded": "[8.0.0, )",
           "Microsoft.CodeAnalysis.CSharp": "[5.0.0, )",
           "Microsoft.Extensions.Http.Polly": "[10.0.2, )",
           "NLog": "[6.1.0, )",
           "Silk.NET.GLFW": "[2.23.0, )",
-          "Silk.NET.OpenAL": "[2.23.0, )",
-          "Silk.NET.OpenAL.Extensions.Creative": "[2.23.0, )",
           "SpaceEngineersDedicated.ReferenceAssemblies": "[1.208.15, )",
           "System.Formats.Nrbf": "[10.0.3, )",
           "System.Management": "[10.0.2, )",
           "System.Private.ServiceModel": "[4.10.3, )",
+          "Ultz.Native.GLFW": "[3.4.0, )",
           "Velopack": "[0.0.1298, )",
           "dnlib": "[4.5.0, )"
         }
@@ -437,7 +420,7 @@
         "dependencies": {
           "CringeBootstrap.Abstractions": "[1.0.0, )",
           "Lib.Harmony.Thin": "[2.4.2-torch, )",
-          "MonoMod.Core": "[1.3.3, )",
+          "MonoMod.Core": "[1.3.4, )",
           "NLog": "[6.1.0, )",
           "SpaceEngineersDedicated.ReferenceAssemblies": "[1.208.15, )"
         }
@@ -475,15 +458,6 @@
         "requested": "[4.5.0, )",
         "resolved": "4.5.0",
         "contentHash": "YkwstIbjyiJ12uGIAN8oSmImgVFkPHit7MJXPHvJqeKV1DMNqxZWszjHfykgiSs4Y/XmjnZts7pI2/AYme5/uA=="
-      },
-      "FFmpeg.AutoGen.Bindings.DynamicallyLoaded": {
-        "type": "CentralTransitive",
-        "requested": "[8.0.0, )",
-        "resolved": "8.0.0",
-        "contentHash": "jTnRN2wsE/0vxWT52g/8VBvw+TEQF+NaveaCNeiDs20Jm6O+fqPKfJndRCdVq35t9im2LdCThOReLJreZ475xw==",
-        "dependencies": {
-          "FFmpeg.AutoGen.Abstractions": "8.0.0"
-        }
       },
       "ImGui.NET.DirectX": {
         "type": "CentralTransitive",
@@ -560,14 +534,14 @@
       },
       "MonoMod.Core": {
         "type": "CentralTransitive",
-        "requested": "[1.3.3, )",
-        "resolved": "1.3.3",
-        "contentHash": "ihX8QeutQcN5DfRGci8Vn3cXWj+gCyBpl5nofDDk1A1ycVxDtcMT8WYpjCd6PXunHXiDT81yhOSrC+cQiNDEWg==",
+        "requested": "[1.3.4, )",
+        "resolved": "1.3.4",
+        "contentHash": "yeLEs4Y+hfFjiShKotDYKWiwnADra2kj8pYl66QewdcM/IRPIbjG6wAIVq38Zj9Ry2me33DCwXOHWrTnR7dZ1Q==",
         "dependencies": {
           "Mono.Cecil": "0.11.6",
           "MonoMod.Backports": "1.1.2",
           "MonoMod.ILHelpers": "1.1.0",
-          "MonoMod.Utils": "25.0.11"
+          "MonoMod.Utils": "25.0.12"
         }
       },
       "Newtonsoft.Json": {
@@ -602,27 +576,6 @@
         "dependencies": {
           "Silk.NET.Core": "2.23.0",
           "Ultz.Native.GLFW": "3.4.0"
-        }
-      },
-      "Silk.NET.OpenAL": {
-        "type": "CentralTransitive",
-        "requested": "[2.23.0, )",
-        "resolved": "2.23.0",
-        "contentHash": "O8EaDRWGOcKniZ2VxKD/xOmugzUJz747KpqGRw3cezDsz8nD66OZW217o1rT06cG76f8eYigy/yY6eRdhRqHHQ==",
-        "dependencies": {
-          "Silk.NET.Core": "2.23.0",
-          "System.Buffers": "4.6.1",
-          "System.Numerics.Vectors": "4.6.1"
-        }
-      },
-      "Silk.NET.OpenAL.Extensions.Creative": {
-        "type": "CentralTransitive",
-        "requested": "[2.23.0, )",
-        "resolved": "2.23.0",
-        "contentHash": "++3+P3G2CuV4ZbD9EG81XAxsu2enofp6jFhz6GmqEf96ZrC+3COMJPgzFtjDnPswuNOFK8FWzTCucdbw1jGXBQ==",
-        "dependencies": {
-          "Silk.NET.Core": "2.23.0",
-          "Silk.NET.OpenAL": "2.23.0"
         }
       },
       "SixLabors.ImageSharp": {
@@ -687,6 +640,12 @@
           "System.Security.Cryptography.Xml": "6.0.1",
           "System.Security.Principal.Windows": "5.0.0"
         }
+      },
+      "Ultz.Native.GLFW": {
+        "type": "CentralTransitive",
+        "requested": "[3.4.0, )",
+        "resolved": "3.4.0",
+        "contentHash": "Iy22JopynbOJ32vA0lBhFEzGi65GQJBuJHYBYRBpydrDpNoTiHnjIXfA65Gu+8qsOr/ZEoIF8r9aHCgAXuO6DA=="
       }
     },
     "net10.0/linux-x64": {
@@ -713,11 +672,6 @@
         "resolved": "5.0.0",
         "contentHash": "t0MGLukB5WAVU9bO3MGzvlGnyJPgUlcwerXn1kzBRjwLKixT96XV0Uza41W49gVd8zEMFu9vQEFlv0IOrytICA=="
       },
-      "Ultz.Native.GLFW": {
-        "type": "Transitive",
-        "resolved": "3.4.0",
-        "contentHash": "Iy22JopynbOJ32vA0lBhFEzGi65GQJBuJHYBYRBpydrDpNoTiHnjIXfA65Gu+8qsOr/ZEoIF8r9aHCgAXuO6DA=="
-      },
       "ImGui.NET.DirectX": {
         "type": "CentralTransitive",
         "requested": "[1.92.3.3, )",
@@ -738,6 +692,12 @@
         "dependencies": {
           "System.CodeDom": "10.0.2"
         }
+      },
+      "Ultz.Native.GLFW": {
+        "type": "CentralTransitive",
+        "requested": "[3.4.0, )",
+        "resolved": "3.4.0",
+        "contentHash": "Iy22JopynbOJ32vA0lBhFEzGi65GQJBuJHYBYRBpydrDpNoTiHnjIXfA65Gu+8qsOr/ZEoIF8r9aHCgAXuO6DA=="
       }
     },
     "net10.0/win-x64": {
@@ -764,11 +724,6 @@
         "resolved": "5.0.0",
         "contentHash": "t0MGLukB5WAVU9bO3MGzvlGnyJPgUlcwerXn1kzBRjwLKixT96XV0Uza41W49gVd8zEMFu9vQEFlv0IOrytICA=="
       },
-      "Ultz.Native.GLFW": {
-        "type": "Transitive",
-        "resolved": "3.4.0",
-        "contentHash": "Iy22JopynbOJ32vA0lBhFEzGi65GQJBuJHYBYRBpydrDpNoTiHnjIXfA65Gu+8qsOr/ZEoIF8r9aHCgAXuO6DA=="
-      },
       "ImGui.NET.DirectX": {
         "type": "CentralTransitive",
         "requested": "[1.92.3.3, )",
@@ -789,6 +744,12 @@
         "dependencies": {
           "System.CodeDom": "10.0.2"
         }
+      },
+      "Ultz.Native.GLFW": {
+        "type": "CentralTransitive",
+        "requested": "[3.4.0, )",
+        "resolved": "3.4.0",
+        "contentHash": "Iy22JopynbOJ32vA0lBhFEzGi65GQJBuJHYBYRBpydrDpNoTiHnjIXfA65Gu+8qsOr/ZEoIF8r9aHCgAXuO6DA=="
       }
     },
     "net10.0-windows10.0.19041": {
@@ -829,11 +790,6 @@
         "dependencies": {
           "System.Diagnostics.DiagnosticSource": "8.0.1"
         }
-      },
-      "FFmpeg.AutoGen.Abstractions": {
-        "type": "Transitive",
-        "resolved": "8.0.0",
-        "contentHash": "XhNcFKxRGtGB8whLirsPaMEn1G4XfYOMQ5/GUvzA2BjqM5N004ZTUpIMNrVMraG/btVhOW0RnMK/k8ln93HcqQ=="
       },
       "Humanizer.Core": {
         "type": "Transitive",
@@ -880,16 +836,6 @@
           "Microsoft.CodeAnalysis.Analyzers": "3.11.0"
         }
       },
-      "Microsoft.CSharp": {
-        "type": "Transitive",
-        "resolved": "4.7.0",
-        "contentHash": "pTj+D3uJWyN3My70i2Hqo+OXixq3Os2D1nJ2x92FFo6sk8fYS1m1WLNTs0Dc1uPaViH0YvEEwvzddQ7y4rhXmA=="
-      },
-      "Microsoft.DotNet.PlatformAbstractions": {
-        "type": "Transitive",
-        "resolved": "3.1.6",
-        "contentHash": "jek4XYaQ/PGUwDKKhwR8K47Uh1189PFzMeLqO83mXrXQVIpARZCcfuDedH50YDTepBkfijCZN5U/vZi++erxtg=="
-      },
       "Microsoft.Extensions.Configuration": {
         "type": "Transitive",
         "resolved": "10.0.2",
@@ -915,11 +861,6 @@
           "Microsoft.Extensions.Configuration": "10.0.2",
           "Microsoft.Extensions.Configuration.Abstractions": "10.0.2"
         }
-      },
-      "Microsoft.Extensions.DependencyModel": {
-        "type": "Transitive",
-        "resolved": "9.0.9",
-        "contentHash": "fNGvKct2De8ghm0Bpfq0iWthtzIWabgOTi+gJhNOPhNJIowXNEUE2eZNW/zNCzrHVA3PXg2yZ+3cWZndC2IqYA=="
       },
       "Microsoft.Extensions.Diagnostics": {
         "type": "Transitive",
@@ -1031,8 +972,8 @@
       },
       "MonoMod.Utils": {
         "type": "Transitive",
-        "resolved": "25.0.11",
-        "contentHash": "RBbGIxk3fIIQIL4ERCZSIwW9BXBCG4HCCHgGJ/QIhwkTpF6Edxu0dLPJi/Efhx4qYkuWEJdhlA3q41GCNUZL5g==",
+        "resolved": "25.0.12",
+        "contentHash": "8i/uRhkl7vW2DNMmDsIz+D7VaMtv9/jH+m7f4y5Zz3FJGbm15MVSwVfOp/fVV/1Ld6YFxk6jophDNVbAZUKR1Q==",
         "dependencies": {
           "Mono.Cecil": "0.11.6",
           "MonoMod.Backports": "1.1.2",
@@ -1062,24 +1003,6 @@
         "resolved": "4.2.0-keen-cringe",
         "contentHash": "LaJN3h1Gi1FWVdef2I5WtOH9gwzKCBniH0CragarbkN2QheYY6Lqm+91PcOfp1w/4wdVb+k8Kjv3sO393Tphtw=="
       },
-      "Silk.NET.Core": {
-        "type": "Transitive",
-        "resolved": "2.23.0",
-        "contentHash": "D7AT/nnwlB+4RZ84XY8QNGBZMJI5z9l4CSSETIJ1wCfRJzRt/341y3MRZ4HbnFz4r/IGaWOEZr86iE+0/65yyQ==",
-        "dependencies": {
-          "Microsoft.CSharp": "4.7.0",
-          "Microsoft.DotNet.PlatformAbstractions": "3.1.6",
-          "Microsoft.Extensions.DependencyModel": "9.0.9",
-          "System.Memory": "4.6.3",
-          "System.Numerics.Vectors": "4.6.1",
-          "System.Runtime.CompilerServices.Unsafe": "6.1.2"
-        }
-      },
-      "System.Buffers": {
-        "type": "Transitive",
-        "resolved": "4.6.1",
-        "contentHash": "N8GXpmiLMtljq7gwvyS+1QvKT/W2J8sNAvx+HVg4NGmsG/H+2k/y9QI23auLJRterrzCiDH+IWAw4V/GPwsMlw=="
-      },
       "System.CodeDom": {
         "type": "Transitive",
         "resolved": "10.0.2",
@@ -1105,25 +1028,15 @@
         "resolved": "9.0.8",
         "contentHash": "5TJUS9EIYrp0VEcm06EPYxXmLmsVUakewFnM/CAxQfvlasI9fGkTKM9afSf2dodZcMCzFna/o7Fn+gYRt3uTiA=="
       },
-      "System.Memory": {
-        "type": "Transitive",
-        "resolved": "4.6.3",
-        "contentHash": "qdcDOgnFZY40+Q9876JUHnlHu7bosOHX8XISRoH94fwk6hgaeQGSgfZd8srWRZNt5bV9ZW2TljcegDNxsf+96A=="
-      },
       "System.Numerics.Vectors": {
         "type": "Transitive",
-        "resolved": "4.6.1",
-        "contentHash": "sQxefTnhagrhoq2ReR0D/6K0zJcr9Hrd6kikeXsA1I8kOCboTavcUC4r7TSfpKFeE163uMuxZcyfO1mGO3EN8Q=="
+        "resolved": "4.5.0",
+        "contentHash": "QQTlPTl06J/iiDbJCiepZ4H//BVraReU4O4EoRw1U02H5TLUIT7xn3GnDp9AXPSlJUDyFs4uWjWafNX6WrAojQ=="
       },
       "System.Reflection.DispatchProxy": {
         "type": "Transitive",
         "resolved": "4.7.1",
         "contentHash": "C1sMLwIG6ILQ2bmOT4gh62V6oJlyF4BlHcVMrOoor49p0Ji2tA8QAoqyMcIhAdH6OHKJ8m7BU+r4LK2CUEOKqw=="
-      },
-      "System.Runtime.CompilerServices.Unsafe": {
-        "type": "Transitive",
-        "resolved": "6.1.2",
-        "contentHash": "2hBr6zdbIBTDE3EhK7NSVNdX58uTK6iHW/P/Axmm9sl1xoGSLqDvMtpecn226TNwHByFokYwJmt/aQQNlO5CRw=="
       },
       "System.Security.AccessControl": {
         "type": "Transitive",
@@ -1172,16 +1085,14 @@
           "CringePlugins": "[1.0.0, )",
           "Demystifier": "[1.0.3, )",
           "EOSSDK": "[1.0.4, )",
-          "FFmpeg.AutoGen.Bindings.DynamicallyLoaded": "[8.0.0, )",
           "Microsoft.CodeAnalysis.CSharp": "[5.0.0, )",
           "Microsoft.Extensions.Http.Polly": "[10.0.2, )",
           "NLog": "[6.1.0, )",
-          "Silk.NET.OpenAL": "[2.23.0, )",
-          "Silk.NET.OpenAL.Extensions.Creative": "[2.23.0, )",
           "SpaceEngineersDedicated.ReferenceAssemblies": "[1.208.15, )",
           "System.Formats.Nrbf": "[10.0.3, )",
           "System.Management": "[10.0.2, )",
           "System.Private.ServiceModel": "[4.10.3, )",
+          "Ultz.Native.GLFW": "[3.4.0, )",
           "Velopack": "[0.0.1298, )",
           "dnlib": "[4.5.0, )"
         }
@@ -1216,7 +1127,7 @@
         "dependencies": {
           "CringeBootstrap.Abstractions": "[1.0.0, )",
           "Lib.Harmony.Thin": "[2.4.2-torch, )",
-          "MonoMod.Core": "[1.3.3, )",
+          "MonoMod.Core": "[1.3.4, )",
           "NLog": "[6.1.0, )",
           "SpaceEngineersDedicated.ReferenceAssemblies": "[1.208.15, )"
         }
@@ -1262,15 +1173,6 @@
         "contentHash": "wQfI9sBczQpWZgqQ9ASLf0x3G+1FS4fx7mneox7jEahd1RJAybdnK2Ij9gh9HoNVEnOEwf5K9guAYjiWdpIz4Q==",
         "dependencies": {
           "SpaceEngineersDedicated.ReferenceAssemblies": "1.208.14"
-        }
-      },
-      "FFmpeg.AutoGen.Bindings.DynamicallyLoaded": {
-        "type": "CentralTransitive",
-        "requested": "[8.0.0, )",
-        "resolved": "8.0.0",
-        "contentHash": "jTnRN2wsE/0vxWT52g/8VBvw+TEQF+NaveaCNeiDs20Jm6O+fqPKfJndRCdVq35t9im2LdCThOReLJreZ475xw==",
-        "dependencies": {
-          "FFmpeg.AutoGen.Abstractions": "8.0.0"
         }
       },
       "ImGui.NET.DirectX": {
@@ -1348,14 +1250,14 @@
       },
       "MonoMod.Core": {
         "type": "CentralTransitive",
-        "requested": "[1.3.3, )",
-        "resolved": "1.3.3",
-        "contentHash": "ihX8QeutQcN5DfRGci8Vn3cXWj+gCyBpl5nofDDk1A1ycVxDtcMT8WYpjCd6PXunHXiDT81yhOSrC+cQiNDEWg==",
+        "requested": "[1.3.4, )",
+        "resolved": "1.3.4",
+        "contentHash": "yeLEs4Y+hfFjiShKotDYKWiwnADra2kj8pYl66QewdcM/IRPIbjG6wAIVq38Zj9Ry2me33DCwXOHWrTnR7dZ1Q==",
         "dependencies": {
           "Mono.Cecil": "0.11.6",
           "MonoMod.Backports": "1.1.2",
           "MonoMod.ILHelpers": "1.1.0",
-          "MonoMod.Utils": "25.0.11"
+          "MonoMod.Utils": "25.0.12"
         }
       },
       "Newtonsoft.Json": {
@@ -1381,27 +1283,6 @@
         "requested": "[7.0.1, )",
         "resolved": "7.0.1",
         "contentHash": "tu68LnZqiLM/VyLQzPRqedopMi/M+5/6JqwB2Xkd0AWXRpUWewkVv77asVB7wgjMPVzQFK2sBy7AuxV49UzuvQ=="
-      },
-      "Silk.NET.OpenAL": {
-        "type": "CentralTransitive",
-        "requested": "[2.23.0, )",
-        "resolved": "2.23.0",
-        "contentHash": "O8EaDRWGOcKniZ2VxKD/xOmugzUJz747KpqGRw3cezDsz8nD66OZW217o1rT06cG76f8eYigy/yY6eRdhRqHHQ==",
-        "dependencies": {
-          "Silk.NET.Core": "2.23.0",
-          "System.Buffers": "4.6.1",
-          "System.Numerics.Vectors": "4.6.1"
-        }
-      },
-      "Silk.NET.OpenAL.Extensions.Creative": {
-        "type": "CentralTransitive",
-        "requested": "[2.23.0, )",
-        "resolved": "2.23.0",
-        "contentHash": "++3+P3G2CuV4ZbD9EG81XAxsu2enofp6jFhz6GmqEf96ZrC+3COMJPgzFtjDnPswuNOFK8FWzTCucdbw1jGXBQ==",
-        "dependencies": {
-          "Silk.NET.Core": "2.23.0",
-          "Silk.NET.OpenAL": "2.23.0"
-        }
       },
       "SixLabors.ImageSharp": {
         "type": "CentralTransitive",
@@ -1465,6 +1346,12 @@
           "System.Security.Cryptography.Xml": "6.0.1",
           "System.Security.Principal.Windows": "5.0.0"
         }
+      },
+      "Ultz.Native.GLFW": {
+        "type": "CentralTransitive",
+        "requested": "[3.4.0, )",
+        "resolved": "3.4.0",
+        "contentHash": "Iy22JopynbOJ32vA0lBhFEzGi65GQJBuJHYBYRBpydrDpNoTiHnjIXfA65Gu+8qsOr/ZEoIF8r9aHCgAXuO6DA=="
       }
     },
     "net10.0-windows10.0.19041/linux-x64": {
@@ -1515,6 +1402,12 @@
         "dependencies": {
           "System.CodeDom": "10.0.2"
         }
+      },
+      "Ultz.Native.GLFW": {
+        "type": "CentralTransitive",
+        "requested": "[3.4.0, )",
+        "resolved": "3.4.0",
+        "contentHash": "Iy22JopynbOJ32vA0lBhFEzGi65GQJBuJHYBYRBpydrDpNoTiHnjIXfA65Gu+8qsOr/ZEoIF8r9aHCgAXuO6DA=="
       }
     },
     "net10.0-windows10.0.19041/win-x64": {
@@ -1565,6 +1458,12 @@
         "dependencies": {
           "System.CodeDom": "10.0.2"
         }
+      },
+      "Ultz.Native.GLFW": {
+        "type": "CentralTransitive",
+        "requested": "[3.4.0, )",
+        "resolved": "3.4.0",
+        "contentHash": "Iy22JopynbOJ32vA0lBhFEzGi65GQJBuJHYBYRBpydrDpNoTiHnjIXfA65Gu+8qsOr/ZEoIF8r9aHCgAXuO6DA=="
       }
     }
   }

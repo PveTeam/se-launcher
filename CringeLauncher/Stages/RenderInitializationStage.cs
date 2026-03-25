@@ -24,7 +24,7 @@ internal class RenderInitializationStage(EarlyRenderThread? renderThread) : ILoa
         if (renderThread is null)
             InitDedicatedRender();
         else
-            renderThread.Window!.Invoke(InitRender);
+            renderThread.Window!.Invoke(() => InitRender(progress));
         
         return default;
     }
@@ -34,7 +34,7 @@ internal class RenderInitializationStage(EarlyRenderThread? renderThread) : ILoa
         MyRenderProxy.Initialize(new MyNullRender());
     }
     
-    private void InitRender()
+    private void InitRender(ISplashProgress progress)
     {
         var renderQualityHint = MyVRage.Platform.Render.GetRenderQualityHint();
         var preset = MyGuiScreenOptionsGraphics.GetPreset(renderQualityHint);
@@ -50,6 +50,8 @@ internal class RenderInitializationStage(EarlyRenderThread? renderThread) : ILoa
 
         _ = new MyEngine();
         MyRenderProxy.Initialize(new MyDX11Render(MyRenderProxy.Settings));
+        
+        progress.Report("Compiling shaders");
         
         MyPlatformRender.Log = MyLog.Default;
         var settings = MyRenderProxy.CreateDevice(null, MyVideoSettingsManager.Initialize(), out _);

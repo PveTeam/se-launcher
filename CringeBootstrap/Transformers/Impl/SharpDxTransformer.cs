@@ -11,25 +11,48 @@ namespace CringeBootstrap.Transformers.Impl;
 internal class SharpDxTransformer : ITransformer
 {
     private const string SharpDxName = "SharpDX";
+    private const string SharpDxXAudioName = "SharpDX.XAudio2";
     public ImmutableArray<AssemblyName> AcceptedAssemblies { get; } =
     [
-        new($"{SharpDxName}, Version=4.2.0.0, Culture=neutral, PublicKeyToken=null")
+        new($"{SharpDxName}, Version=4.2.0.0, Culture=neutral, PublicKeyToken=null"),
+        new($"{SharpDxXAudioName}, Version=4.2.0.0, Culture=neutral, PublicKeyToken=null"),
     ];
     public bool Transform(TransformationContext context)
     {
         var moduleDefinition = context.Module;
-        if (moduleDefinition.Assembly.Name != SharpDxName) return false;
-
-        var launcherAssembly = moduleDefinition.Context.AssemblyResolver.Resolve("CringeLauncher", moduleDefinition);
-        var fileProviderType = launcherAssembly.FindReflectionThrow("CringeLauncher.Platform.Xplat.LauncherFileProvider");
-        var instanceField = moduleDefinition.Import(fileProviderType.FindField("Instance"));
-        var normalizePathMethod = moduleDefinition.Import(fileProviderType.FindMethod("NormalizePath"));
+        switch (moduleDefinition.Assembly.Name.String)
+        {
+            case SharpDxName:
+            {
+                var launcherAssembly = moduleDefinition.Context.AssemblyResolver.Resolve("CringeLauncher", moduleDefinition);
+                var fileProviderType = launcherAssembly.FindReflectionThrow("CringeLauncher.Platform.Xplat.LauncherFileProvider");
+                var instanceField = moduleDefinition.Import(fileProviderType.FindField("Instance"));
+                var normalizePathMethod = moduleDefinition.Import(fileProviderType.FindMethod("NormalizePath"));
         
-        TransformNativeFile(moduleDefinition, fileProviderType, instanceField, normalizePathMethod);
-        TransformNativeStream(moduleDefinition, instanceField, normalizePathMethod);
-        TransformResultDescriptor(moduleDefinition);
-
-        return true;
+                TransformNativeFile(moduleDefinition, fileProviderType, instanceField, normalizePathMethod);
+                TransformNativeStream(moduleDefinition, instanceField, normalizePathMethod);
+                TransformResultDescriptor(moduleDefinition);
+                return true;
+            }
+            case SharpDxXAudioName:
+            {
+                var type = moduleDefinition.FindReflectionThrow("SharpDX.XAudio2.XAudio2");
+                var method = type.FindMethod("CoInitializeEx");
+                method.IsPinvokeImpl = false;
+                method.ImplMap = null;
+                method.Body = new()
+                {
+                    Instructions =
+                    {
+                        Instruction.CreateLdcI4(0),
+                        Instruction.Create(OpCodes.Ret)
+                    }
+                };
+                return true;
+            }
+            default:
+                return false;
+        }
     }
 
     private static void TransformResultDescriptor(ModuleDefMD moduleDefinition)

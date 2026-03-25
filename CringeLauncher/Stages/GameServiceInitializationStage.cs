@@ -48,7 +48,8 @@ public class GameServiceInitializationStage(bool isDedicated) : ILoadingStage
             "https://retail.epicgames.com/", EosService.CreatePlatform(),
             MyPlatformGameSettings.VERBOSE_NETWORK_LOGGING, [], aggregator,
             MyMultiplayer.Channels);
-
+#endif
+        
         MyServiceManager.Instance.AddService<IMyServerDiscovery>(aggregator);
 
         MyServiceManager.Instance.AddService(MySteamGameService.CreateMicrophone());
@@ -62,7 +63,6 @@ public class GameServiceInitializationStage(bool isDedicated) : ILoadingStage
             MyPlatformGameSettings.MODIO_PORTAL);
         modUgc.IsConsentGiven = MySandboxGame.Config.ModIoConsent;
         MyGameService.WorkshopService.AddAggregate(modUgc);
-#endif
 
         MySpaceEngineersAchievements.Initialize();
         

@@ -1,6 +1,7 @@
 ﻿using System.Collections.Immutable;
 using System.Diagnostics;
 using System.IO.Compression;
+using System.Runtime.InteropServices;
 using System.Text;
 using CringeBootstrap.Transformers;
 using NLog;
@@ -19,13 +20,14 @@ internal class CrossGenServiceImpl(string gameDirectoryPath, string cachePath, s
     protected override async Task<string?> DownloadCrossGenAsync()
     {
         const string nugetUrl = "https://api.nuget.org/v3/index.json";
-        const string toolName = "crossgen2.exe";
-        const string packageId = "Microsoft.NETCore.App.Crossgen2.win-x64";
+        const string toolName = "crossgen2";
+        const string packageIdBase = "Microsoft.NETCore.App.Crossgen2.";
+        var packageId = $"{packageIdBase}{RuntimeInformation.RuntimeIdentifier}";
         var nugetCachePath = Path.Join(cachePath, "x64", $"net{Environment.Version.Major}.{Environment.Version.Minor}");
 
         var packagePath =
             Directory.CreateDirectory(Path.Join(nugetCachePath, packageId, Environment.Version.ToString()));
-        var toolPath = Path.Join(packagePath.FullName, "tools", toolName);
+        var toolPath = Path.Join(packagePath.FullName, "tools", OperatingSystem.IsWindows() ? $"{toolName}.exe" : toolName);
         if (File.Exists(toolPath))
             return toolPath;
 
@@ -47,6 +49,10 @@ internal class CrossGenServiceImpl(string gameDirectoryPath, string cachePath, s
                     new FileNotFoundException("Failed to find crossgen", toolPath));
                 return null;
             }
+
+            if (!OperatingSystem.IsWindows())
+                File.SetUnixFileMode(toolPath,
+                    File.GetUnixFileMode(toolPath) | UnixFileMode.GroupExecute | UnixFileMode.UserExecute);
         }
         catch (IOException e)
         {
@@ -67,7 +73,7 @@ internal class CrossGenServiceImpl(string gameDirectoryPath, string cachePath, s
         string inputAssembly)
     {
         var startInfo = new ProcessStartInfo(crossGenPath, [
-            "--targetos:windows",
+            $"--targetos:{(OperatingSystem.IsWindows() ? "windows" : "linux")}",
             "--targetarch:x64",
             "--Ot",
             ..inputReferences.SelectMany(x => new[] { "-r", x }),

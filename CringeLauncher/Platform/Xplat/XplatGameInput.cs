@@ -1,5 +1,4 @@
 #if !WINDOWS
-using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.Versioning;
 using CringeLauncher.Render;
@@ -81,6 +80,7 @@ internal unsafe class XplatGameInput : IVRageInput2
             Keys.LeftBracket => MyKeys.OemOpenBrackets,
             Keys.BackSlash => MyKeys.OemBackslash,
             Keys.GraveAccent => MyKeys.OemTilde,
+            Keys.Enter => MyKeys.Enter,
             Keys.Escape => MyKeys.Escape,
             Keys.Tab => MyKeys.Tab,
             Keys.Backspace => MyKeys.Back,

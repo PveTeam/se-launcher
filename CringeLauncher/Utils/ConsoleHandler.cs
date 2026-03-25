@@ -16,10 +16,10 @@ internal static class ConsoleHandler
 
     public static void FreeConsole()
     {
+#if WINDOWS
         Console.SetOut(new StreamWriter(Stream.Null));
         Console.SetError(new StreamWriter(Stream.Null));
         Console.SetIn(new StreamReader(Stream.Null));
-#if WINDOWS
         PInvoke.FreeConsole();
 #endif
     }

@@ -18,7 +18,7 @@ public partial class GameDirectoryAssemblyLoadContext : AssemblyLoadContext, ICo
     // (see SimpleNameToFileNameMapTraits for the TPA lookup hash).
     private readonly Dictionary<string, string> _assemblyNames = new(StringComparer.OrdinalIgnoreCase);
 
-    public GameDirectoryAssemblyLoadContext(string dir, string unmanagedAssembliesDir) : base("CringeBootstrap")
+    public GameDirectoryAssemblyLoadContext(string dir, string unmanagedAssembliesDir, bool isRelaunch) : base("CringeBootstrap")
     {
         _dir = dir;
         _unmanagedAssembliesDir = unmanagedAssembliesDir;
@@ -41,7 +41,8 @@ public partial class GameDirectoryAssemblyLoadContext : AssemblyLoadContext, ICo
         }
 
 #if !WINDOWS
-        LoadReexport(unmanagedAssembliesDir);
+        if (isRelaunch)
+            LoadReexport(unmanagedAssembliesDir);
 #endif
     }
 
@@ -93,14 +94,15 @@ public partial class GameDirectoryAssemblyLoadContext : AssemblyLoadContext, ICo
             Environment.SystemDirectory,
             _unmanagedAssembliesDir,
             AppContext.BaseDirectory,
-#if DEBUG
+#if !WINDOWS
             ..Environment.GetEnvironmentVariable("LD_LIBRARY_PATH") is { } ldPath
                 ? ldPath.Split(Path.PathSeparator, StringSplitOptions.RemoveEmptyEntries)
-                : [],
+                : [Path.Join(AppContext.BaseDirectory, "prefix", "lib")],
 #endif
         ];
         foreach (var dir in dirs)
         {
+            if (string.IsNullOrEmpty(dir)) continue;
             var path = Path.Join(dir, unmanagedDllName);
             
             if (!Path.HasExtension(path))

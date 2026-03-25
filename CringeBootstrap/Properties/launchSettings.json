@@ -2,10 +2,21 @@
   "profiles": {
     "CringeBootstrap": {
       "commandName": "Project",
-      "commandLineArgs": "\"C:\\Program Files (x86)\\Steam\\steamapps\\common\\SpaceEngineers\\Bin64\\SpaceEngineers.exe\"",
+      "commandLineArgs": "\"/home/zznty/.steam/steam/steamapps/common/SpaceEngineers/Bin64/SpaceEngineers.exe\" --skip-crossgen",
       "environmentVariables": {
         "DOTNET_BOOTSTRAP_ENTRYPOINT": "CringeLauncher.UserDev.UserDevLauncher, CringeLauncher",
         "DOTNET_USERDEV_RUNDIR": "data",
+        "DOTNET_DbgEnableMiniDump": "1",
+        "DOTNET_DbgMiniDumpType": "3",
+        "DOTNET_CreateDumpDiagnostics": "1",
+        "DOTNET_USERDEV_RUNDIR": "data"
+      },
+      "nativeDebugging": true
+    },
+    "CringeBootstrap CrashPad": {
+      "commandName": "Project",
+      "commandLineArgs": "\"/home/zznty/.steam/steam/steamapps/common/SpaceEngineers/Bin64/SpaceEngineers.exe\" --skip-crossgen",
+      "environmentVariables": {
         "DOTNET_DbgEnableMiniDump": "1",
         "DOTNET_DbgMiniDumpType": "3",
         "DOTNET_CreateDumpDiagnostics": "1"

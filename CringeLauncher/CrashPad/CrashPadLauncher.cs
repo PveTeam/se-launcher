@@ -48,18 +48,35 @@ public sealed class CrashPadLauncher : ICorePlugin
             _stderrPath = FindFreePath("crashpad-stderr-redirect.txt", _logsDir);
             _dumpPath = FindFreePath("crashpad-dump.dmp", _logsDir);
             _dumpLogPath = FindFreePath("crashpad-dump-log.log", _logsDir);
-            var appHost = FindValidAppHostPath(args);
 
-            _actualHostProcess = Process.Start(new ProcessStartInfo(appHost, [..args, "--crashpad-stderr-redirect", _stderrPath])
+            _actualHostProcess = Process.Start(new ProcessStartInfo(
+#if WINDOWS
+                FindValidAppHostPath(args),
+                [
+#else
+                Path.Join(AppContext.BaseDirectory, "prefix", "bin", "wine"),
+                [
+                    Path.Join(AppContext.BaseDirectory, "prefix", "lib", "CringeBootstrap.Native.so"),
+#endif
+                    ..args, "--crashpad-stderr-redirect", _stderrPath
+                ])
             {
                 Environment =
                 {
                     ["DOTNET_BOOTSTRAP_ENTRYPOINT"] = LauncherConstants.ActualBootstrapEntrypoint,
-                    ["DOTNET_DbgEnableMiniDump"] = "1", // https://learn.microsoft.com/en-us/dotnet/core/diagnostics/collect-dumps-crash
-                    ["DOTNET_DbgMiniDumpType"] = "3", // Triage, Same as Mini, but removes personal user information, such as paths and passwords.
+                    ["DOTNET_DbgEnableMiniDump"] =
+                        "1", // https://learn.microsoft.com/en-us/dotnet/core/diagnostics/collect-dumps-crash
+                    ["DOTNET_DbgMiniDumpType"] =
+                        "3", // Triage, Same as Mini, but removes personal user information, such as paths and passwords.
                     ["DOTNET_DbgMiniDumpName"] = _dumpPath,
                     ["DOTNET_CreateDumpDiagnostics"] = "1", // logging of dump process won't hurt
                     ["DOTNET_CreateDumpLogToFile"] = _dumpLogPath,
+#if !WINDOWS
+                    ["WINEDLLOVERRIDES"] = "mscoree,mshtml=;d3dcompiler_47=n",
+                    ["WINEPREFIX"] = Directory.CreateDirectory(Path.Join(_appdataDir, "cache", "prefix")).FullName,
+                    ["WINELOADERNOEXEC"] = "1",
+                    ["LD_LIBRARY_PATH"] = Path.Join(AppContext.BaseDirectory, "prefix", "lib"),
+#endif
                 }
             });
 

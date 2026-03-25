@@ -62,14 +62,12 @@
             <PrivateAssets>all</PrivateAssets>
             <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
         </PackageReference>
-        <PackageReference Include="FFmpeg.AutoGen.Bindings.DynamicallyLoaded" />
         <PackageReference Include="Microsoft.Extensions.Http.Polly" />
         <PackageReference Include="Demystifier" />
-        <PackageReference Include="Silk.NET.OpenAL" />
-        <PackageReference Include="Silk.NET.OpenAL.Extensions.Creative" />
         <PackageReference Include="System.Management" />
         <PackageReference Include="System.Private.ServiceModel" />
         <PackageReference Include="System.Formats.Nrbf" />
+        <PackageReference Include="Ultz.Native.GLFW" ExcludeAssets="native" />
         <PackageReference Include="Velopack" />
         <PackageReference Include="Microsoft.Windows.CsWin32">
             <PrivateAssets>all</PrivateAssets>

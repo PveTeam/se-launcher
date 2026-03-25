@@ -58,7 +58,7 @@ public class LauncherFileProvider : IFileProvider
     {
         path = path.Replace('\\', Path.DirectorySeparatorChar);
 
-        if (!path.StartsWith(MyFileSystem.ContentPath, StringComparison.Ordinal)) return;
+        if (!path.StartsWith(MyFileSystem.ContentPath, StringComparison.OrdinalIgnoreCase) || path.Length == MyFileSystem.ContentPath.Length) return;
         
         if (_cachedFiles is null) CreateCache();
             

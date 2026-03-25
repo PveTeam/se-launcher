@@ -35,13 +35,19 @@ internal class EarlyRenderThread : IDisposable
         RenderThread.SetApartmentState(ApartmentState.STA);
         RenderThread.Start();
 #else
-        PlatformApi.CreateThread(RunLoop, threadName);
-        // RenderThread = new Thread(RunLoop)
-        // {
-        //     Name = threadName
-        // };
-        //
-        // RenderThread.Start();
+        try
+        {
+            PlatformApi.CreateThread(RunLoop, threadName);
+        }
+        catch (DllNotFoundException)
+        {
+            RenderThread = new Thread(RunLoop)
+            {
+                Name = threadName
+            };
+        
+            RenderThread.Start();
+        }
 #endif
     }
 

@@ -102,7 +102,7 @@ internal class VRageLauncherPlatform(string applicationName, string? appdataPath
 #if WINDOWS
         new MyXAudio2(new MyPlatformAudio());
 #else
-        new XplatAudio();
+        new MyXAudio2(new MyPlatformAudio());
 #endif
     public IMyImeProcessor ImeProcessor { get; } =
 #if WINDOWS
