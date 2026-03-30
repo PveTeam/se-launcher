@@ -95,9 +95,12 @@ public partial class GameDirectoryAssemblyLoadContext : AssemblyLoadContext, ICo
             _unmanagedAssembliesDir,
             AppContext.BaseDirectory,
 #if !WINDOWS
+#if DEBUG
+            Path.Join(AppContext.BaseDirectory, "prefix", "lib"),
+#endif
             ..Environment.GetEnvironmentVariable("LD_LIBRARY_PATH") is { } ldPath
                 ? ldPath.Split(Path.PathSeparator, StringSplitOptions.RemoveEmptyEntries)
-                : [Path.Join(AppContext.BaseDirectory, "prefix", "lib")],
+                : [],
 #endif
         ];
         foreach (var dir in dirs)

@@ -166,7 +166,7 @@ internal abstract class ImGuiHandler : IGuiHandler, IDisposable
         io.ConfigDpiScaleFonts = true;
         io.ConfigFlags |= ImGuiConfigFlags.DockingEnable | ImGuiConfigFlags.ViewportsEnable;
         
-        ImGui_ImplDX11_Init(device.NativePointer, deviceContext.NativePointer);
+        ImGui_ImplDX11_Init((void*)device.NativePointer, (void*)deviceContext.NativePointer);
         ImageService.Initialize(device);
         BuildFonts(io);
     }

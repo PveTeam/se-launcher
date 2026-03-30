@@ -54,13 +54,22 @@ public sealed class CrashPadLauncher : ICorePlugin
                 FindValidAppHostPath(args),
                 [
 #else
+#if DEBUG
                 Path.Join(AppContext.BaseDirectory, "prefix", "bin", "wine"),
+#else
+                "wine",
+#endif
                 [
+#if DEBUG
                     Path.Join(AppContext.BaseDirectory, "prefix", "lib", "CringeBootstrap.Native.so"),
+#else
+                    "../../lib/CringeBootstrap.Native.so",
+#endif
 #endif
                     ..args, "--crashpad-stderr-redirect", _stderrPath
                 ])
             {
+                WorkingDirectory = AppContext.BaseDirectory,
                 Environment =
                 {
                     ["DOTNET_BOOTSTRAP_ENTRYPOINT"] = LauncherConstants.ActualBootstrapEntrypoint,
@@ -75,7 +84,9 @@ public sealed class CrashPadLauncher : ICorePlugin
                     ["WINEDLLOVERRIDES"] = "mscoree,mshtml=;d3dcompiler_47=n",
                     ["WINEPREFIX"] = Directory.CreateDirectory(Path.Join(_appdataDir, "cache", "prefix")).FullName,
                     ["WINELOADERNOEXEC"] = "1",
-                    ["LD_LIBRARY_PATH"] = Path.Join(AppContext.BaseDirectory, "prefix", "lib"),
+#if DEBUG
+                    ["LD_LIBRARY_PATH"] = $"{Path.Join(AppContext.BaseDirectory, "prefix", "lib")}:{Environment.GetEnvironmentVariable("LD_LIBRARY_PATH")}",
+#endif
 #endif
                 }
             });

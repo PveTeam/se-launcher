@@ -148,9 +148,6 @@ public class Launcher : ICorePlugin
         }
 
         MyFileSystem.InitUserSpecific(MyGameService.UserId.ToString());
-#if !WINDOWS
-        MyFileSystem.ReplaceFileProvider<MyClassicFileProvider>(new LauncherFileProvider());
-#endif
 
         _lifetime.RegisterLifetime();
         _crashPadService.PullPluginInfo((PluginsLifetime)_lifetime);

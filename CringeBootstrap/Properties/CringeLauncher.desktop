@@ -1,0 +1,8 @@
+[Desktop Entry]
+Name=CringeLauncher
+Icon=CringeLauncher
+Type=Application
+Name[en]=CringeLauncher
+Terminal=true
+StartupNotify=true
+NoDisplay=false

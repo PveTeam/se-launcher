@@ -81,4 +81,18 @@ public class LauncherFileProvider : IFileProvider
         _cachedFiles = FrozenSet.Create(StringComparer.OrdinalIgnoreCase, files);
         _cacheLookup = _cachedFiles.GetAlternateLookup<ReadOnlySpan<char>>();
     }
+
+    [return: NotNullIfNotNull(nameof(path))]
+    public static string? GetFileName(string? path)
+    {
+        if (path == null)
+            return null;
+
+        Span<char> pathSpan = stackalloc char[path.Length];
+        path.AsSpan().CopyTo(pathSpan);
+        pathSpan.Replace('\\', Path.DirectorySeparatorChar);
+        var result = Path.GetFileName(pathSpan);
+        
+        return path.Length == result.Length ? path : result.ToString();
+    }
 }

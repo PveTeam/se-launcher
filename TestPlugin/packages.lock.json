@@ -184,7 +184,7 @@
       },
       "ImGui.NET.DirectX": {
         "type": "CentralTransitive",
-        "requested": "[1.92.3.3, )",
+        "requested": "[1.92.3.6, )",
         "resolved": "1.92.3",
         "contentHash": "1GFD4bYNqbGBnLmfmmaM2nLngmPcj+GKDJmRYJki8xjsMmH6Tim5meKmliLfsWm4at7F1y16xWxeN3qalVQL9g==",
         "dependencies": {
@@ -313,7 +313,7 @@
     "net10.0-windows7.0/win-x64": {
       "ImGui.NET.DirectX": {
         "type": "CentralTransitive",
-        "requested": "[1.92.3.3, )",
+        "requested": "[1.92.3.6, )",
         "resolved": "1.92.3",
         "contentHash": "1GFD4bYNqbGBnLmfmmaM2nLngmPcj+GKDJmRYJki8xjsMmH6Tim5meKmliLfsWm4at7F1y16xWxeN3qalVQL9g==",
         "dependencies": {

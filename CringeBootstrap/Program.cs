@@ -1,5 +1,6 @@
 ﻿using System.Diagnostics;
 using System.Reflection.Metadata;
+using System.Runtime.InteropServices;
 using System.Runtime.Loader;
 using CringeBootstrap;
 using CringeBootstrap.Abstractions;
@@ -19,6 +20,7 @@ VelopackApp.Build().Run();
 
 if (args.Length == 0)
 {
+#if WINDOWS
     var path = Path.Join(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "CringeLauncher",
         "current", "CringeBootstrap.exe");
 
@@ -34,6 +36,12 @@ if (args.Length == 0)
     Console.ResetColor();
     Console.Read();
     return 0;
+#else
+    Console.ForegroundColor = ConsoleColor.Red;
+    Console.WriteLine("not a command line tool");
+    Console.ResetColor();
+    return 1;
+#endif
 }
 
 #if DEBUG
@@ -47,9 +55,14 @@ AssemblyLoadContext.Default.Resolving += (loadContext, name) =>
 SharedCringe.Utils.NLogLogging.Init();
 
 var logger = LogManager.GetLogger("CringeBootstrap");
-logger.Info("Bootstrapping");
+logger.Info("Bootstrapping {DotnetVersion} {RuntimeIdentifier} OS {OsDescription}", 
+    RuntimeInformation.FrameworkDescription, 
+    RuntimeInformation.RuntimeIdentifier, 
+    RuntimeInformation.OSDescription);
 
-var dir = Path.GetDirectoryName(args[0])!;
+var dirIndex = Array.FindIndex(args, b => b.EndsWith("SpaceEngineers.exe"));
+var dir = Path.GetDirectoryName(args[dirIndex])!;
+args = args[dirIndex..];
 var gameDir = dir;
 
 var customEntrypoint = Environment.GetEnvironmentVariable("DOTNET_BOOTSTRAP_ENTRYPOINT");

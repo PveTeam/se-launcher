@@ -48,6 +48,11 @@
         <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
         <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
       </Content>
+      <Content Include="Properties\CringeLauncher.desktop" Condition="'$(TargetFramework)' == 'net10.0'">
+        <Link>CringeLauncher.desktop</Link>  
+        <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+        <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
+      </Content>
     </ItemGroup>
     
     <Target Name="ComputeMainHostOutputFile" AfterTargets="_ComputeNETCoreBuildOutputFiles" Condition="'$(ComputeNETCoreBuildOutputFiles)' == 'true'">

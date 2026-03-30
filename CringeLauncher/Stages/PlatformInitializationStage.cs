@@ -10,6 +10,7 @@ using Sandbox.Game;
 using Sandbox.Game.World;
 using SpaceEngineers.Game;
 using System.Globalization;
+using CringeLauncher.Platform.Xplat;
 using VRage;
 using VRage.Audio;
 using VRage.FileSystem;
@@ -87,6 +88,9 @@ internal class PlatformInitializationStage(
                     MySandboxGame.Config.AutomaticVoiceChatActivation;
                 MyFakes.ENABLE_WAIT_UNTIL_CLIPMAPS_READY = false;
             });
+#if !WINDOWS
+        MyFileSystem.ReplaceFileProvider<MyClassicFileProvider>(LauncherFileProvider.Instance);
+#endif
         CultureInfo.DefaultThreadCurrentCulture = CultureInfo.InvariantCulture;
         MyVRage.Platform.Init();
         SpaceEngineersGame.SetupPerGameSettings();

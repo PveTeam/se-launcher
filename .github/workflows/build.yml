@@ -2,7 +2,7 @@ name: Build
 
 on:
   push:
-    branches: [master, preview]
+    branches: [master, preview, linux]
 
 env:
   DOTNET_CLI_TELEMETRY_OPTOUT: true
@@ -34,7 +34,7 @@ jobs:
   build-nuget:
     name: Build Nuget package
     runs-on: ubuntu-latest
-    if: "!contains(github.event.commits[0].message, '[skip ci]')"
+    if: "!contains(github.event.commits[0].message, '[skip ci]') && github.ref_name != 'linux'"
     needs: [compute-version]
     strategy: 
       matrix:
@@ -56,7 +56,7 @@ jobs:
   build:
     name: Build Launcher
     runs-on: ubuntu-latest
-    if: "!contains(github.event.commits[0].message, '[skip ci]')"
+    if: "!contains(github.event.commits[0].message, '[skip ci]') && github.ref_name != 'linux'"
     needs: [compute-version]
     env:
       VPK_CHANNEL: ${{ github.ref_name == 'master' && 'win' || 'win-preview' }}
@@ -69,8 +69,7 @@ jobs:
       - run: dotnet restore CringeBootstrap/CringeBootstrap.csproj --locked-mode -r win-x64
         name: Restore Project
 
-      - run: dotnet publish -c Release -o ./pub CringeBootstrap/CringeBootstrap.csproj --no-restore -p:Version="${{ needs.compute-version.outputs.version }}" -r win-x64 --no-self-contained
-        id: publish
+      - run: dotnet publish -c Release -o ./pub CringeBootstrap/CringeBootstrap.csproj --no-restore -p:Version="${{ needs.compute-version.outputs.version }}" -r win-x64 --no-self-contained -f net10.0-windows10.0.19041.0
         name: Build Project
 
       - run: dotnet tool install -g vpk
@@ -99,6 +98,88 @@ jobs:
           VPK_SHORTCUTS: 'None'
           VPK_EXCLUDE: ''
           
+      - run: ~/.dotnet/tools/vpk upload s3 -o $VPK_OUTPUT_DIR --bucket $VPK_BUCKET --endpoint $VPK_ENDPOINT
+        name: Upload new release
+        env:
+          VPK_KEY_ID: ${{ secrets.S3_KEY_ID }}
+          VPK_SECRET: ${{ secrets.S3_SECRET }}
+          VPK_ENDPOINT: ${{ secrets.S3_ENDPOINT }}
+          VPK_BUCKET: ${{ secrets.S3_BUCKET }}
+          VPK_PREFIX: CringeLauncher
+          VPK_KEEP_MAX_RELEASES: 15
+
+      - run: ~/.dotnet/tools/vpk upload s3 -o $VPK_OUTPUT_DIR --bucket $VPK_BUCKET --endpoint $VPK_ENDPOINT
+        name: Upload new release to mirror
+        env:
+          VPK_KEY_ID: ${{ secrets.MIRROR_S3_KEY_ID }}
+          VPK_SECRET: ${{ secrets.MIRROR_S3_SECRET }}
+          VPK_ENDPOINT: ${{ secrets.MIRROR_S3_ENDPOINT }}
+          VPK_BUCKET: ${{ secrets.MIRROR_S3_BUCKET }}
+          VPK_KEEP_MAX_RELEASES: 15
+  
+  build-linux:
+    name: Build Linux
+    runs-on: ubuntu-latest
+    if: "!contains(github.event.commits[0].message, '[skip ci]') && github.ref_name == 'linux'"
+    needs: [compute-version]
+    env:
+      VPK_CHANNEL: linux
+      VPK_OUTPUT_DIR: Releases
+    steps:
+      - uses: actions/checkout@master
+
+      - uses: actions/setup-dotnet@v5
+        
+      - name: Download ProjectNova
+        run: |
+          curl -LOH 'Authorization: token ${{ secrets.GITHUB_TOKEN }}' https://git.zznty.ru/nova/ProjectNova/releases/download/latest/nova.tar.xz
+          mkdir -p CringeLauncher.AppDir/usr
+          tar -pxf nova.tar.xz -C CringeLauncher.AppDir/usr
+          rm nova.tar.xz
+
+      - run: dotnet restore CringeBootstrap/CringeBootstrap.csproj --locked-mode
+        name: Restore Project
+        
+      - run: dotnet publish CringeBootstrap/CringeBootstrap.csproj -c Release -r linux-x64 -o ./CringeLauncher.AppDir/usr/share/CringeLauncher --no-self-contained -f net10.0
+        name: Publish Project
+    
+      - run: |
+          ln -s ../share/CringeLauncher/CringeBootstrap ./CringeLauncher.AppDir/usr/bin/CringeBootstrap
+          ln -s ./usr/share/CringeLauncher/Resources/splash.png ./CringeLauncher.AppDir/CringeLauncher.png
+          ln -s ./usr/share/CringeLauncher/CringeLauncher.desktop ./CringeLauncher.AppDir/CringeLauncher.desktop
+          curl -LO https://dot.net/v1/dotnet-install.sh
+          chmod +x dotnet-install.sh
+          ./dotnet-install.sh --install-dir ./CringeLauncher.AppDir/usr/share/dotnet --channel 10.0 --runtime dotnet
+          ln -s ../share/dotnet/dotnet ./CringeLauncher.AppDir/usr/bin/dotnet
+          rm dotnet-install.sh
+        name: Prepare AppDir
+
+      - run: dotnet tool install -g vpk
+        name: Install VPK
+
+      - run: ~/.dotnet/tools/vpk download s3 --bucket $VPK_BUCKET --endpoint $VPK_ENDPOINT
+        name: Download previous release
+        env:
+          VPK_KEY_ID: ${{ secrets.S3_KEY_ID }}
+          VPK_SECRET: ${{ secrets.S3_SECRET }}
+          VPK_ENDPOINT: ${{ secrets.S3_ENDPOINT }}
+          VPK_BUCKET: ${{ secrets.S3_BUCKET }}
+          VPK_PREFIX: CringeLauncher
+          
+      - run: ~/.dotnet/tools/vpk pack -u $VPK_PACK_ID -v $VPK_PACK_VERSION -p $VPK_PACK_DIR
+        name: Pack Project
+        env:
+          VPK_RUNTIME: linux-x64
+          VPK_PACK_ID: CringeLauncher
+          VPK_PACK_VERSION: ${{ needs.compute-version.outputs.version }}
+          VPK_PACK_AUTHORS: zznty
+          VPK_PACK_TITLE: SE Cringe Launcher
+          VPK_PACK_DIR: ./CringeLauncher.AppDir
+          VPK_MAIN_EXE: CringeBootstrap
+          VPK_NO_PORTABLE: true
+          VPK_SHORTCUTS: 'None'
+          VPK_EXCLUDE: ''
+
       - run: ~/.dotnet/tools/vpk upload s3 -o $VPK_OUTPUT_DIR --bucket $VPK_BUCKET --endpoint $VPK_ENDPOINT
         name: Upload new release
         env:

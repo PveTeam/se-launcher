@@ -7,12 +7,17 @@ using CringeLauncher.Utils;
 using SharpDX;
 using SharpDX.D3DCompiler;
 using SharpDX.Direct3D;
-using Silk.NET.Core.Native;
 
 namespace CringeLauncher.Platform.Xplat;
 
 internal static unsafe partial class ShaderCompilerInterface
 {
+    [StructLayout(LayoutKind.Sequential)]
+    private struct D3DShaderMacro
+    {
+        public byte* Name, Definition;
+    }
+    
     public static string Preprocess(string shaderSource, string sourceName, ShaderMacro[] macros, IDxcIncludeProvider? includeProvider)
     {
         var pDefines = stackalloc D3DShaderMacro[macros.Length + 1];

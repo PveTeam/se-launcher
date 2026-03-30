@@ -1,13 +1,18 @@
 #if !WINDOWS
 using System.Collections.Concurrent;
+using System.Runtime.InteropServices.Marshalling;
 using System.Runtime.Versioning;
+using System.Text;
 using NLog;
 using SharpDX.Direct3D;
 using SharpDX.Direct3D11;
 using SharpDX.DXGI;
-using Silk.NET.GLFW;
+using Silk.NET.Core;
+using Silk.NET.SDL;
 using D3D11Device = SharpDX.Direct3D11.Device;
 using Format = SharpDX.DXGI.Format;
+using Point = System.Drawing.Point;
+using Thread = System.Threading.Thread;
 
 namespace CringeLauncher.Render.Xplat;
 
@@ -15,10 +20,11 @@ namespace CringeLauncher.Render.Xplat;
 internal unsafe class EarlyWindow : IEarlyWindow
 {
     private static readonly Logger Log = LogManager.GetCurrentClassLogger();
-    private WindowHandle* _handle;
+    private WindowHandle _handle;
+    public uint WindowId { get; private set; }
     private readonly Thread _ownerThread = Thread.CurrentThread;
     private readonly ConcurrentQueue<PendingInvocation> _invokeQueue = new();
-    private readonly IRenderLoop _renderLoop;
+    private readonly SdlRenderLoop _renderLoop;
     private Size? _newSize;
     private D3D11Device? _device;
     private SwapChain? _swapChain;
@@ -26,7 +32,7 @@ internal unsafe class EarlyWindow : IEarlyWindow
 
     public EarlyWindow()
     {
-        _renderLoop = new GlfwRenderLoop(this);
+        _renderLoop = new();
         _guiHandler = (XplatImGuiHandler)ImGuiHandler.Instance!;
     }
 
@@ -36,9 +42,10 @@ internal unsafe class EarlyWindow : IEarlyWindow
     {
         ObjectDisposedException.ThrowIf(IsDisposed, this);
         IsDisposed = true;
-        if (_handle != null) 
-            GlfwProvider.GLFW.Value.DestroyWindow(_handle);
-        _handle = null;
+        if (_handle != default) 
+            Sdl.DestroyWindow(_handle);
+        _handle = default;
+        WindowId = 0;
     }
 
     public WindowState State { get; set; } = WindowState.Maximized;
@@ -46,7 +53,7 @@ internal unsafe class EarlyWindow : IEarlyWindow
     public D3D11Device? DeviceInstance => _device;
     public SwapChain? SwapChainInstance => _swapChain;
     public VRageWindowSurrogate Surrogate => field ??= new(this, _renderLoop);
-    public nint Handle => (nint)_handle;
+    public nint Handle => (nint)_handle.Handle;
     public bool OwnsSwapChain { get; set; } = true;
     public Point LastMousePosition { get; set; }
     public Rectangle ClientRectangle { get; private set; }
@@ -67,19 +74,19 @@ internal unsafe class EarlyWindow : IEarlyWindow
             void Do()
             {
                 if (field)
-                    GlfwProvider.GLFW.Value.ShowWindow(_handle);
+                    Sdl.ShowWindow(_handle);
                 else
-                    GlfwProvider.GLFW.Value.HideWindow(_handle);
+                    Sdl.HideWindow(_handle);
             }
         }
     }
 
-    public bool IsHandleCreated => _handle is not null;
+    public bool IsHandleCreated => _handle.Handle is not null;
     public bool IsDisposed { get; private set; }
 
     public string ClipboardText
     {
-        get => GlfwProvider.GLFW.Value.GetClipboardString(_handle);
+        get => Utf8StringMarshaller.ConvertToManaged((byte*)Sdl.GetClipboardText().Native) ?? string.Empty;
         set
         {
             if (InvokeRequired)
@@ -87,7 +94,7 @@ internal unsafe class EarlyWindow : IEarlyWindow
             else
                 Do();
 
-            void Do() => GlfwProvider.GLFW.Value.SetClipboardString(_handle, value);
+            void Do() => Sdl.SetClipboardText(value);
         }
     }
 
@@ -136,7 +143,7 @@ internal unsafe class EarlyWindow : IEarlyWindow
         else
             Do();
 
-        void Do() => GlfwProvider.GLFW.Value.SetWindowShouldClose(_handle, true);
+        void Do() => _renderLoop.Dispose();
     }
 
     public void Activate()
@@ -157,8 +164,7 @@ internal unsafe class EarlyWindow : IEarlyWindow
 
         void Do()
         {
-            GlfwProvider.GLFW.Value.ShowWindow(_handle);
-            GlfwProvider.GLFW.Value.FocusWindow(_handle);
+            Sdl.ShowWindow(_handle);
         }
     }
 
@@ -169,13 +175,16 @@ internal unsafe class EarlyWindow : IEarlyWindow
         else
             Do();
 
-        void Do() => GlfwProvider.GLFW.Value.HideWindow(_handle);
+        void Do() => Sdl.HideWindow(_handle);
     }
 
     public void DoEvents()
     {
-        var api = GlfwProvider.GLFW.Value;
-        api.PollEvents();
+        Event @event = default;
+        while (Sdl.PollEvent(&@event) != 0)
+        {
+            DispatchEvent(@event);
+        }
         while (_invokeQueue.TryDequeue(out var pendingInvocation))
         {
             try
@@ -185,14 +194,95 @@ internal unsafe class EarlyWindow : IEarlyWindow
             catch (Exception e)
             {
                 Log.Fatal(e, "Exception in dispatcher invocation");
-                api.SetWindowShouldClose(_handle, true);
+                var closeEvent = new Event
+                {
+                    Window =
+                    {
+                        Type = EventType.WindowCloseRequested,
+                        WindowID = WindowId
+                    }
+                };
+                Sdl.PushEvent(&closeEvent);
                 break;
             }
             pendingInvocation.ResetEvent.Set();
         }
+    }
 
-        api.GetCursorPos(_handle, out var xPos, out var yPos);
-        LastMousePosition = new((int)Math.Floor(xPos), (int)Math.Floor(yPos));
+    private void DispatchEvent(in Event @event)
+    {
+        switch (@event.Type)
+        {
+            case (uint)EventType.MouseMotion when @event.Motion.WindowID == WindowId:
+                float x;
+                float y;
+                if (Sdl.GetWindowRelativeMouseMode(_handle))
+                {
+                    float xDelta = 0;
+                    float yDelta = 0;
+                    Sdl.GetRelativeMouseState(&xDelta, &yDelta);
+                    x = LastMousePosition.X + xDelta;
+                    y = LastMousePosition.Y + yDelta;
+                }
+                else
+                {
+                    x = @event.Motion.X;
+                    y = @event.Motion.Y;
+                }
+                LastMousePosition = new((int)Math.Floor(x), (int)Math.Floor(y));
+                break;
+            case (uint)EventType.WindowPixelSizeChanged when @event.Window.WindowID == WindowId:
+            {
+                var width = @event.Window.Data1;
+                var height = @event.Window.Data2;
+                ClientSize = new(width, height);
+                ClientRectangle = ClientRectangle with
+                {
+                    Width = width,
+                    Height = height
+                };
+                Resize?.Invoke(this, EventArgs.Empty);
+                _newSize = new(width, height);
+                break;
+            }
+            case (uint)EventType.WindowFocusGained when @event.Window.WindowID == WindowId:
+                GotFocus?.Invoke(this, EventArgs.Empty);
+                break;
+            case (uint)EventType.WindowFocusLost when @event.Window.WindowID == WindowId:
+                LostFocus?.Invoke(this, EventArgs.Empty);
+                break;
+            case (uint)EventType.WindowMoved when @event.Window.WindowID == WindowId:
+                ClientRectangle = ClientRectangle with
+                {
+                    X = @event.Window.Data1,
+                    Y = @event.Window.Data2
+                };
+                break;
+            case (uint)EventType.TextInput when @event.Text.WindowID == WindowId:
+            {
+                var s = Utf8StringMarshaller.ConvertToManaged((byte*)@event.Text.Text);
+                if (s is not null)
+                    foreach (var c in s)
+                        KeyPress?.Invoke(this, new(c));
+
+                break;
+            }
+            case (uint)EventType.WindowCloseRequested when @event.Window.WindowID == WindowId:
+            {
+                var args = new ClosingEventArgs(true);
+                Closing?.Invoke(this, args);
+                if (!args.Cancel)
+                    _renderLoop.Dispose();
+                break;
+            }
+        }
+        
+        if (!_guiHandler.BlockKeys)
+        {
+            Event?.Invoke(this, @event);
+        }
+        
+        _guiHandler.DispatchEvent(@event);
     }
 
     public void Invoke(Action action)
@@ -204,14 +294,18 @@ internal unsafe class EarlyWindow : IEarlyWindow
 
     public Rectangle CursorClip
     {
-        get =>
-            (CursorModeValue)GlfwProvider.GLFW.Value.GetInputMode(_handle, CursorStateAttribute.Cursor) ==
-            CursorModeValue.CursorDisabled
-                ? Rectangle.Empty
-                : ClientRectangle;
+        get => Sdl.GetWindowMouseRect(_handle).AsRectangle();
         set
         {
-            // todo cursor captured?
+            // breaks relative mode
+            /*var rect = new Rect
+            {
+                X = value.X,
+                Y = value.Y,
+                W = value.Width,
+                H = value.Height
+            };
+            Sdl.SetWindowMouseRect(_handle, &rect);*/
         }
     }
     
@@ -222,7 +316,7 @@ internal unsafe class EarlyWindow : IEarlyWindow
         else
             Do();
 
-        void Do() => GlfwProvider.GLFW.Value.SetInputMode(_handle, CursorStateAttribute.Cursor, CursorModeValue.CursorNormal);
+        void Do() => Sdl.SetWindowRelativeMouseMode(_handle, false);
     }
 
     public void HideCursor()
@@ -232,12 +326,15 @@ internal unsafe class EarlyWindow : IEarlyWindow
         else
             Do();
 
-        void Do() => GlfwProvider.GLFW.Value.SetInputMode(_handle, CursorStateAttribute.Cursor, CursorModeValue.CursorDisabled);
+        void Do()
+        {
+            Sdl.SetWindowRelativeMouseMode(_handle, true);
+        }
     }
 
     public void ConfigureComposition(bool transparent = true)
     {
-        Invoke(() => GlfwProvider.GLFW.Value.SetWindowOpacity(_handle, transparent ? 0 : 1));
+        Invoke(() => Sdl.SetWindowOpacity(_handle, transparent ? 0 : 1));
     }
 
     public void DisableCrop()
@@ -250,13 +347,12 @@ internal unsafe class EarlyWindow : IEarlyWindow
         Size? windowedClientSize = null)
     {
         CurrentMode = mode;
-        var api = GlfwProvider.GLFW.Value;
         
         if (CurrentMode == FullScreenMode.Windowed)
         {
-            api.SetWindowAttrib(_handle, WindowAttributeSetter.Floating, false);
-            api.SetWindowAttrib(_handle, WindowAttributeSetter.Decorated, true);
-            api.RestoreWindow(_handle);
+            Sdl.SetWindowAlwaysOnTop(_handle, false);
+            Sdl.SetWindowBordered(_handle, true);
+            Sdl.RestoreWindow(_handle);
             if (clientBounds.HasValue && windowedClientSize.HasValue)
             {
                 var center = clientBounds.Value.Size / 2;
@@ -265,8 +361,8 @@ internal unsafe class EarlyWindow : IEarlyWindow
                         new(center.Width - windowedClientSize.Value.Width / 2,
                             center.Height - windowedClientSize.Value.Height / 2), windowedClientSize.Value);
                 ClientSize = windowedClientSize.Value;
-                api.SetWindowPos(_handle, ClientRectangle.X, ClientRectangle.Y);
-                api.SetWindowSize(_handle, ClientSize.Width, ClientSize.Height);
+                Sdl.SetWindowPosition(_handle, ClientRectangle.X, ClientRectangle.Y);
+                Sdl.SetWindowSize(_handle, ClientSize.Width, ClientSize.Height);
             }
             State = WindowState.Normal;
             return;
@@ -274,56 +370,44 @@ internal unsafe class EarlyWindow : IEarlyWindow
         
         State = WindowState.Maximized;
         
-        api.SetWindowAttrib(_handle, WindowAttributeSetter.Decorated, false);
+        Sdl.SetWindowBordered(_handle, false);
         if (!clientBounds.HasValue)
         {
-            api.MaximizeWindow(_handle);
+            Sdl.MaximizeWindow(_handle);
             return;
         }
         
         var bounds = clientBounds.Value;
-        api.SetWindowPos(_handle, bounds.X, bounds.Y);
-        api.SetWindowSize(_handle, bounds.Width, bounds.Height);
+        Sdl.SetWindowPosition(_handle, bounds.X, bounds.Y);
+        Sdl.SetWindowSize(_handle, bounds.Width, bounds.Height);
         
-        api.RestoreWindow(_handle);
-        api.MaximizeWindow(_handle);
+        Sdl.RestoreWindow(_handle);
+        Sdl.MaximizeWindow(_handle);
     }
 
     private void CreateHandle()
     {
-        Log.Debug("Glfw init");
-        var api = GlfwProvider.GLFW.Value;
-        
-        api.WindowHint(WindowHintBool.Resizable, false);
-        api.WindowHint(WindowHintBool.CenterCursor, false);
-        api.WindowHint(WindowHintBool.FocusOnShow, false);
-        api.WindowHint(WindowHintBool.Focused, false);
-        api.WindowHint(WindowHintBool.Floating, true);
-        api.WindowHint(WindowHintBool.Decorated, false);
-        api.WindowHint(WindowHintBool.Maximized, true);
-        api.WindowHint(WindowHintBool.TransparentFramebuffer, true);
-        api.WindowHint(WindowHintClientApi.ClientApi, ClientApi.NoApi);
+        Log.Debug("Sdl init");
+        Sdl.SetAppMetadata("CringeLauncher", default, "com.selauncher.cringelauncher");
+        Sdl.SetAppMetadataProperty(Sdl.PropAppMetadataCreatorString, "zznty");
+        Sdl.Init(Sdl.InitAudio | Sdl.InitVideo | Sdl.InitGamepad);
 
-        var monitor = api.GetPrimaryMonitor();
-        var videoMode = api.GetVideoMode(monitor);
-        
-        api.WindowHint(WindowHintInt.RefreshRate, videoMode->RefreshRate);
+        var monitor = Sdl.GetPrimaryDisplay();
+        var videoMode = Sdl.GetCurrentDisplayMode(monitor);
         
         Log.Debug("Create window");
-        _handle = api.CreateWindow(videoMode->Width, videoMode->Height, Title, null, null);
+        _handle = Sdl.CreateWindow(Title, videoMode.Handle.W, videoMode.Handle.H,
+            Sdl.WindowHidden | Sdl.WindowBorderless | Sdl.WindowMaximized | Sdl.WindowVulkan |
+            Sdl.WindowHighPixelDensity | Sdl.WindowTransparent | Sdl.WindowAlwaysOnTop);
+        WindowId = Sdl.GetWindowID(_handle);
 
-        api.SetFramebufferSizeCallback(_handle, FramebufferSizeCallback);
-        api.SetWindowPosCallback(_handle, WindowPosCallback);
-        api.SetWindowCloseCallback(_handle, WindowCloseCallback);
-        api.SetWindowFocusCallback(_handle, WindowFocusCallback);
-        api.SetCharCallback(_handle, WindowCharCallback);
-        
-        if (api.RawMouseMotionSupported())
-            api.SetInputMode(_handle, CursorStateAttribute.RawMouseMotion, true);
-        
-        api.GetFramebufferSize(_handle, out var width, out var height);
+        var width = 0;
+        var height = 0;
+        Sdl.GetWindowSizeInPixels(_handle, &width, &height);
         ClientSize = new(width, height);
-        api.GetWindowPos(_handle, out var x, out var y);
+        var x = 0;
+        var y = 0;
+        Sdl.GetWindowPosition(_handle, &x, &y);
         ClientRectangle = new(x, y, width, height);
         
         CreateD3D11Device();
@@ -360,63 +444,33 @@ internal unsafe class EarlyWindow : IEarlyWindow
         _guiHandler.Init(_handle, _device!, _device!.ImmediateContext);
     }
 
-    private void WindowCharCallback(WindowHandle* window, uint codepoint)
-    {
-        KeyPress?.Invoke(this, new((char)codepoint));
-    }
-
-    private void WindowFocusCallback(WindowHandle* window, bool focused)
-    {
-        if (focused)
-            GotFocus?.Invoke(this, EventArgs.Empty);
-        else
-            LostFocus?.Invoke(this, EventArgs.Empty);
-    }
-
-    private void WindowCloseCallback(WindowHandle* window)
-    {
-        var args = new ClosingEventArgs(true);
-        Closing?.Invoke(this, args);
-        if (args.Cancel)
-            GlfwProvider.GLFW.Value.SetWindowShouldClose(window, false);
-    }
-
-    private void WindowPosCallback(WindowHandle* window, int x, int y)
-    {
-        ClientRectangle = ClientRectangle with
-        {
-            X = x,
-            Y = y
-        };
-    }
-
-    private void FramebufferSizeCallback(WindowHandle* window, int width, int height)
-    {
-        ClientSize = new(width, height);
-        ClientRectangle = ClientRectangle with
-        {
-            Width = width,
-            Height = height
-        };
-        Resize?.Invoke(this, EventArgs.Empty);
-        _newSize = new(width, height);
-    }
-
     public event EarlyWindowEventHandler<ClosingEventArgs>? Closing;
     public event EarlyWindowEventHandler? GotFocus;
     public event EarlyWindowEventHandler? LostFocus;
     public event EarlyWindowEventHandler? Resize;
     public event EarlyWindowEventHandler<KeyPressEventArgs>? KeyPress;
+    
+    public event EarlyWindowEventHandler<Event>? Event;
 
-    private class GlfwRenderLoop(EarlyWindow window) : IRenderLoop
+    private class SdlRenderLoop : IRenderLoop
     {
+        private bool _shouldClose;
         public void Dispose()
         {
+            _shouldClose = true;
         }
 
-        public bool NextFrame() => !GlfwProvider.GLFW.Value.WindowShouldClose(window._handle);
+        public bool NextFrame() => !_shouldClose;
     }
 
     private record PendingInvocation(Action Callback, ManualResetEventSlim ResetEvent);
+}
+
+internal static class SdlExtensions
+{
+    extension(Ptr<Rect> ptr)
+    {
+        public Rectangle AsRectangle() => new(ptr.Handle.X, ptr.Handle.Y, ptr.Handle.W, ptr.Handle.H);
+    }
 }
 #endif
