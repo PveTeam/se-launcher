@@ -16,10 +16,10 @@ internal static class ConsoleHandler
 
     public static void FreeConsole()
     {
-#if WINDOWS
         Console.SetOut(new StreamWriter(Stream.Null));
         Console.SetError(new StreamWriter(Stream.Null));
         Console.SetIn(new StreamReader(Stream.Null));
+#if WINDOWS
         PInvoke.FreeConsole();
 #endif
     }
@@ -36,6 +36,27 @@ internal static class ConsoleHandler
 
         var handle = PInvoke.CrtGetOsFileHandle(PInvoke.CrtGetFileDescriptor(redirectFile));
         PInvoke.SetStdHandle(STD_HANDLE.STD_ERROR_HANDLE, handle);
+#else
+        var fd = PInvoke.Open(redirectPath, PInvoke.O_WRONLY | PInvoke.O_CREAT | PInvoke.O_TRUNC, 644);
+        if (fd < 0)
+        {
+            Log.Error(PInvoke.GetExceptionForLastError(), "Failed to open stderr redirect file");
+            return;
+        }
+        
+        if (PInvoke.Dup2(fd, PInvoke.STDERR_FILENO) < 0)
+        {
+            Log.Error(PInvoke.GetExceptionForLastError(), "Failed to duplicate stderr file descriptor");
+        }
+        
+        if (PInvoke.Close(fd) < 0)
+        {
+            Log.Error(PInvoke.GetExceptionForLastError(), "Failed to close stderr file descriptor");
+        }
+        
+        // Console.SetError(
+        //     new StreamWriter(new FileStream(redirectPath, FileMode.Open, FileAccess.Write, FileShare.Write))
+        //         { AutoFlush = true });
 #endif
     }
 }

@@ -83,26 +83,30 @@ public partial class GameDirectoryAssemblyLoadContext : AssemblyLoadContext, ICo
             return base.LoadUnmanagedDll(unmanagedDllName);
 
 #if !WINDOWS
-        if (unmanagedDllName == Transformers.Impl.DllImportTransformer.EntrypointModuleName)
-            return LoadEntrypointLibrary();
+        switch (unmanagedDllName)
+        {
+            case Transformers.Impl.DllImportTransformer.EntrypointModuleName:
+                return LoadEntrypointLibrary();
+            case "c":
+                return NativeLibrary.Load(unmanagedDllName, typeof(object).Assembly, DllImportSearchPath.System32);
+        }
 #endif
 
-        // prefer System32 over ours
-        // avoid using _dir because it may be a crossgen directory without unmanaged assemblies
-        ReadOnlySpan<string> dirs =
-        [
+            // prefer System32 over ours
+            // avoid using _dir because it may be a crossgen directory without unmanaged assemblies
+            ReadOnlySpan<string> dirs =
+            [
+#if WINDOWS
             Environment.SystemDirectory,
-            _unmanagedAssembliesDir,
-            AppContext.BaseDirectory,
+#endif
+                _unmanagedAssembliesDir,
+                AppContext.BaseDirectory,
 #if !WINDOWS
-#if DEBUG
-            Path.Join(AppContext.BaseDirectory, "prefix", "lib"),
+                ..Environment.GetEnvironmentVariable("LD_LIBRARY_PATH") is { } ldPath
+                    ? ldPath.Split(Path.PathSeparator, StringSplitOptions.RemoveEmptyEntries)
+                    : [],
 #endif
-            ..Environment.GetEnvironmentVariable("LD_LIBRARY_PATH") is { } ldPath
-                ? ldPath.Split(Path.PathSeparator, StringSplitOptions.RemoveEmptyEntries)
-                : [],
-#endif
-        ];
+            ];
         foreach (var dir in dirs)
         {
             if (string.IsNullOrEmpty(dir)) continue;

@@ -1,6 +1,7 @@
 ﻿// ReSharper disable InconsistentNaming
 // ReSharper disable CheckNamespace
 
+using System.ComponentModel;
 using System.Runtime.InteropServices;
 using System.Runtime.InteropServices.Marshalling;
 using Windows.Win32.Foundation;
@@ -25,6 +26,31 @@ namespace Windows.Win32
         [LibraryImport(StdIoDll, EntryPoint = "_get_osfhandle")]
         [return: MarshalUsing(typeof(HandleMarshaller))]
         public static partial HANDLE CrtGetOsFileHandle(int fd);
+#else
+        public const int O_WRONLY = 0x01;
+        public const int O_CREAT = 0x40;
+        public const int O_TRUNC = 0x200;
+        
+        public const int STDERR_FILENO = 2;
+        private const string LibCName = "c";
+
+        [LibraryImport(LibCName, EntryPoint = "open", StringMarshalling = StringMarshalling.Utf8, SetLastError = true)]
+        public static partial int Open(string pathname, int flags, int mode);
+
+        [LibraryImport(LibCName, EntryPoint = "dup2", SetLastError = true)]
+        public static partial int Dup2(int oldfd, int newfd);
+
+        [LibraryImport(LibCName, EntryPoint = "close", SetLastError = true)]
+        public static partial int Close(int fd);
+
+        [LibraryImport(LibCName, EntryPoint = "strerror", StringMarshalling = StringMarshalling.Utf8)]
+        private static partial string StrError(int errnum);
+        
+        public static Exception? GetExceptionForLastError()
+        {
+            var error = Marshal.GetLastWin32Error();
+            return new Win32Exception(error, StrError(error));
+        }
 #endif
     }
 
