@@ -29,6 +29,7 @@ using System.Runtime.CompilerServices;
 using System.Runtime.Loader;
 using System.Security.Cryptography;
 using System.Text;
+using CringeLauncher.Platform.Xplat;
 using Microsoft.CodeAnalysis.Emit;
 using VRage;
 using VRage.Collections;
@@ -257,12 +258,12 @@ public static class ModScriptCompilerPatch
     }
 
     private static async Task<Assembly?> CompileAsync(AssemblyLoadContext context, MyApiTarget target,
-                                                      string assemblyName, IEnumerable<Script> scripts,
+                                                      string? assemblyName, IEnumerable<Script> scripts,
                                                       List<Message> messages, string? friendlyName, bool trackMemoryUsage = false,
                                                       bool enableDebugInformation = false)
     {
         friendlyName ??= "<No Name>";
-        var assemblyFileName = MyScriptCompiler.MakeAssemblyName(assemblyName);
+        var assemblyFileName = string.IsNullOrEmpty(assemblyName) ? "scripts.dll" : LauncherFileProvider.GetFileName(assemblyName);
         Func<CSharpCompilation, SyntaxTree, bool, SyntaxTree>? syntaxTreeInjector;
         DiagnosticAnalyzer? whitelistAnalyzer;
 
@@ -455,9 +456,11 @@ public static class ModScriptCompilerPatch
 
     private static async Task<Script> LoadModScript(Script script)
     {
-        var text = await File.ReadAllTextAsync(script.Code);
+        var path = script.Code;
+        LauncherFileProvider.Instance.NormalizePath(ref path);
+        var text = await File.ReadAllTextAsync(path);
 
-        foreach ((var old, var @new) in MyScriptManager.m_compatibilityChanges)
+        foreach (var (old, @new) in MyScriptManager.m_compatibilityChanges)
         {
             text = text.Replace(old, @new, StringComparison.Ordinal);
         }

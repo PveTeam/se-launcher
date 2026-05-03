@@ -28,7 +28,7 @@ public static class IntrospectionPatches
     [HarmonyPrefix, HarmonyPatch(typeof(Assembly), nameof(Assembly.GetTypes))]
     private static bool GetTypesPrefix(Assembly __instance, ref Type[] __result)
     {
-        if (AssemblyLoadContext.GetLoadContext(__instance) is ICoreLoadContext || __instance.FullName?.StartsWith("System.") == true)
+        if (AssemblyLoadContext.GetLoadContext(__instance) is ICoreLoadContext or ModAssemblyLoadContext || __instance.FullName?.StartsWith("System.") == true)
             return true;
 
         if (__instance.IsDynamic)

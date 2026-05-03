@@ -53,6 +53,8 @@
 		<Publicize Include="VRage.Scripting:VRage.Scripting.MyScriptCompiler" />
 		<Publicize Include="VRage.Library:ParallelTasks.PrioritizedScheduler+Worker" />
 		<Publicize Include="VRage.Audio:VRage.Audio.MyMusicState" />
+		<Publicize Include="VRage:VRage.Private.MyKeenUtils.FixedInvalidFileNameChars" />
+		<Publicize Include="VRage:VRage.Private.MyKeenUtils.FixedInvalidPathChars" />
 	</ItemGroup>
 
     <ItemGroup>

@@ -1,5 +1,6 @@
 ﻿using System.Collections.Concurrent;
 using System.Reflection;
+using System.Reflection.Emit;
 using HarmonyLib;
 using NLog;
 using Sandbox.Game.World;
@@ -32,8 +33,19 @@ internal static class ResourceFreePatch
             [typeof(string), typeof(FileMode)]);
         
         return new CodeMatcher(instructions)
+            .MatchStartForward(CodeMatch.WithOpcodes([OpCodes.Newobj]), CodeMatch.WithOpcodes([OpCodes.Throw]))
+            .Do(matcher =>
+            {
+                if (matcher.IsInvalid) return;
+                matcher.Set(OpCodes.Newobj,
+                        AccessTools.DeclaredConstructor(typeof(FileNotFoundException),
+                            [typeof(string), typeof(string)]))
+                    .Insert(new CodeInstruction(OpCodes.Ldstr, "File name contains invalid characters"),
+                        new CodeInstruction(OpCodes.Ldarg_1));
+            })
+            .Start()
             .SearchForward(b => b.Calls(readMethod) || b.Calls(writeMethod))
-            .Advance(1)
+            .Advance()
             .Insert(CodeInstruction.Call(typeof(ResourceFreePatch), nameof(Wrap)))
             .InstructionEnumeration();
     }

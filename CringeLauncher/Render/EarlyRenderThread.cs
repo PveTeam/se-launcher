@@ -1,5 +1,6 @@
 ﻿using System.Runtime.InteropServices;
 using CringeLauncher.Utils;
+using NLog;
 using Sandbox.Engine.Utils;
 using VRage;
 using VRage.Library.Utils;
@@ -9,6 +10,7 @@ namespace CringeLauncher.Render;
 
 internal class EarlyRenderThread : IDisposable
 {
+    private static readonly Logger Log = LogManager.GetCurrentClassLogger();
     private readonly bool _keepConsole;
     public IEarlyWindow? Window { get; private set; }
     private readonly ManualResetEventSlim _initEvent = new(false);
@@ -95,15 +97,25 @@ internal class EarlyRenderThread : IDisposable
         
         while (true)
         {
-            if (!_gameRendererInitialized)
+            try
             {
-                if (!Window.Frame()) break;
-                continue;
-            }
+                if (!_gameRendererInitialized)
+                {
+                    if (!Window.Frame()) break;
+                    continue;
+                }
 
-            if (!Surrogate.UpdateRenderThread()) break;
-            Window.DoEvents();
-            RenderFrame();
+                if (!Surrogate.UpdateRenderThread()) break;
+                Window.DoEvents();
+                RenderFrame();
+            }
+            catch (Exception e)
+            {
+                if (!Window.IsDisposed) 
+                    Log.Fatal(e, "Exception in render thread, aborting");
+
+                break;
+            }
         }
 
         if (_gameRendererInitialized) DisposeGameRenderer();
