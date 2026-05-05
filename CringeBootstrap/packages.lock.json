@@ -344,7 +344,7 @@
           "NLog": "[6.1.0, )",
           "Silk.NET.SDL": "[3.0.0-build1321.0, )",
           "Silk.NET.SDL.Native": "[3.2.4-build1321.0, )",
-          "SpaceEngineersDedicated.ReferenceAssemblies": "[1.208.15, )",
+          "SpaceEngineersDedicated.ReferenceAssemblies": "[1.209.20, )",
           "System.Formats.Nrbf": "[10.0.3, )",
           "System.Management": "[10.0.2, )",
           "System.Private.ServiceModel": "[4.10.3, )",
@@ -363,7 +363,7 @@
           "NuGet": "[1.0.0, )",
           "SharedCringe": "[1.0.0, )",
           "SixLabors.ImageSharp": "[4.0.0-compat, )",
-          "SpaceEngineersDedicated.ReferenceAssemblies": "[1.208.15, )",
+          "SpaceEngineersDedicated.ReferenceAssemblies": "[1.209.20, )",
           "Steamworks.NET": "[20.1.0, 20.1.0]",
           "dnlib": "[4.5.0, )"
         }
@@ -384,7 +384,7 @@
           "Lib.Harmony.Thin": "[2.4.2-torch, )",
           "MonoMod.Core": "[1.3.4, )",
           "NLog": "[6.1.0, )",
-          "SpaceEngineersDedicated.ReferenceAssemblies": "[1.208.15, )"
+          "SpaceEngineersDedicated.ReferenceAssemblies": "[1.209.20, )"
         }
       },
       "Autofac.Extensions.DependencyInjection": {
@@ -563,9 +563,9 @@
       },
       "SpaceEngineersDedicated.ReferenceAssemblies": {
         "type": "CentralTransitive",
-        "requested": "[1.208.15, )",
-        "resolved": "1.208.15",
-        "contentHash": "jEgwgGMhjm8bHfYdTdwq1XAvjraKV68f9+2/kYAAbbXwuR7Aw+2PuBUDR8p27Z9tNbdbiD0BpUDPKikdqLEQ/Q==",
+        "requested": "[1.209.20, )",
+        "resolved": "1.209.20",
+        "contentHash": "hb61T+ltycaxFJlsioHwmqMfZ+wZdTbIUZ5O5npef3xjGnw+dGk7M7vFoDdnxbrxYEyL5GPqiuT90AhOnc5efQ==",
         "dependencies": {
           "SharpDX": "4.2.0-keen-cringe",
           "protobuf-net": "1.0.0"
@@ -1056,7 +1056,7 @@
           "Microsoft.CodeAnalysis.CSharp": "[5.0.0, )",
           "Microsoft.Extensions.Http.Polly": "[10.0.2, )",
           "NLog": "[6.1.0, )",
-          "SpaceEngineersDedicated.ReferenceAssemblies": "[1.208.15, )",
+          "SpaceEngineersDedicated.ReferenceAssemblies": "[1.209.20, )",
           "System.Formats.Nrbf": "[10.0.3, )",
           "System.Management": "[10.0.2, )",
           "System.Private.ServiceModel": "[4.10.3, )",
@@ -1075,7 +1075,7 @@
           "NuGet": "[1.0.0, )",
           "SharedCringe": "[1.0.0, )",
           "SixLabors.ImageSharp": "[4.0.0-compat, )",
-          "SpaceEngineersDedicated.ReferenceAssemblies": "[1.208.15, )",
+          "SpaceEngineersDedicated.ReferenceAssemblies": "[1.209.20, )",
           "Steamworks.NET": "[20.1.0, 20.1.0]",
           "dnlib": "[4.5.0, )"
         }
@@ -1096,7 +1096,7 @@
           "Lib.Harmony.Thin": "[2.4.2-torch, )",
           "MonoMod.Core": "[1.3.4, )",
           "NLog": "[6.1.0, )",
-          "SpaceEngineersDedicated.ReferenceAssemblies": "[1.208.15, )"
+          "SpaceEngineersDedicated.ReferenceAssemblies": "[1.209.20, )"
         }
       },
       "Autofac.Extensions.DependencyInjection": {
@@ -1262,9 +1262,9 @@
       },
       "SpaceEngineersDedicated.ReferenceAssemblies": {
         "type": "CentralTransitive",
-        "requested": "[1.208.15, )",
-        "resolved": "1.208.15",
-        "contentHash": "jEgwgGMhjm8bHfYdTdwq1XAvjraKV68f9+2/kYAAbbXwuR7Aw+2PuBUDR8p27Z9tNbdbiD0BpUDPKikdqLEQ/Q==",
+        "requested": "[1.209.20, )",
+        "resolved": "1.209.20",
+        "contentHash": "hb61T+ltycaxFJlsioHwmqMfZ+wZdTbIUZ5O5npef3xjGnw+dGk7M7vFoDdnxbrxYEyL5GPqiuT90AhOnc5efQ==",
         "dependencies": {
           "SharpDX": "4.2.0-keen-cringe",
           "protobuf-net": "1.0.0"
