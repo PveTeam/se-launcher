@@ -8,7 +8,6 @@
         <LangVersion>preview</LangVersion>
         <TieredPGO>true</TieredPGO>
         <PublishReadyToRun>true</PublishReadyToRun>
-        <RestorePackagesWithLockFile>true</RestorePackagesWithLockFile>
         <EnableWindowsTargeting>true</EnableWindowsTargeting>
         
         <!-- Required for Serialization of List<MyGameInventoryItem> in VRage.GameServices.MyInventoryHelper -->

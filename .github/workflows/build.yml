@@ -66,10 +66,7 @@ jobs:
 
       - uses: actions/setup-dotnet@v5
 
-      - run: dotnet restore CringeBootstrap/CringeBootstrap.csproj --locked-mode -r win-x64
-        name: Restore Project
-
-      - run: dotnet publish -c Release -o ./pub CringeBootstrap/CringeBootstrap.csproj --no-restore -p:Version="${{ needs.compute-version.outputs.version }}" -r win-x64 --no-self-contained -f net10.0-windows10.0.19041.0
+      - run: dotnet publish -c Release -o ./pub CringeBootstrap/CringeBootstrap.csproj -p:Version="${{ needs.compute-version.outputs.version }}" -r win-x64 --no-self-contained -f net10.0-windows10.0.19041.0
         name: Build Project
 
       - run: dotnet tool install -g vpk
@@ -138,9 +135,6 @@ jobs:
           tar -pxf nova.tar.xz -C CringeLauncher.AppDir/usr
           tar -pxf jediterm.tar.xz -C CringeLauncher.AppDir/usr
           rm nova.tar.xz jediterm.tar.xz
-
-      - run: dotnet restore CringeBootstrap/CringeBootstrap.csproj --locked-mode
-        name: Restore Project
         
       - run: dotnet publish CringeBootstrap/CringeBootstrap.csproj -c Release -r linux-x64 -o ./CringeLauncher.AppDir/usr/share/CringeLauncher --no-self-contained -f net10.0
         name: Publish Project
@@ -155,6 +149,7 @@ jobs:
           ./dotnet-install.sh --install-dir ./CringeLauncher.AppDir/usr/share/dotnet --channel 10.0 --runtime dotnet
           ln -s ../share/dotnet/dotnet ./CringeLauncher.AppDir/usr/bin/dotnet
           rm dotnet-install.sh
+          sudo apt install -y squashfs-tools
         name: Prepare AppDir
 
       - run: dotnet tool install -g vpk
