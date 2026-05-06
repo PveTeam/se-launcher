@@ -45,7 +45,18 @@ public class CrashReportWriter(CrashInformation information, CrashProcessInforma
             writer.WriteLine($"No exception information available. Process disappeared? ExitCode: 0x{processInformation.ExitCode:x8}");
         }
 
-        var stdErrContent = File.Exists(processInformation.StderrPath) ? File.ReadAllText(processInformation.StderrPath) : null;
+        string? stdErrContent;
+        if (File.Exists(processInformation.StderrPath))
+            try
+            {
+                stdErrContent = File.ReadAllText(processInformation.StderrPath);
+            }
+            catch (Exception e)
+            {
+                stdErrContent = $"Failed to read content{Environment.NewLine}{e}";
+            }
+        else
+            stdErrContent = null;
         if (!string.IsNullOrEmpty(stdErrContent) && stdErrContent != Environment.NewLine)
         {
             writer.WriteLine();

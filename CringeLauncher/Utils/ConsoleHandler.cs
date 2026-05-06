@@ -1,5 +1,6 @@
 ﻿using System.Diagnostics;
 using Windows.Win32;
+using Windows.Win32.Foundation;
 using Windows.Win32.System.Console;
 using NLog;
 
@@ -37,7 +38,8 @@ internal static class ConsoleHandler
         var handle = PInvoke.CrtGetOsFileHandle(PInvoke.CrtGetFileDescriptor(redirectFile));
         PInvoke.SetStdHandle(STD_HANDLE.STD_ERROR_HANDLE, handle);
 #else
-        var fd = PInvoke.Open(redirectPath, PInvoke.O_WRONLY | PInvoke.O_CREAT | PInvoke.O_TRUNC, 644);
+        var fd = PInvoke.Open(redirectPath, PInvoke.O_WRONLY | PInvoke.O_CREAT | PInvoke.O_TRUNC,
+            Permissions.OwnerWrite | Permissions.OwnerRead | Permissions.GroupRead | Permissions.OthersRead);
         if (fd < 0)
         {
             Log.Error(PInvoke.GetExceptionForLastError(), "Failed to open stderr redirect file");
