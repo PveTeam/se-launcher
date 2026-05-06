@@ -149,7 +149,7 @@ jobs:
           ./dotnet-install.sh --install-dir ./CringeLauncher.AppDir/usr/share/dotnet --channel 10.0 --runtime dotnet
           ln -s ../share/dotnet/dotnet ./CringeLauncher.AppDir/usr/bin/dotnet
           rm dotnet-install.sh
-          sudo apt install -y squashfs-tools
+          sudo apt update && sudo apt install -y squashfs-tools
         name: Prepare AppDir
 
       - run: dotnet tool install -g vpk
