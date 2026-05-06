@@ -144,6 +144,7 @@ jobs:
           ln -s ./usr/share/CringeLauncher/Resources/splash.png ./CringeLauncher.AppDir/CringeLauncher.png
           ln -s ./usr/share/CringeLauncher/CringeLauncher.desktop ./CringeLauncher.AppDir/CringeLauncher.desktop
           cp ./CringeBootstrap/Properties/AppRun ./CringeLauncher.AppDir/AppRun
+          curl -Lo ./CringeLauncher.AppDir/usr/lib/d3dcompiler_47.dll https://github.com/mozilla/fxc2/raw/refs/heads/master/dll/d3dcompiler_47.dll
           curl -LO https://dot.net/v1/dotnet-install.sh
           chmod +x dotnet-install.sh
           ./dotnet-install.sh --install-dir ./CringeLauncher.AppDir/usr/share/dotnet --channel 10.0 --runtime dotnet
