@@ -334,7 +334,12 @@ internal unsafe class EarlyWindow : IEarlyWindow
 
     public void ConfigureComposition(bool transparent = true)
     {
-        Invoke(() => Sdl.SetWindowOpacity(_handle, transparent ? 0 : 1));
+        Invoke(() =>
+        {
+            Sdl.SetWindowOpacity(_handle, transparent ? 0 : 1);
+            if (!Sdl.TextInputActive(_handle))
+                Sdl.StartTextInput(_handle);
+        });
     }
 
     public void DisableCrop()

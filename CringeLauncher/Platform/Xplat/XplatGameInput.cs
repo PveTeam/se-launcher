@@ -51,6 +51,9 @@ internal unsafe class XplatGameInput : IVRageInput2
                         _keyboardBuffer.SetBit((byte)MyKeys.Control, value);
                         break;
                 }
+                
+                if (key is Scancode.ScancodeBackspace && value)
+                    _window.Surrogate.AddChar('\b');
             }
         }
         else if (e.Wheel.Type == EventType.MouseWheel && e.Wheel.WindowID == _window.WindowId)
