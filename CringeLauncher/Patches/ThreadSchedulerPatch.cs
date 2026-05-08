@@ -37,6 +37,21 @@ internal static class ThreadSchedulerPatch
     }
 }
 
+[HarmonyPatch(typeof(MyEntityCreationThread), nameof(MyEntityCreationThread.Dispose))]
+internal static class EntityThreadDisposePatch
+{
+    private static IEnumerable<CodeInstruction> Transpiler(IEnumerable<CodeInstruction> instructions)
+    {
+        return new CodeMatcher(instructions)
+            .MatchStartForward(CodeMatch.IsLdarg(0),
+                CodeMatch.LoadsField(AccessTools.DeclaredField(typeof(MyEntityCreationThread), "m_thread")),
+                CodeMatch.Calls(AccessTools.DeclaredMethod(typeof(Thread),
+                    nameof(Thread.Join), [])))
+            .RemoveInstructions(3)
+            .InstructionEnumeration();
+    }
+}
+
 [HarmonyPatch]
 internal static class ThreadProcPatch
 {

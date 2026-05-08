@@ -15,7 +15,7 @@
     },
     "CringeBootstrap CrashPad": {
       "commandName": "Project",
-      "commandLineArgs": "\"/home/zznty/.steam/steam/steamapps/common/SpaceEngineers/Bin64/SpaceEngineers.exe\" --skip-crossgen",
+      "commandLineArgs": "\"/home/zznty/.steam/steam/steamapps/common/SpaceEngineers/Bin64/SpaceEngineers.exe\" --skip-crossgen --keep-console",
       "environmentVariables": {
         "DOTNET_DbgEnableMiniDump": "1",
         "DOTNET_DbgMiniDumpType": "3",
