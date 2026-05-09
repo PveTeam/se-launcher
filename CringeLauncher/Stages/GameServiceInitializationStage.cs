@@ -23,16 +23,6 @@ public class GameServiceInitializationStage(bool isDedicated) : ILoadingStage
         
         progress.Report("Steam game service initialization");
         
-        if (isDedicated)
-        {
-#if WINDOWS
-            Environment.SetEnvironmentVariable("SteamAppId", LauncherConstants.AppId.ToString());
-#else
-            // steam doesn't like environment variable on unixes for some reason
-            File.WriteAllText("steam_appid.txt", LauncherConstants.AppId.ToString());
-#endif
-        }
-        
         var steamGameService = MySteamGameService.Create(isDedicated, LauncherConstants.AppId);
         MyServiceManager.Instance.AddService(steamGameService);
 

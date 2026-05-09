@@ -6,4 +6,39 @@ this_dir="$(dirname -- "$(readlink -f -- "$0")")"
 export PATH="$this_dir"/usr/bin:"$PATH"
 export DOTNET_ROOT="$this_dir"/usr/share/dotnet
 export LD_LIBRARY_PATH="$this_dir"/usr/lib:"$LD_LIBRARY_PATH"
-exec JediTerm CringeBootstrap "$@"
+
+_dedicated=0
+_instance="instance"
+
+# Parse arguments without destroying $@ so it can be passed to exec later
+_pos=1
+while [ "$_pos" -le "$#" ]; do
+  eval "_arg=\${$_pos}"
+  case "$_arg" in
+    --dedicated) _dedicated=1 ;;
+    --instance=*) _instance="${_arg#--instance=}" ;;
+    --instance)
+      _next=$(( _pos + 1 ))
+      if [ "$_next" -le "$#" ]; then
+        eval "_instance=\${$_next}"
+      fi
+      ;;
+  esac
+  _pos=$(( _pos + 1 ))
+done
+
+if [ "$_dedicated" -eq 1 ]; then
+  export DOTNET_USERDEV_RUNDIR="$(realpath "$_instance")"
+
+  echo "Downloading game files via DepotDownloader..."
+  dotnet "$this_dir"/usr/share/DepotDownloader/DepotDownloader.dll -app 298740 -depot 298741 -os windows -dir game || {
+    echo "Error: DepotDownloader failed." >&2
+    exit 1
+  }
+  
+  mkdir -p "$DOTNET_USERDEV_RUNDIR/SpaceEngineers/Saves/World"
+
+  exec CringeBootstrap "$(realpath "./game/DedicatedServer64/SpaceEngineers.exe")" "$@"
+else
+  exec JediTerm CringeBootstrap "$@"
+fi

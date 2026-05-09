@@ -1,7 +1,7 @@
-﻿using System.Diagnostics;
-using System.Diagnostics.CodeAnalysis;
+﻿using System.Diagnostics.CodeAnalysis;
 using System.Net;
 using System.Text.Json;
+using CliWrap;
 using CringeBootstrap.Abstractions;
 using CringeLauncher.Render;
 using CringeLauncher.Utils;
@@ -18,16 +18,20 @@ public sealed class CrashPadLauncher : ICorePlugin
 
     private static readonly Logger Log = LogManager.GetCurrentClassLogger();
 
-    private Process? _actualHostProcess;
+    private CommandTask<CommandResult>? _actualHostProcess;
     private string? _stderrPath;
     private string? _dumpPath;
     private string? _dumpLogPath;
 
     private readonly string _appdataDir = Path.Join(
+        Environment.GetEnvironmentVariable("DOTNET_USERDEV_RUNDIR") ??
         Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
         "CringeLauncher");
 
     private readonly string _logsDir;
+    private bool _isDedicated;
+    
+    private readonly CancellationTokenSource _gracefulCts = new();
 
     public CrashPadLauncher()
     {
@@ -43,23 +47,55 @@ public sealed class CrashPadLauncher : ICorePlugin
     {
         try
         {
+            _isDedicated = args.Contains("--dedicated", StringComparer.OrdinalIgnoreCase);
+            
             RestartRequested = false;
             Directory.CreateDirectory(_logsDir);
             _stderrPath = FindFreePath("crashpad-stderr-redirect.txt", _logsDir);
             _dumpPath = FindFreePath("crashpad-dump.dmp", _logsDir);
             _dumpLogPath = FindFreePath("crashpad-dump-log.log", _logsDir);
 
-            _actualHostProcess = Process.Start(new ProcessStartInfo(
+            var environment = new Dictionary<string, string?>
+            {
+                ["DOTNET_BOOTSTRAP_ENTRYPOINT"] = _isDedicated
+                    ? LauncherConstants.DedicatedServerEntrypoint
+                    : LauncherConstants.ActualBootstrapEntrypoint,
+                ["DOTNET_DbgEnableMiniDump"] =
+                    "1", // https://learn.microsoft.com/en-us/dotnet/core/diagnostics/collect-dumps-crash
+                ["DOTNET_DbgMiniDumpType"] =
+                    "3", // Triage, Same as Mini, but removes personal user information, such as paths and passwords.
+                ["DOTNET_DbgMiniDumpName"] = _dumpPath,
+                ["DOTNET_CreateDumpDiagnostics"] = "1", // logging of dump process won't hurt
+                ["DOTNET_CreateDumpLogToFile"] = _dumpLogPath,
+#if !WINDOWS
+                ["WINEDLLOVERRIDES"] = "mscoree,mshtml=;d3dcompiler_47=n",
+                ["WINEPREFIX"] = Directory.CreateDirectory(Path.Join(_appdataDir, "cache", "prefix")).FullName,
+                ["WINELOADERNOEXEC"] = "1",
+#if DEBUG
+                ["LD_LIBRARY_PATH"] =
+                    $"{Path.Join(AppContext.BaseDirectory, "prefix", "lib")}:{Environment.GetEnvironmentVariable("LD_LIBRARY_PATH")}",
+#endif
+#endif
+            };
+            
+            if (_isDedicated)
+            {
+                environment["SteamAppId"] = LauncherConstants.AppId.ToString();
+            }
+
+            var cmd = Cli.Wrap(
 #if WINDOWS
-                FindValidAppHostPath(args),
-                [
+                    FindValidAppHostPath(args)
 #else
 #if DEBUG
-                Path.Join(AppContext.BaseDirectory, "prefix", "bin", "wine"),
+                    Path.Join(AppContext.BaseDirectory, "prefix", "bin", "wine")
 #else
-                "wine",
+                    "wine"
 #endif
-                [
+#endif
+                )
+                .WithArguments([
+#if !WINDOWS
 #if DEBUG
                     Path.Join(AppContext.BaseDirectory, "prefix", "lib", "CringeBootstrap.Native.so"),
 #else
@@ -68,31 +104,19 @@ public sealed class CrashPadLauncher : ICorePlugin
 #endif
                     ..args, "--crashpad-stderr-redirect", _stderrPath
                 ])
+                .WithWorkingDirectory(AppContext.BaseDirectory)
+                .WithEnvironmentVariables(environment)
+                .WithValidation(CommandResultValidation.None);
+
+            _actualHostProcess = cmd.ExecuteAsync(info =>
             {
-                WorkingDirectory = AppContext.BaseDirectory,
-                Environment =
-                {
-                    ["DOTNET_BOOTSTRAP_ENTRYPOINT"] = LauncherConstants.ActualBootstrapEntrypoint,
-                    ["DOTNET_DbgEnableMiniDump"] =
-                        "1", // https://learn.microsoft.com/en-us/dotnet/core/diagnostics/collect-dumps-crash
-                    ["DOTNET_DbgMiniDumpType"] =
-                        "3", // Triage, Same as Mini, but removes personal user information, such as paths and passwords.
-                    ["DOTNET_DbgMiniDumpName"] = _dumpPath,
-                    ["DOTNET_CreateDumpDiagnostics"] = "1", // logging of dump process won't hurt
-                    ["DOTNET_CreateDumpLogToFile"] = _dumpLogPath,
-#if !WINDOWS
-                    ["WINEDLLOVERRIDES"] = "mscoree,mshtml=;d3dcompiler_47=n",
-                    ["WINEPREFIX"] = Directory.CreateDirectory(Path.Join(_appdataDir, "cache", "prefix")).FullName,
-                    ["WINELOADERNOEXEC"] = "1",
-#if DEBUG
-                    ["LD_LIBRARY_PATH"] = $"{Path.Join(AppContext.BaseDirectory, "prefix", "lib")}:{Environment.GetEnvironmentVariable("LD_LIBRARY_PATH")}",
-#endif
-#endif
-                }
-            });
+                info.RedirectStandardInput = false;
+                info.RedirectStandardOutput = false;
+                info.RedirectStandardError = false;
+            }, gracefulCancellationToken: _gracefulCts.Token);
 
             // detach from console, the window would be closed when actual host process also detaches from it
-            if (!ConsoleHandler.ShouldKeepConsole(args)) ConsoleHandler.FreeConsole();
+            if (!_isDedicated && !ConsoleHandler.ShouldKeepConsole(args)) ConsoleHandler.FreeConsole();
 
             return _actualHostProcess is not null;
         }
@@ -108,18 +132,26 @@ public sealed class CrashPadLauncher : ICorePlugin
         try
         {
             if (_actualHostProcess is null) return true;
+            
+            Console.CancelKeyPress += ConsoleOnCancelKeyPress;
 
-            var path = Path.Join(_logsDir, $"crash-info-{_actualHostProcess.Id}.json");
+            var path = Path.Join(_logsDir, $"crash-info-{_actualHostProcess.ProcessId}.json");
 
-            if (WaitForProcessExit())
+            if (WaitForProcessExit(out var exitCode))
             {
                 File.Delete(path);
                 return true;
             }
 
-            Log.Error("Actual host process exited with code {ExitCode:x8}", _actualHostProcess.ExitCode);
+            Log.Error("Actual host process exited with code {ExitCode:x8}", exitCode);
 
-            RunCrashInfoDialog(_actualHostProcess.ExitCode, path);
+            var information = ReadCrashInformation(path);
+            var processInformation = new CrashProcessInformation(_stderrPath!, _dumpPath!, _dumpLogPath!, exitCode);
+            
+            if (_isDedicated)
+                WriteCrashReport(information, processInformation);
+            else
+                RunCrashInfoDialog(information, processInformation);
         }
         catch (Exception e)
         {
@@ -130,7 +162,29 @@ public sealed class CrashPadLauncher : ICorePlugin
         return true;
     }
 
-    private void RunCrashInfoDialog(int exitCode, string crashInfoPath)
+    private void ConsoleOnCancelKeyPress(object? sender, ConsoleCancelEventArgs e)
+    {
+        e.Cancel = true;
+        if (_gracefulCts.IsCancellationRequested) return;
+        Log.Info("Requesting graceful shutdown");
+        _gracefulCts.Cancel();
+    }
+
+    private void WriteCrashReport(CrashInformation? information, CrashProcessInformation processInformation)
+    {
+        if (information is null) return;
+
+        var crashReportDir = Path.Join(_appdataDir, "crash-reports");
+        Directory.CreateDirectory(crashReportDir);
+        var path = Path.Join(crashReportDir, $"crash-report-{DateTime.Now:yyyy-MM-dd_HH-mm-ss}.txt");
+        using (var stream =
+               File.Create(path)) 
+            new CrashReportWriter(information, processInformation).Write(stream);
+        Log.Info("Crash report written to {Path}", path);
+        Console.WriteLine(File.ReadAllText(path));
+    }
+
+    private void RunCrashInfoDialog(CrashInformation? information, CrashProcessInformation processInformation)
     {
         InitializeCrashDialogServices();
 
@@ -144,9 +198,7 @@ public sealed class CrashPadLauncher : ICorePlugin
 
         var exitEvent = new ManualResetEventSlim();
 
-        RenderHandler.Current.RegisterComponent(new CrashPadComponent(ReadCrashInformation(crashInfoPath),
-            new CrashProcessInformation(_stderrPath!, _dumpPath!, _dumpLogPath!, exitCode),
-            exitEvent));
+        RenderHandler.Current.RegisterComponent(new CrashPadComponent(information, processInformation, exitEvent));
 
         using var thread = new EarlyRenderThread(true);
 
@@ -189,16 +241,24 @@ public sealed class CrashPadLauncher : ICorePlugin
     }
 
     [MemberNotNullWhen(false, nameof(_actualHostProcess))]
-    private bool WaitForProcessExit()
+    private bool WaitForProcessExit(out int exitCode)
     {
+        exitCode = 0;
         if (_actualHostProcess is null) return true;
 
-        _actualHostProcess.WaitForExit();
+        try
+        {
+            var result = _actualHostProcess.GetAwaiter().GetResult();
+            exitCode = result.ExitCode;
+        }
+        catch (OperationCanceledException)
+        {
+        }
 
-        if (_actualHostProcess.ExitCode == -2)
+        if (exitCode == -2)
             RestartRequested = true;
 
-        return _actualHostProcess.ExitCode is 0 or -2;
+        return exitCode is 0 or -2;
     }
 
     private static string FindFreePath(string fileName, string basePath)

@@ -59,6 +59,7 @@
     <ItemGroup>
         <PackageReference Include="Autofac.Extensions.DependencyInjection" />
         <PackageReference Include="Basic.Reference.Assemblies.Net100" />
+        <PackageReference Include="CliWrap" />
         <PackageReference Include="dnlib" />
         <PackageReference Include="Krafs.Publicizer">
             <PrivateAssets>all</PrivateAssets>

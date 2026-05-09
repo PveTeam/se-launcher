@@ -78,6 +78,7 @@ var transformationService = new TransformationService(gameDir, [
 #endif
 ]);
 var cacheDir = Directory.CreateDirectory(Path.Join(
+    Environment.GetEnvironmentVariable("DOTNET_USERDEV_RUNDIR") ??
     Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
     "CringeLauncher", "cache"));
 

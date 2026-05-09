@@ -15,9 +15,4 @@ public class DedicatedLauncher() : Launcher(Environment.GetEnvironmentVariable("
         
         splash.DefineStage(new DedicatedPlatformInitializationStep());
     }
-    
-    protected override ValueTask<LauncherConfig?> ReadUpdateConfigAsync(Logger logger)
-    {
-        return ValueTask.FromResult<LauncherConfig?>(LauncherConfig.Default with { DisableLauncherUpdates = true });
-    }
 }

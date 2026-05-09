@@ -147,7 +147,7 @@ public class Launcher : ICorePlugin
             return false;
         }
 
-        MyFileSystem.InitUserSpecific(MyGameService.UserId.ToString());
+        MyFileSystem.InitUserSpecific(IsDedicated ? null : MyGameService.UserId.ToString());
 
         _lifetime.RegisterLifetime();
         _crashPadService.PullPluginInfo((PluginsLifetime)_lifetime);
@@ -220,9 +220,10 @@ public class Launcher : ICorePlugin
         var retryPolicy = HttpPolicyExtensions.HandleTransientHttpError()
             .WaitAndRetryAsync(5, _ => TimeSpan.FromSeconds(1));
 
-        services.AddHttpClient<PluginsLifetime, PluginsLifetime>((client, provider) => 
+        services.AddHttpClient<PluginsLifetime, PluginsLifetime>((client, provider) =>
                 new PluginsLifetime(provider.GetRequiredService<ConfigHandler>(),
-                    provider.GetRequiredService<IPluginServiceProviderFactory>(), client, _dir))
+                    provider.GetRequiredService<IPluginServiceProviderFactory>(), client, _dir,
+                    IsDedicated ? "CringePluginDedicated" : "CringePlugin"))
             .ConfigurePrimaryHttpMessageHandler(() => new HttpClientHandler
             {
                 AutomaticDecompression = DecompressionMethods.All

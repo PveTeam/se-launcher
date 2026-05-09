@@ -33,10 +33,10 @@ internal class CrashPadService
     
     public CrashPadService()
     {
-        // logs are always saved to appdata
-        var dirPath = Path.Join(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "CringeLauncher",
-            "logs");
-        Directory.CreateDirectory(dirPath);
+        var dirPath = Directory.CreateDirectory(Path.Join(
+            Environment.GetEnvironmentVariable("DOTNET_USERDEV_RUNDIR") ??
+            Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "CringeLauncher",
+            "logs")).FullName;
         _nextInfoPath = Path.Join(dirPath, $"crash-info-{Environment.ProcessId}.json");
         AppDomain.CurrentDomain.UnhandledException += CurrentDomainOnUnhandledException;
     }

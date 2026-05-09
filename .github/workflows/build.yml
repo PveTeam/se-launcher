@@ -131,10 +131,13 @@ jobs:
         run: |
           curl -LOH 'Authorization: token ${{ secrets.GITHUB_TOKEN }}' https://git.zznty.ru/nova/ProjectNova/releases/download/latest/nova.tar.xz
           curl -LOH 'Authorization: token ${{ secrets.GITHUB_TOKEN }}' https://git.zznty.ru/nova/jediterm/releases/download/native-image/jediterm.tar.xz
+          curl -LO https://github.com/SteamRE/DepotDownloader/releases/latest/download/DepotDownloader-framework.zip
           mkdir -p CringeLauncher.AppDir/usr
           tar -pxf nova.tar.xz -C CringeLauncher.AppDir/usr
           tar -pxf jediterm.tar.xz -C CringeLauncher.AppDir/usr
-          rm nova.tar.xz jediterm.tar.xz
+          mkdir -p CringeLauncher.AppDir/usr/share/DepotDownloader
+          unzip DepotDownloader-framework.zip -d CringeLauncher.AppDir/usr/share/DepotDownloader
+          rm nova.tar.xz jediterm.tar.xz DepotDownloader-framework.zip
         
       - run: dotnet publish CringeBootstrap/CringeBootstrap.csproj -c Release -r linux-x64 -o ./CringeLauncher.AppDir/usr/share/CringeLauncher --no-self-contained -f net10.0
         name: Publish Project

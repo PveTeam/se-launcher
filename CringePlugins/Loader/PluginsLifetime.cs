@@ -20,7 +20,7 @@ using Dependency = NuGet.Models.Dependency;
 
 namespace CringePlugins.Loader;
 
-internal class PluginsLifetime(ConfigHandler configHandler, IPluginServiceProviderFactory serviceProviderFactory, HttpClient client, DirectoryInfo dir) : IPluginsLifetime
+internal class PluginsLifetime(ConfigHandler configHandler, IPluginServiceProviderFactory serviceProviderFactory, HttpClient client, DirectoryInfo dir, string packageType) : IPluginsLifetime
 {
     public static ImmutableArray<DerivedAssemblyLoadContext> Contexts { get; private set; } = [];
     private static readonly Lock ContextsLock = new();
@@ -164,7 +164,7 @@ internal class PluginsLifetime(ConfigHandler configHandler, IPluginServiceProvid
             });
 
         var pluginPackages = packages.Where(package =>
-                !builtInPackages.ContainsKey(package.Package.Id) && package.Entry.PackageTypes is ["CringePlugin"])
+                !builtInPackages.ContainsKey(package.Package.Id) && package.Entry.PackageTypes?.Contains(packageType) is true)
             .ToImmutableArray();
 
         var dependenciesMap = pluginPackages.OfType<ResolvedPackage>().ToDictionary(b => b, b =>

@@ -15,7 +15,9 @@ internal class PortableDebugSymbolsResolver : IPortableDebugSymbolsResolver
     {
         BaseAddress = new(LauncherConfigRegionalDefaults.Current.SymbolsSource)
     };
+
     private readonly string _cacheDir = Directory.CreateDirectory(Path.Join(
+        Environment.GetEnvironmentVariable("DOTNET_USERDEV_RUNDIR") ??
         Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
         "CringeLauncher", "cache", "pdb")).FullName;
     public async ValueTask<string?> ResolvePdbFileAsync(Module module, Guid pdbId, string pdbPath)

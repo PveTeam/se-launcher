@@ -46,7 +46,6 @@ public static class ModScriptCompilerPatch
     internal static readonly MyConcurrentHashSet<MyProgrammableBlock> CompilingPbs = [];
 
     private static readonly Logger Log = LogManager.GetCurrentClassLogger();
-    private static ModAssemblyLoadContext _modContext;
     private static readonly MyConcurrentHashSet<string> LoadedModAssemblyNames = [];
 
     private static readonly ConditionalWeakTable<MyProgrammableBlock, PbAssemblyLoadContext> LoadContexts = [];
@@ -57,6 +56,7 @@ public static class ModScriptCompilerPatch
     private static readonly MethodInfo CreateInstanceMethod = AccessTools.Method(typeof(MyProgrammableBlock), "CreateInstance");
     private static readonly MethodInfo SetDetailedInfoMethod = AccessTools.Method(typeof(MyProgrammableBlock), "SetDetailedInfo");
     private static readonly ICoreLoadContext CoreContext = (ICoreLoadContext)AssemblyLoadContext.GetLoadContext(typeof(MySession).Assembly)!;
+    private static ModAssemblyLoadContext _modContext = new(CoreContext);
 
     private static readonly ConfigReference<LauncherConfig> LauncherConfigRef =
         GameServicesExtension.GameServices.GetRequiredService<ConfigHandler>().RegisterConfig("launcher", LauncherConfig.Default);
@@ -65,11 +65,8 @@ public static class ModScriptCompilerPatch
         .CacheKey;
 
     private static readonly CrashPadService CrashPad = GameServicesExtension.GameServices.GetRequiredService<CrashPadService>();
-
-    static ModScriptCompilerPatch()
-    {
-        _modContext = new(CoreContext);
-    }
+    private static readonly string RunDirPath = Environment.GetEnvironmentVariable("DOTNET_USERDEV_RUNDIR") ??
+                                                Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
 
     [HarmonyPrepare]
     private static void Prepare(MethodBase? original)
@@ -89,9 +86,9 @@ public static class ModScriptCompilerPatch
 
         MyModWatchdog.ModInfo = [new("Unknown")];
 
-        var modDir = Path.Join(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
+        var modDir = Path.Join(RunDirPath,
                                 "CringeLauncher", "cache", "mods");
-        var scriptDir = Path.Join(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
+        var scriptDir = Path.Join(RunDirPath,
                                 "CringeLauncher", "cache", "scripts");
 
         if (LauncherConfigRef.Value.CacheModAssemblies && !Directory.Exists(Path.Join(modDir, CrossGenCacheKey)))
@@ -292,7 +289,7 @@ public static class ModScriptCompilerPatch
                     var idStr = ind > 0 ? assemblyFileName[..ind] : "";
                     if (LauncherConfigRef.Value.CacheModAssemblies && ulong.TryParse(idStr, out var id) && SteamUGC.GetItemInstallInfo((PublishedFileId_t)id, out _, out _, 260U, out var timestamp))
                     {
-                        cachePath = Path.Join(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
+                        cachePath = Path.Join(RunDirPath,
                                 "CringeLauncher", "cache", "mods", CrossGenCacheKey, $"{assemblyFileName}-{timestamp}.cache");
 
                         if (File.Exists(cachePath))
@@ -332,7 +329,7 @@ public static class ModScriptCompilerPatch
                     var bytes = await MD5.HashDataAsync(stream);
                     var hash = Convert.ToHexString(bytes);
 
-                    cachePath = Path.Join(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
+                    cachePath = Path.Join(RunDirPath,
                                 "CringeLauncher", "cache", "scripts", CrossGenCacheKey, $"{hash}.cache");
 
                     if (File.Exists(cachePath))
