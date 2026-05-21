@@ -20,6 +20,7 @@ using System.Diagnostics;
 using System.Numerics;
 using System.Text.Json;
 using System.Xml.Serialization;
+using CringePlugins.Render;
 using static ImGuiNET.ImGui;
 
 namespace CringePlugins.Ui;
@@ -100,7 +101,7 @@ internal class PluginListComponent : IRenderComponent
 
     public void OnFrame()
     {
-        if (!_open) return;
+        if (!_open || !RenderHandler.GuiHandler.Initialized) return;
 
         SetNextWindowSize(new(700, 500), ImGuiCond.FirstUseEver);
 

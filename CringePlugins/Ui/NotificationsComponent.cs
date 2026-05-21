@@ -68,9 +68,9 @@ public sealed class NotificationsComponent : IRenderComponent
                 //ImGui.ProgressBar(fraction, new Vector2(_notificationSize.X, 10));
 
                 lastWinSize = ImGui.GetWindowSize();
-
-                ImGui.End();
             }
+
+            ImGui.End();
 
             lastY = lastWinSize.Y;
         }

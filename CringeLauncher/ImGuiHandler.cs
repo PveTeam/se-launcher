@@ -33,7 +33,7 @@ internal sealed class ImGuiHandler : IGuiHandler, IDisposable
     public bool MouseToggle { get; set; }
     public bool MouseKey { get; set; }
 
-    public bool Initialized => _init;
+    public bool Initialized => _init && _configLoaded;
 
     public static ImGuiHandler? Instance;
 
@@ -42,6 +42,8 @@ internal sealed class ImGuiHandler : IGuiHandler, IDisposable
     private readonly IRootRenderComponent _renderHandler;
     private readonly ImGuiImageService _imageService;
     private bool _gameRendererInitialized;
+    private bool _pluginsLoaded;
+    private bool _configLoaded;
     private static bool _init;
 
     public ImGuiHandler(DirectoryInfo configDir)
@@ -59,9 +61,7 @@ internal sealed class ImGuiHandler : IGuiHandler, IDisposable
 
         var io = GetIO();
 
-        var path = Path.Join(_configDir.FullName, "imgui.ini");
-
-        io.NativePtr->IniFilename = Utf8StringMarshaller.ConvertToUnmanaged(path);
+        io.NativePtr->IniFilename = null;
 
         io.ConfigErrorRecoveryEnableAssert = false;
         io.ConfigWindowsMoveFromTitleBarOnly = true;
@@ -76,6 +76,16 @@ internal sealed class ImGuiHandler : IGuiHandler, IDisposable
         _imageService.Initialize(device);
 
         BuildFonts(io);
+    }
+
+    private unsafe void LoadConfig()
+    {
+        var io = GetIO();
+        var path = Path.Join(_configDir.FullName, "imgui.ini");
+        io.NativePtr->IniFilename = Utf8StringMarshaller.ConvertToUnmanaged(path);
+        
+        LoadIniSettingsFromDisk(path);
+        _configLoaded = true;
     }
 
     private static unsafe void BuildFonts(ImGuiIOPtr io)
@@ -123,14 +133,26 @@ internal sealed class ImGuiHandler : IGuiHandler, IDisposable
         _gameRendererInitialized = true;
     }
 
+    public void NotifyPluginsLoaded()
+    {
+        _pluginsLoaded = true;
+    }
+
     public void DoRender()
     {
         if (Rtv is null)
             return;
 
+        if (_pluginsLoaded && !_configLoaded)
+            LoadConfig();
+
         ImGui_ImplDX11_NewFrame();
         ImGui_ImplWin32_NewFrame();
         NewFrame();
+
+        //hide fallback window
+        SetWindowPos("Debug##Default", new(float.MinValue, float.MinValue), ImGuiCond.Always);
+        SetWindowCollapsed("Debug##Default", true, ImGuiCond.Always);
 
         var io = GetIO();
         BlockMouse = io.WantCaptureMouse;
