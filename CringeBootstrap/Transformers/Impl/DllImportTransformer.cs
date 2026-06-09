@@ -14,13 +14,13 @@ namespace CringeBootstrap.Transformers.Impl;
 internal class DllImportTransformer : ITransformer
 {
     // contract with the resolver
-    public const string EntrypointModuleName = "CringeBootstrap.Native.so";
+    public const string EntrypointModuleName = "libCringeBootstrap.Native.so";
     
     internal const MethodAttributes EntrypointHelperAttributes = MethodAttributes.Assembly | MethodAttributes.HideBySig | MethodAttributes.Static;
     internal const MethodAttributes EntrypointInteropAttributes = EntrypointHelperAttributes | MethodAttributes.PinvokeImpl;
 
     internal const PInvokeAttributes ImplMapAttributes =
-        PInvokeAttributes.CallConvStdCall | PInvokeAttributes.CharSetUnicode |
+        PInvokeAttributes.CallConvStdCall | PInvokeAttributes.CharSetAnsi |
         PInvokeAttributes.ThrowOnUnmappableCharEnabled | PInvokeAttributes.BestFitDisabled |
         PInvokeAttributes.NoMangle;
 

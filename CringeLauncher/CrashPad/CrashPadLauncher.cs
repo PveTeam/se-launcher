@@ -68,12 +68,11 @@ public sealed class CrashPadLauncher : ICorePlugin
                 ["DOTNET_CreateDumpDiagnostics"] = "1", // logging of dump process won't hurt
                 ["DOTNET_CreateDumpLogToFile"] = _dumpLogPath,
 #if !WINDOWS
-                ["WINEDLLOVERRIDES"] = "mscoree,mshtml=;d3dcompiler_47=n",
-                ["WINEPREFIX"] = Directory.CreateDirectory(Path.Join(_appdataDir, "cache", "prefix")).FullName,
-                ["WINELOADERNOEXEC"] = "1",
 #if DEBUG
                 ["LD_LIBRARY_PATH"] =
                     $"{Path.Join(AppContext.BaseDirectory, "prefix", "lib")}:{Environment.GetEnvironmentVariable("LD_LIBRARY_PATH")}",
+                ["PATH"] =
+                    $"{Path.Join(AppContext.BaseDirectory, "prefix", "bin")}:{Environment.GetEnvironmentVariable("PATH")}",
 #endif
 #endif
             };
@@ -83,25 +82,8 @@ public sealed class CrashPadLauncher : ICorePlugin
                 environment["SteamAppId"] = LauncherConstants.AppId.ToString();
             }
 
-            var cmd = Cli.Wrap(
-#if WINDOWS
-                    FindValidAppHostPath(args)
-#else
-#if DEBUG
-                    Path.Join(AppContext.BaseDirectory, "prefix", "bin", "wine")
-#else
-                    "wine"
-#endif
-#endif
-                )
+            var cmd = Cli.Wrap(FindValidAppHostPath(args))
                 .WithArguments([
-#if !WINDOWS
-#if DEBUG
-                    Path.Join(AppContext.BaseDirectory, "prefix", "lib", "CringeBootstrap.Native.so"),
-#else
-                    "../../lib/CringeBootstrap.Native.so",
-#endif
-#endif
                     ..args, "--crashpad-stderr-redirect", _stderrPath
                 ])
                 .WithWorkingDirectory(AppContext.BaseDirectory)

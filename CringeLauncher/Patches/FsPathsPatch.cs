@@ -128,4 +128,44 @@ internal static class FsPathsPatch
         LauncherFileProvider.Instance.CacheMods(mods.Select(b => b.GetModContext().ModPath));
     }
 }
+
+[HarmonyPatch]
+internal static class ModApiFsPathsPatch
+{
+    private static IEnumerable<MethodInfo> TargetMethods()
+    {
+        const string prefix = "VRage.Game.ModAPI.IMyUtilities.";
+        return AccessTools.GetDeclaredMethods(typeof(MyAPIUtilities))
+            .Where(b => b.Name.StartsWith($"{prefix}FileExistsIn") || b.Name.StartsWith($"{prefix}DeleteFileIn"));
+    }
+
+    private static IEnumerable<CodeInstruction> Transpiler(IEnumerable<CodeInstruction> instructions)
+    {
+        var codeMatcher = new CodeMatcher(instructions);
+
+        codeMatcher.MatchEndForward(CodeMatch.IsLdloc(), CodeMatch.Calls(AccessTools.DeclaredMethod(typeof(File), nameof(File.Exists))));
+
+        if (codeMatcher.IsValid)
+        {
+            codeMatcher.Set(OpCodes.Call,
+                AccessTools.DeclaredMethod(typeof(MyFileSystem), nameof(MyFileSystem.FileExists)));
+        }
+
+        codeMatcher.Reset();
+        
+        codeMatcher.MatchStartForward(CodeMatch.IsLdloc(), CodeMatch.Calls(AccessTools.DeclaredMethod(typeof(File), nameof(File.Delete))));
+        
+        if (codeMatcher.IsValid)
+        {
+            codeMatcher.Insert(CodeInstruction.LoadField(typeof(LauncherFileProvider),
+                    nameof(LauncherFileProvider.Instance)), new CodeInstruction(OpCodes.Ldloca_S, 1),
+                CodeInstruction.Call(typeof(LauncherFileProvider), nameof(LauncherFileProvider.NormalizePath)));
+        }
+        
+        codeMatcher.Reset();
+        
+        return codeMatcher
+            .InstructionEnumeration();
+    }
+}
 #endif

@@ -24,17 +24,11 @@ internal unsafe class EarlyWindow : IEarlyWindow
     public uint WindowId { get; private set; }
     private readonly Thread _ownerThread = Thread.CurrentThread;
     private readonly ConcurrentQueue<PendingInvocation> _invokeQueue = new();
-    private readonly SdlRenderLoop _renderLoop;
+    private readonly SdlRenderLoop _renderLoop = new();
     private Size? _newSize;
     private D3D11Device? _device;
     private SwapChain? _swapChain;
-    private readonly XplatImGuiHandler _guiHandler;
-
-    public EarlyWindow()
-    {
-        _renderLoop = new();
-        _guiHandler = (XplatImGuiHandler)ImGuiHandler.Instance!;
-    }
+    private readonly XplatImGuiHandler _guiHandler = (XplatImGuiHandler)ImGuiHandler.Instance!;
 
     private bool InvokeRequired => Thread.CurrentThread != _ownerThread;
     
@@ -56,7 +50,17 @@ internal unsafe class EarlyWindow : IEarlyWindow
     public nint Handle => (nint)_handle.Handle;
     public bool OwnsSwapChain { get; set; } = true;
     public Point LastMousePosition { get; set; }
-    public Rectangle ClientRectangle { get; private set; }
+
+    public Rectangle ClientRectangle
+    {
+        get;
+        private set
+        {
+            field = value;
+            ClientSize = value.Size;
+        }
+    }
+
     public Size ClientSize { get; private set; }
 
     public bool Visible
@@ -211,9 +215,11 @@ internal unsafe class EarlyWindow : IEarlyWindow
 
     private void DispatchEvent(in Event @event)
     {
-        switch (@event.Type)
+        // ReSharper disable once SwitchStatementMissingSomeEnumCasesNoDefault
+        switch ((EventType)@event.Type)
         {
-            case (uint)EventType.MouseMotion when @event.Motion.WindowID == WindowId:
+            case EventType.MouseMotion when @event.Motion.WindowID == WindowId:
+            {
                 float x;
                 float y;
                 if (Sdl.GetWindowRelativeMouseMode(_handle))
@@ -229,36 +235,53 @@ internal unsafe class EarlyWindow : IEarlyWindow
                     x = @event.Motion.X;
                     y = @event.Motion.Y;
                 }
+
                 LastMousePosition = new((int)Math.Floor(x), (int)Math.Floor(y));
                 break;
-            case (uint)EventType.WindowPixelSizeChanged when @event.Window.WindowID == WindowId:
+            }
+            case EventType.WindowPixelSizeChanged when @event.Window.WindowID == WindowId:
             {
                 var width = @event.Window.Data1;
                 var height = @event.Window.Data2;
-                ClientSize = new(width, height);
-                ClientRectangle = ClientRectangle with
-                {
-                    Width = width,
-                    Height = height
-                };
-                Resize?.Invoke(this, EventArgs.Empty);
-                _newSize = new(width, height);
+                RaiseResized(width, height);
                 break;
             }
-            case (uint)EventType.WindowFocusGained when @event.Window.WindowID == WindowId:
+            case EventType.WindowFocusGained when @event.Window.WindowID == WindowId:
                 GotFocus?.Invoke(this, EventArgs.Empty);
                 break;
-            case (uint)EventType.WindowFocusLost when @event.Window.WindowID == WindowId:
+            case EventType.WindowFocusLost when @event.Window.WindowID == WindowId:
                 LostFocus?.Invoke(this, EventArgs.Empty);
                 break;
-            case (uint)EventType.WindowMoved when @event.Window.WindowID == WindowId:
+            case EventType.WindowMoved when @event.Window.WindowID == WindowId:
                 ClientRectangle = ClientRectangle with
                 {
                     X = @event.Window.Data1,
                     Y = @event.Window.Data2
                 };
                 break;
-            case (uint)EventType.TextInput when @event.Text.WindowID == WindowId:
+            case EventType.WindowPixelSizeChanged when @event.Window.WindowID == WindowId:
+                ClientRectangle = ClientRectangle with
+                {
+                    Width = @event.Window.Data1,
+                    Height = @event.Window.Data2
+                };
+                break;
+            case EventType.WindowDisplayChanged when @event.Window.WindowID == WindowId:
+            {
+                if (!OwnsSwapChain || CurrentMode is FullScreenMode.Windowed) break;
+
+                Rect bounds = default;
+                Sdl.GetDisplayBounds((uint)@event.Window.Data1, &bounds);
+                ClientRectangle = ClientRectangle with
+                {
+                    X = bounds.X,
+                    Y = bounds.Y,
+                };
+                RaiseResized(bounds.W, bounds.H);
+                Sdl.SetWindowSize(_handle, ClientRectangle.Width, ClientRectangle.Height);
+                break;
+            }
+            case EventType.TextInput when @event.Text.WindowID == WindowId:
             {
                 var s = Utf8StringMarshaller.ConvertToManaged((byte*)@event.Text.Text);
                 if (s is not null)
@@ -267,7 +290,7 @@ internal unsafe class EarlyWindow : IEarlyWindow
 
                 break;
             }
-            case (uint)EventType.WindowCloseRequested when @event.Window.WindowID == WindowId:
+            case EventType.WindowCloseRequested when @event.Window.WindowID == WindowId:
             {
                 var args = new ClosingEventArgs(true);
                 Closing?.Invoke(this, args);
@@ -283,6 +306,17 @@ internal unsafe class EarlyWindow : IEarlyWindow
         }
         
         _guiHandler.DispatchEvent(@event);
+    }
+
+    private void RaiseResized(int width, int height)
+    {
+        ClientRectangle = ClientRectangle with
+        {
+            Width = width,
+            Height = height
+        };
+        Resize?.Invoke(this, EventArgs.Empty);
+        _newSize = new(width, height);
     }
 
     public void Invoke(Action action)
@@ -346,7 +380,19 @@ internal unsafe class EarlyWindow : IEarlyWindow
     {
     }
 
-    public Rectangle RectangleToScreen(Rectangle rectangle) => rectangle;
+    public Rectangle RectangleToScreen(Rectangle rectangle)
+    {
+        var scale = Sdl.GetWindowDisplayScale(_handle);
+        var x = (float)rectangle.X;
+        var y = (float)rectangle.Y;
+        var w = (float)rectangle.Width;
+        var h = (float)rectangle.Height;
+        x /= scale;
+        y /= scale;
+        w /= scale;
+        h /= scale;
+        return new((int)MathF.Floor(x), (int)MathF.Floor(y), (int)MathF.Floor(w), (int)MathF.Floor(h));
+    }
 
     public void ResizeFullScreen(FullScreenMode mode = FullScreenMode.Borderless, Rectangle? clientBounds = null,
         Size? windowedClientSize = null)
@@ -355,17 +401,12 @@ internal unsafe class EarlyWindow : IEarlyWindow
         
         if (CurrentMode == FullScreenMode.Windowed)
         {
+            Sdl.SetWindowFullscreen(_handle, false);
             Sdl.SetWindowAlwaysOnTop(_handle, false);
             Sdl.SetWindowBordered(_handle, true);
             Sdl.RestoreWindow(_handle);
             if (clientBounds.HasValue && windowedClientSize.HasValue)
             {
-                var center = clientBounds.Value.Size / 2;
-                ClientRectangle =
-                    new(
-                        new(center.Width - windowedClientSize.Value.Width / 2,
-                            center.Height - windowedClientSize.Value.Height / 2), windowedClientSize.Value);
-                ClientSize = windowedClientSize.Value;
                 Sdl.SetWindowPosition(_handle, ClientRectangle.X, ClientRectangle.Y);
                 Sdl.SetWindowSize(_handle, ClientSize.Width, ClientSize.Height);
             }
@@ -381,6 +422,8 @@ internal unsafe class EarlyWindow : IEarlyWindow
             Sdl.MaximizeWindow(_handle);
             return;
         }
+
+        Sdl.SetWindowFullscreen(_handle, mode is FullScreenMode.Fullscreen);
         
         var bounds = clientBounds.Value;
         Sdl.SetWindowPosition(_handle, bounds.X, bounds.Y);
@@ -395,6 +438,9 @@ internal unsafe class EarlyWindow : IEarlyWindow
         Log.Debug("Sdl init");
         Sdl.SetAppMetadata("CringeLauncher", default, "com.selauncher.cringelauncher");
         Sdl.SetAppMetadataProperty(Sdl.PropAppMetadataCreatorString, "zznty");
+        byte hintValue = 1;
+        fixed (byte* hintName = &Sdl.HintVideoSyncWindowOperations.Bytes.GetPinnableReference())
+            Sdl.SetHint(hintName, &hintValue);
         Sdl.Init(Sdl.InitAudio | Sdl.InitVideo | Sdl.InitGamepad);
 
         var monitor = Sdl.GetPrimaryDisplay();
@@ -403,7 +449,7 @@ internal unsafe class EarlyWindow : IEarlyWindow
         Log.Debug("Create window");
         _handle = Sdl.CreateWindow(Title, videoMode.Handle.W, videoMode.Handle.H,
             Sdl.WindowHidden | Sdl.WindowBorderless | Sdl.WindowMaximized | Sdl.WindowVulkan |
-            Sdl.WindowHighPixelDensity | Sdl.WindowTransparent | Sdl.WindowAlwaysOnTop);
+            Sdl.WindowHighPixelDensity | Sdl.WindowTransparent | Sdl.WindowAlwaysOnTop | Sdl.WindowFullscreen);
         WindowId = Sdl.GetWindowID(_handle);
 
         var width = 0;

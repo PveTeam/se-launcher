@@ -5,7 +5,7 @@ namespace CringeLauncher.Utils;
 
 internal static class PlatformApi
 {
-    internal const string PlatformDllName = "CringeBootstrap.Native.so";
+    internal const string PlatformDllName = "libCringeBootstrap.Native.so";
     internal const string CallPrefix = "CringeBootstrap_";
 
     public static void CreateThread(ThreadStart start, string threadName)

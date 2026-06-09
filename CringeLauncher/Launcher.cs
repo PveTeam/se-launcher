@@ -72,7 +72,7 @@ public class Launcher : ICorePlugin
     {
         RestartRequested = false;
         var stdErrRedirectIndex = args.IndexOf("--crashpad-stderr-redirect");
-        if (stdErrRedirectIndex != -1)
+        if (stdErrRedirectIndex != -1 && !ConsoleHandler.ShouldKeepConsole(args))
         {
             var redirectPath = args[stdErrRedirectIndex + 1];
             ConsoleHandler.RedirectStandardError(redirectPath);

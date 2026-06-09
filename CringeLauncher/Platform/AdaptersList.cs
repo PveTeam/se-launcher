@@ -48,6 +48,7 @@ internal class AdaptersList(Factory factory, Device device, SwapChain swapChain)
                     SupportedDisplayModes = output.GetDisplayModeList(Format.R8G8B8A8_UNorm, DisplayModeEnumerationFlags.Interlaced)
                         .Select(mode => new MyDisplayMode(mode.Width, mode.Height, mode.RefreshRate.Numerator, mode.RefreshRate.Denominator))
                         .ToArray(),
+                    MaxTextureSize = 0x4000
                 });
             }
         }

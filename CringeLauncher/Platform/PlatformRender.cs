@@ -78,19 +78,33 @@ internal class PlatformRender(VRageWindowSurrogate surrogate) : IVRageRender
     public void ApplyRenderSettings(MyRenderDeviceSettings? settings)
     {
         surrogate.Window.OwnsSwapChain = false;
-        MyPlatformRender.ApplySettings(settings);
-        if (settings is null) return;
-        
+        if (settings is null)
+        {
+            MyPlatformRender.ApplySettings(settings);
+            return;
+        }
+
         var settingsValue = settings.Value;
         if (_currentSettings.HasValue && _currentSettings.Value.Equals(ref settingsValue)) return;
         _currentSettings = settings;
+
+        if (settingsValue.WindowMode is MyWindowModeEnum.FullscreenWindow)
+            settingsValue.WindowMode = MyWindowModeEnum.Fullscreen;
 
         var adapterInfo = GetRenderAdapterList()[settingsValue.NewAdapterOrdinal];
         var desktopBounds = adapterInfo.DesktopBounds;
         surrogate.Window.ResizeFullScreen((FullScreenMode)settingsValue.WindowMode,
             new Rectangle(desktopBounds.X, desktopBounds.Y, desktopBounds.Width, desktopBounds.Height),
             new Size(settingsValue.BackBufferWidth, settingsValue.BackBufferHeight));
+        surrogate.DoEvents();
+
+        settingsValue = settingsValue with
+        {
+            BackBufferWidth = surrogate.Window.ClientSize.Width,
+            BackBufferHeight = surrogate.Window.ClientSize.Height
+        };
         
+        MyPlatformRender.ApplySettings(settingsValue);
         AdjustMemoryBudgets(adapterInfo);
     }
 

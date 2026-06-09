@@ -8,8 +8,7 @@
         "DOTNET_USERDEV_RUNDIR": "data",
         "DOTNET_DbgEnableMiniDump": "1",
         "DOTNET_DbgMiniDumpType": "3",
-        "DOTNET_CreateDumpDiagnostics": "1",
-        "DOTNET_USERDEV_RUNDIR": "data"
+        "DOTNET_CreateDumpDiagnostics": "1"
       },
       "nativeDebugging": true
     },

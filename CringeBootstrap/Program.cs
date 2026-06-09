@@ -11,10 +11,10 @@ using Microsoft.Extensions.DependencyInjection;
 using NLog;
 using Velopack;
 
-#if DEBUG
-while (!Debugger.IsAttached)
-    Thread.Sleep(100);
-#endif
+// #if DEBUG
+// while (!Debugger.IsAttached)
+//     Thread.Sleep(100);
+// #endif
 
 VelopackApp.Build().Run();
 
