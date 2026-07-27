@@ -266,7 +266,7 @@
       },
       "SpaceEngineersDedicated.ReferenceAssemblies": {
         "type": "CentralTransitive",
-        "requested": "[1.209.20, )",
+        "requested": "[1.210.11, )",
         "resolved": "1.209.20",
         "contentHash": "hb61T+ltycaxFJlsioHwmqMfZ+wZdTbIUZ5O5npef3xjGnw+dGk7M7vFoDdnxbrxYEyL5GPqiuT90AhOnc5efQ==",
         "dependencies": {

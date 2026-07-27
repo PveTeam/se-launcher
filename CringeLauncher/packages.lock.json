@@ -91,9 +91,9 @@
       },
       "SpaceEngineersDedicated.ReferenceAssemblies": {
         "type": "Direct",
-        "requested": "[1.209.20, )",
-        "resolved": "1.209.20",
-        "contentHash": "hb61T+ltycaxFJlsioHwmqMfZ+wZdTbIUZ5O5npef3xjGnw+dGk7M7vFoDdnxbrxYEyL5GPqiuT90AhOnc5efQ==",
+        "requested": "[1.210.11, )",
+        "resolved": "1.210.11",
+        "contentHash": "ZDu6ExfujcdTgCqg+T+zJ3AlXR7iMijgkE9fi+B16NXzkvIIc5UxbDojzTSaqr+xJ/x/9juvSSoEYMXR5aRH5g==",
         "dependencies": {
           "SharpDX": "4.2.0-keen-cringe",
           "protobuf-net": "1.0.0"
@@ -463,7 +463,7 @@
           "NuGet": "[1.0.0, )",
           "SharedCringe": "[1.0.0, )",
           "SixLabors.ImageSharp": "[4.0.0-compat, )",
-          "SpaceEngineersDedicated.ReferenceAssemblies": "[1.209.20, )",
+          "SpaceEngineersDedicated.ReferenceAssemblies": "[1.210.11, )",
           "Steamworks.NET": "[20.1.0, 20.1.0]",
           "dnlib": "[4.5.0, )"
         }
@@ -484,7 +484,7 @@
           "Lib.Harmony.Thin": "[2.4.2-torch, )",
           "MonoMod.Core": "[1.3.3, )",
           "NLog": "[6.1.0, )",
-          "SpaceEngineersDedicated.ReferenceAssemblies": "[1.209.20, )"
+          "SpaceEngineersDedicated.ReferenceAssemblies": "[1.210.11, )"
         }
       },
       "ImGui.NET.DirectX": {
