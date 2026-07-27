@@ -11,7 +11,7 @@
     <PackageVersion Include="Steamworks.NET" Version="[20.1.0]" />
     <PackageVersion Include="SixLabors.ImageSharp" Version="4.0.0-compat" />
     <PackageVersion Include="System.Private.ServiceModel" Version="4.10.3" />
-    <PackageVersion Include="EOSSDK" Version="1.0.4" />
+    <PackageVersion Include="EOSSDK" Version="1.0.5" />
   </ItemGroup>
   <ItemGroup>
     <!-- Game version dependency -->

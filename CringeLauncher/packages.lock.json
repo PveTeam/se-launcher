@@ -38,11 +38,11 @@
       },
       "EOSSDK": {
         "type": "Direct",
-        "requested": "[1.0.4, )",
-        "resolved": "1.0.4",
-        "contentHash": "wQfI9sBczQpWZgqQ9ASLf0x3G+1FS4fx7mneox7jEahd1RJAybdnK2Ij9gh9HoNVEnOEwf5K9guAYjiWdpIz4Q==",
+        "requested": "[1.0.5, )",
+        "resolved": "1.0.5",
+        "contentHash": "IoRs5lxnn6Y96Ml6xwvnVdUz+pHUyf8M9DaJbothw4pP3pxdMV+t+zB+sLwnXpLKpOZfiA55+pL+jhES7zhJgA==",
         "dependencies": {
-          "SpaceEngineersDedicated.ReferenceAssemblies": "1.208.14"
+          "SpaceEngineersDedicated.ReferenceAssemblies": "1.210.11"
         }
       },
       "Krafs.Publicizer": {
@@ -602,11 +602,11 @@
     "net10.0-windows10.0.19041/win-x64": {
       "EOSSDK": {
         "type": "Direct",
-        "requested": "[1.0.4, )",
-        "resolved": "1.0.4",
-        "contentHash": "wQfI9sBczQpWZgqQ9ASLf0x3G+1FS4fx7mneox7jEahd1RJAybdnK2Ij9gh9HoNVEnOEwf5K9guAYjiWdpIz4Q==",
+        "requested": "[1.0.5, )",
+        "resolved": "1.0.5",
+        "contentHash": "IoRs5lxnn6Y96Ml6xwvnVdUz+pHUyf8M9DaJbothw4pP3pxdMV+t+zB+sLwnXpLKpOZfiA55+pL+jhES7zhJgA==",
         "dependencies": {
-          "SpaceEngineersDedicated.ReferenceAssemblies": "1.208.14"
+          "SpaceEngineersDedicated.ReferenceAssemblies": "1.210.11"
         }
       },
       "System.Management": {

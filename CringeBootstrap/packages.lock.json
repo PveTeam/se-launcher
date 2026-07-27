@@ -343,7 +343,7 @@
           "CringeBootstrap.Abstractions": "[1.0.0, )",
           "CringePlugins": "[1.0.0, )",
           "Demystifier": "[1.0.3, )",
-          "EOSSDK": "[1.0.4, )",
+          "EOSSDK": "[1.0.5, )",
           "Microsoft.CodeAnalysis.CSharp": "[5.0.0, )",
           "Microsoft.Extensions.Http.Polly": "[10.0.2, )",
           "NLog": "[6.1.0, )",
@@ -425,11 +425,11 @@
       },
       "EOSSDK": {
         "type": "CentralTransitive",
-        "requested": "[1.0.4, )",
-        "resolved": "1.0.4",
-        "contentHash": "wQfI9sBczQpWZgqQ9ASLf0x3G+1FS4fx7mneox7jEahd1RJAybdnK2Ij9gh9HoNVEnOEwf5K9guAYjiWdpIz4Q==",
+        "requested": "[1.0.5, )",
+        "resolved": "1.0.5",
+        "contentHash": "IoRs5lxnn6Y96Ml6xwvnVdUz+pHUyf8M9DaJbothw4pP3pxdMV+t+zB+sLwnXpLKpOZfiA55+pL+jhES7zhJgA==",
         "dependencies": {
-          "SpaceEngineersDedicated.ReferenceAssemblies": "1.208.14"
+          "SpaceEngineersDedicated.ReferenceAssemblies": "1.210.11"
         }
       },
       "ImGui.NET.DirectX": {
@@ -625,11 +625,11 @@
       },
       "EOSSDK": {
         "type": "CentralTransitive",
-        "requested": "[1.0.4, )",
-        "resolved": "1.0.4",
-        "contentHash": "wQfI9sBczQpWZgqQ9ASLf0x3G+1FS4fx7mneox7jEahd1RJAybdnK2Ij9gh9HoNVEnOEwf5K9guAYjiWdpIz4Q==",
+        "requested": "[1.0.5, )",
+        "resolved": "1.0.5",
+        "contentHash": "IoRs5lxnn6Y96Ml6xwvnVdUz+pHUyf8M9DaJbothw4pP3pxdMV+t+zB+sLwnXpLKpOZfiA55+pL+jhES7zhJgA==",
         "dependencies": {
-          "SpaceEngineersDedicated.ReferenceAssemblies": "1.208.14"
+          "SpaceEngineersDedicated.ReferenceAssemblies": "1.210.11"
         }
       },
       "ImGui.NET.DirectX": {
