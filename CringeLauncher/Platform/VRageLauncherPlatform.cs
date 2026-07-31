@@ -112,4 +112,5 @@ internal class VRageLauncherPlatform(string applicationName, string? appdataPath
 #endif
     public IMyCrashReporting CrashReporting { get; } = new CrashReportingSurrogate();
     public IVRageScripting Scripting { get; } = MyVRageScripting.Create();
+    public IMyTaskRunner TaskRunner => MyDefaultTaskRunner.Instance;
 }

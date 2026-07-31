@@ -150,6 +150,7 @@ public class Launcher : ICorePlugin
         MyFileSystem.InitUserSpecific(IsDedicated ? null : MyGameService.UserId.ToString());
 
         _lifetime.RegisterLifetime();
+        ImGuiHandler.Instance.NotifyPluginsLoaded();
         _crashPadService.PullPluginInfo((PluginsLifetime)_lifetime);
         
         GameReadyHandlerPatch.GameReady += () => _crashPadService.PullPluginInfo((PluginsLifetime)_lifetime);

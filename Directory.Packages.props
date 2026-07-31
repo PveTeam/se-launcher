@@ -12,11 +12,11 @@
     <PackageVersion Include="SixLabors.ImageSharp" Version="4.0.0-compat" />
     <PackageVersion Include="System.Private.ServiceModel" Version="4.10.3" />
     <PackageVersion Include="System.Formats.Nrbf" Version="10.0.3" />
-    <PackageVersion Include="EOSSDK" Version="1.0.4" />
+    <PackageVersion Include="EOSSDK" Version="1.0.5" />
   </ItemGroup>
   <ItemGroup>
     <!-- Game version dependency -->
-    <PackageVersion Include="SpaceEngineersDedicated.ReferenceAssemblies" Version="1.209.20" />
+    <PackageVersion Include="SpaceEngineersDedicated.ReferenceAssemblies" Version="1.210.11.1" />
   </ItemGroup>
   <ItemGroup>
     <!-- Test Plugin Dependencies -->

@@ -20,6 +20,7 @@ using System.Diagnostics;
 using System.Text.Json;
 using System.Xml.Serialization;
 using VRageMath;
+using CringePlugins.Render;
 using static ImGuiNET.ImGui;
 using Vector2 = System.Numerics.Vector2;
 using Vector4 = System.Numerics.Vector4;
@@ -102,7 +103,7 @@ internal class PluginListComponent : IRenderComponent
 
     public void OnFrame()
     {
-        if (!_open) return;
+        if (!_open || !RenderHandler.GuiHandler.Initialized) return;
 
         SetNextWindowSize(new(700, 500), ImGuiCond.FirstUseEver);
 

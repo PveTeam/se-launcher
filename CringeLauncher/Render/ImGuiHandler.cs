@@ -24,6 +24,8 @@ internal abstract class ImGuiHandler : IGuiHandler, IDisposable
     protected readonly ImGuiImageService ImageService;
     private bool _gameRendererInitialized;
     private DeviceContext? _deviceContext;
+    private bool _pluginsLoaded;
+    private bool _configLoaded;
 
     protected ImGuiHandler(DirectoryInfo configDir)
     {
@@ -31,13 +33,15 @@ internal abstract class ImGuiHandler : IGuiHandler, IDisposable
         RenderHandler = new RenderHandler(this);
         ImageService = (ImGuiImageService)GameServicesExtension.GameServices.GetRequiredService<IImGuiImageService>();
     }
+    
+    protected static bool GraphicsInitialized { get; set; }
 
     public bool BlockMouse { get; set; }
     public abstract bool BlockKeys { get; }
     public bool DrawMouse { get; set; }
     public bool MouseToggle { get; set; }
     public bool MouseKey { get; set; }
-    public abstract bool Initialized { get; }
+    public bool Initialized => GraphicsInitialized && _configLoaded;
     
     public RenderTargetView? Rtv { get; private set; }
     
@@ -94,16 +98,28 @@ internal abstract class ImGuiHandler : IGuiHandler, IDisposable
     {
         _gameRendererInitialized = true;
     }
+    
+    public void NotifyPluginsLoaded()
+    {
+        _pluginsLoaded = true;
+    }
 
     public void DoRender()
     {
-        if (!Initialized)
+        if (!GraphicsInitialized)
             return;
+        
+        if (_pluginsLoaded && !_configLoaded)
+            LoadConfig();
         
         var io = GetIO();
         SetupFrame(io);
         
         NewFrame();
+        
+        //hide fallback window
+        SetWindowPos("Debug##Default", new(float.MinValue, float.MinValue), ImGuiCond.Always);
+        SetWindowCollapsed("Debug##Default", true, ImGuiCond.Always);
         
         BlockMouse = io.WantCaptureMouse;
 
@@ -156,9 +172,7 @@ internal abstract class ImGuiHandler : IGuiHandler, IDisposable
 
         var io = GetIO();
 
-        var path = Path.Join(ConfigDir.FullName, "imgui.ini");
-
-        io.NativePtr->IniFilename = Utf8StringMarshaller.ConvertToUnmanaged(path);
+        io.NativePtr->IniFilename = null;
 
         io.ConfigErrorRecoveryEnableAssert = false;
         io.ConfigWindowsMoveFromTitleBarOnly = true;
@@ -169,5 +183,14 @@ internal abstract class ImGuiHandler : IGuiHandler, IDisposable
         ImGui_ImplDX11_Init((void*)device.NativePointer, (void*)deviceContext.NativePointer);
         ImageService.Initialize(device);
         BuildFonts(io);
+    }
+    
+    private unsafe void LoadConfig()
+    {
+        var path = Path.Join(ConfigDir.FullName, "imgui.ini");
+        GetIO().NativePtr->IniFilename = Utf8StringMarshaller.ConvertToUnmanaged(path);
+        
+        LoadIniSettingsFromDisk(path);
+        _configLoaded = true;
     }
 }

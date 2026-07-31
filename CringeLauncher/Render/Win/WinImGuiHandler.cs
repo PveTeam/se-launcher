@@ -20,10 +20,6 @@ internal sealed class WinImGuiHandler(DirectoryInfo configDir) : ImGuiHandler(co
 
     public override bool BlockKeys => _blockKeysCounter > 0;
 
-    public override bool Initialized => _init;
-
-    private static bool _init;
-
     public new static WinImGuiHandler? Instance => (WinImGuiHandler?)ImGuiHandler.Instance;
 
     public unsafe void Init(nint windowHandle, Device device, DeviceContext deviceContext)
@@ -31,7 +27,7 @@ internal sealed class WinImGuiHandler(DirectoryInfo configDir) : ImGuiHandler(co
         base.Init(device, deviceContext);
 
         ImGui_ImplWin32_Init(windowHandle);
-        _init = true;
+        GraphicsInitialized = true;
     }
 
     public static void HookWindow(HWND windowHandle)
@@ -77,7 +73,7 @@ internal sealed class WinImGuiHandler(DirectoryInfo configDir) : ImGuiHandler(co
         if (hookResult != 0)
             return hookResult;
 
-        if (!_init)
+        if (!GraphicsInitialized)
             return CallWindowProc(_wndproc, hWnd, msg, wParam, lParam);
 
         var io = GetIO();

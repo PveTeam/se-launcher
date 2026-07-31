@@ -48,6 +48,7 @@ public class UserDevGameService(uint appId) : IMyGameService
 
     public bool IsSteamDeck => false;
 
+    public uint AvailableFlexMemory { get; }
     public event Action<bool>? OnOverlayActivated;
 
     public event Action<uint>? OnDLCInstalled;

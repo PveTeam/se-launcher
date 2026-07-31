@@ -9,16 +9,14 @@ namespace CringeLauncher.Render.Xplat;
 [SupportedOSPlatform("linux")]
 internal sealed unsafe class XplatImGuiHandler(DirectoryInfo configDir) : ImGuiHandler(configDir)
 {
-    private bool _init;
     public override bool BlockKeys { get; }
-    public override bool Initialized => _init;
 
     public void Init(WindowHandle windowHandle, Device device, DeviceContext deviceContext)
     {
         base.Init(device, deviceContext);
         
         ImGui.ImGui_ImplSDL3_InitForD3D(windowHandle);
-        _init = true;
+        GraphicsInitialized = true;
     }
 
     public void DispatchEvent(in Event @event)
