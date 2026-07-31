@@ -73,18 +73,23 @@ internal unsafe class XplatGameInput : IVRageInput2
                 {
                     case Sdl.ButtonLeft:
                         _mouseState.LeftButton = press;
+                        _keyboardBuffer.SetBit((byte)MyKeys.LeftButton, press);
                         break;
                     case Sdl.ButtonRight:
                         _mouseState.RightButton = press;
+                        _keyboardBuffer.SetBit((byte)MyKeys.RightButton, press);
                         break;
                     case Sdl.ButtonMiddle:
                         _mouseState.MiddleButton = press;
+                        _keyboardBuffer.SetBit((byte)MyKeys.MiddleButton, press);
                         break;
                     case Sdl.ButtonX1:
                         _mouseState.XButton1 = press;
+                        _keyboardBuffer.SetBit((byte)MyKeys.ExtraButton1, press);
                         break;
                     case Sdl.ButtonX2:
                         _mouseState.XButton2 = press;
+                        _keyboardBuffer.SetBit((byte)MyKeys.ExtraButton2, press);
                         break;
                 }
             }
