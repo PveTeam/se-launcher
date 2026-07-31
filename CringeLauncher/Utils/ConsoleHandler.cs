@@ -12,7 +12,11 @@ internal static class ConsoleHandler
     
     public static bool ShouldKeepConsole(string[] args)
     {
+#if WINDOWS
         return Debugger.IsAttached || args.Contains("--keep-console", StringComparer.OrdinalIgnoreCase);
+#else
+        return true; // todo disable console when we stop forcing jediterm
+#endif
     }
 
     public static void FreeConsole()
