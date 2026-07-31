@@ -9,6 +9,7 @@ internal class LocalLoadContext(
     AssemblyDependencyResolver dependencyResolver) : PluginAssemblyLoadContext(parentContext, entrypointPath, dependencyResolver)
 {
     //use MemoryStream so the file can be written over, and check for .pdb
+#if WINDOWS
     protected override Assembly LoadAssemblyFile(string path)
     {
         var pdbFile = Path.ChangeExtension(path, ".pdb");
@@ -17,4 +18,5 @@ internal class LocalLoadContext(
             ? LoadFromStream(new MemoryStream(File.ReadAllBytes(path)), new MemoryStream(File.ReadAllBytes(pdbFile)))
             : LoadFromStream(new MemoryStream(File.ReadAllBytes(path)));
     }
+#endif
 }

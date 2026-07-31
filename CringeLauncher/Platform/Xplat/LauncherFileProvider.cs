@@ -8,7 +8,7 @@ public class LauncherFileProvider : IFileProvider
 {
     private FrozenSet<string>? _cachedFiles;
     private FrozenSet<string>.AlternateLookup<ReadOnlySpan<char>> _cacheLookup;
-    private HashSet<string>.AlternateLookup<ReadOnlySpan<char>> _modCacheLookup;
+    private HashSet<string>.AlternateLookup<ReadOnlySpan<char>>? _modCacheLookup;
     private string? _modPathPrefix;
 
     public static readonly LauncherFileProvider Instance = new();
@@ -62,9 +62,9 @@ public class LauncherFileProvider : IFileProvider
 
         if (!path.StartsWith(MyFileSystem.ContentPath, StringComparison.OrdinalIgnoreCase))
         {
-            if (_modPathPrefix is not null && path.StartsWith(_modPathPrefix, StringComparison.OrdinalIgnoreCase))
+            if (_modPathPrefix is not null && _modCacheLookup.HasValue && path.StartsWith(_modPathPrefix, StringComparison.OrdinalIgnoreCase))
             {
-                if (!_modCacheLookup.TryGetValue(Path.GetFullPath(path).AsSpan((_modPathPrefix.Length + 1)..), out var modCachedPath))
+                if (!_modCacheLookup.Value.TryGetValue(Path.GetFullPath(path).AsSpan((_modPathPrefix.Length + 1)..), out var modCachedPath))
                     return;
                 path = Path.Join(_modPathPrefix, modCachedPath);
             }
@@ -126,7 +126,7 @@ public class LauncherFileProvider : IFileProvider
     public void CacheMods(IEnumerable<string> mods)
     {
         _modPathPrefix = null;
-        _modCacheLookup = default;
+        _modCacheLookup = null;
         
         var first = mods.FirstOrDefault();
         if (first is null) return;

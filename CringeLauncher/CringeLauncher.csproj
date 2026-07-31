@@ -54,6 +54,7 @@
 		<Publicize Include="VRage.Audio:VRage.Audio.MyMusicState" />
 		<Publicize Include="VRage:VRage.Private.MyKeenUtils.FixedInvalidFileNameChars" />
 		<Publicize Include="VRage:VRage.Private.MyKeenUtils.FixedInvalidPathChars" />
+		<Publicize Include="VRage.Game:VRage.Game.MyModContext.set_ModPathData" />
 	</ItemGroup>
 
     <ItemGroup>

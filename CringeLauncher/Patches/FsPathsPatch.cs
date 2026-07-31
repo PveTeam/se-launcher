@@ -103,7 +103,45 @@ internal static class FsPathsPatch
                         files[i] = files[i].Replace(Path.DirectorySeparatorChar, '\\');
                     }
                 }))
+            .Start()
+            .MatchStartForward(
+                CodeMatch.LoadsConstant("Data"),
+                CodeMatch.LoadsConstant("Scripts"),
+                CodeMatch.Calls(AccessTools.DeclaredMethod(typeof(Path), nameof(Path.Combine),
+                    [typeof(string), typeof(string), typeof(string)]))
+            )
+            .ThrowIfInvalid("Failed to find combine")
+            .RemoveInstructions(3)
+            .Insert(CodeInstruction.Call(typeof(FsPathsPatch), nameof(GetScriptsDirectory)))
+            .Start()
+            .MatchEndForward(CodeMatch.LoadsConstant("Scripts"),
+                CodeMatch.Calls(AccessTools.DeclaredMethod(typeof(Array), nameof(Array.IndexOf),
+                    [Type.MakeGenericMethodParameter(0).MakeArrayType(), Type.MakeGenericMethodParameter(0)],
+                    [typeof(string)])))
+            .ThrowIfInvalid("Failed to find indexof")
+            .SetInstruction(CodeInstruction.Call(typeof(FsPathsPatch), nameof(IndexOf)))
             .InstructionEnumeration();
+    }
+
+    private static int IndexOf(string[] parts, string search) => parts.IndexOf(search, StringComparer.OrdinalIgnoreCase);
+
+    private static string GetScriptsDirectory(string modPath)
+    {
+        if (Directory.Exists(modPath))
+        {
+            foreach (var directory in Directory.GetDirectories(modPath, "*", new EnumerationOptions
+                     {
+                         MaxRecursionDepth = 2,
+                         RecurseSubdirectories = true
+                     }))
+            {
+                var dir = directory.TrimEnd('/');
+                if (dir.EndsWith("data/scripts", StringComparison.OrdinalIgnoreCase))
+                    return dir;
+            }
+        }
+
+        return Path.Join(modPath, "Data", "Scripts");
     }
 
     [HarmonyPatch(typeof(MyZipFileProvider), nameof(MyZipFileProvider.IsZipFile))]
@@ -166,6 +204,33 @@ internal static class ModApiFsPathsPatch
         
         return codeMatcher
             .InstructionEnumeration();
+    }
+}
+
+[HarmonyPatch]
+internal static class ModContextFsPathsPatch
+{
+    private static IEnumerable<MethodInfo> TargetMethods()
+    {
+        yield return AccessTools.DeclaredMethod(typeof(MyModContext), nameof(MyModContext.Init), [typeof(string), typeof(string), typeof(string)]);
+        yield return AccessTools.DeclaredMethod(typeof(MyModContext), nameof(MyModContext.Init), [typeof(MyObjectBuilder_Checkpoint.ModItem)]);
+    }
+
+    private static void Postfix(MyModContext __instance)
+    {
+        if (__instance.ModPath is null || !Directory.Exists(__instance.ModPath))
+            return;
+        if (__instance.ModPathData is not null && Directory.Exists(__instance.ModPathData))
+            return;
+
+        foreach (var directory in Directory.GetDirectories(__instance.ModPath))
+        {
+            if (Path.GetFileName(directory.AsSpan().TrimEnd('/')).Equals("Data", StringComparison.OrdinalIgnoreCase))
+            {
+                __instance.ModPathData = directory;
+                break;
+            }
+        }
     }
 }
 #endif
