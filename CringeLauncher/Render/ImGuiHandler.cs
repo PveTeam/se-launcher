@@ -136,7 +136,13 @@ internal abstract class ImGuiHandler : IGuiHandler, IDisposable
         UpdatePlatformWindows();
         RenderPlatformWindowsDefault();
 
+        AfterFrame();
+
         ImageService.Update();
+    }
+
+    protected virtual void AfterFrame()
+    {
     }
 
     protected virtual void SetupFrame(ImGuiIOPtr io)

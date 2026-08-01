@@ -50,9 +50,9 @@
     <PackageVersion Include="NuGet.Versioning" Version="7.0.1" />
     <PackageVersion Include="System.Linq.Async" Version="7.0.0" />
     <PackageVersion Include="Newtonsoft.Json" Version="13.0.4" />
-    <PackageVersion Include="Silk.NET.SDL" Version="3.0.0-build1321.0" />
-    <PackageVersion Include="Silk.NET.SDL.Native" Version="3.2.4-build1321.0" />
-    <PackageVersion Include="Silk.NET.Core" Version="3.0.0-build1321.0" />
+    <PackageVersion Include="Silk.NET.SDL" Version="3.0.0-build1712.0" />
+    <PackageVersion Include="Silk.NET.SDL.Native" Version="3.4.4-build1712.0" />
+    <PackageVersion Include="Silk.NET.Core" Version="3.0.0-build1712.0" />
     <PackageVersion Include="CliWrap" Version="3.10.1" />
   </ItemGroup>
 </Project>

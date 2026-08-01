@@ -205,6 +205,9 @@ internal unsafe class EarlyWindow : IEarlyWindow
             }
             pendingInvocation.ResetEvent.Set();
         }
+        
+        if (!_guiHandler.BlockKeys && !Sdl.TextInputActive(_handle))
+            Sdl.StartTextInput(_handle);
     }
 
     private void DispatchEvent(in Event @event)
@@ -279,7 +282,7 @@ internal unsafe class EarlyWindow : IEarlyWindow
                 RefreshPixelSize();
                 break;
             }
-            case EventType.TextInput when @event.Text.WindowID == WindowId:
+            case EventType.TextInput when @event.Text.WindowID == WindowId && !_guiHandler.BlockKeys:
             {
                 var s = Utf8StringMarshaller.ConvertToManaged((byte*)@event.Text.Text);
                 if (s is not null)
