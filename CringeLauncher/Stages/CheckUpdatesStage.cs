@@ -43,17 +43,8 @@ internal class CheckUpdatesStage(
                 config?.UsePreviewBranch is true ? "linux-preview" : "linux"
 #endif
         };
-        VelopackLocator locator;
-        if (OperatingSystem.IsWindows())
-            locator = new WindowsVelopackLocator(Path.Join(AppContext.BaseDirectory, "CringeBoostrap.exe"),
-                (uint)Environment.ProcessId, null);
-        else if (OperatingSystem.IsLinux())
-            locator = new LinuxVelopackLocator(Path.GetFullPath(Path.Join(AppContext.BaseDirectory, "../../bin", "CringeBoostrap")),
-                (uint)Environment.ProcessId, null);
-        else throw new PlatformNotSupportedException();
-        var mgr = new UpdateManager(config?.UpdatesSource ?? LauncherConfigRegionalDefaults.Current.UpdatesSource, updateOptions,
-            locator
-            );
+        
+        var mgr = new UpdateManager(config?.UpdatesSource ?? LauncherConfigRegionalDefaults.Current.UpdatesSource, updateOptions);
 
         if (mgr.CurrentVersion != null)
             crashPadService.NextInfo.Version.LauncherVersion = mgr.CurrentVersion.ToFullString();
