@@ -7,6 +7,7 @@ using CringeBootstrap.Abstractions;
 using CringeBootstrap.CrossGen;
 using CringeBootstrap.Transformers;
 using CringeBootstrap.Transformers.Impl;
+using CringeBootstrap.Utils;
 using Microsoft.Extensions.DependencyInjection;
 using NLog;
 using Velopack;
@@ -16,7 +17,8 @@ using Velopack;
 //     Thread.Sleep(100);
 // #endif
 
-VelopackApp.Build().Run();
+SharedCringe.Utils.NLogLogging.Init();
+VelopackApp.Build().SetLogger(new VelopackNLogLogger()).Run();
 
 if (args.Length == 0)
 {
@@ -51,8 +53,6 @@ AssemblyLoadContext.Default.Resolving += (loadContext, name) =>
     return null;
 };
 #endif
-
-SharedCringe.Utils.NLogLogging.Init();
 
 var logger = LogManager.GetLogger("CringeBootstrap");
 logger.Info("Bootstrapping {DotnetVersion} {RuntimeIdentifier} OS {OsDescription}", 
