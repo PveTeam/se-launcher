@@ -5,11 +5,11 @@
         <RuntimeIdentifiers>win-x64;linux-x64</RuntimeIdentifiers>
         <ImplicitUsings>enable</ImplicitUsings>
         <Nullable>enable</Nullable>
+        <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     </PropertyGroup>
     
     <ItemGroup>
         <PackageReference Include="NLog" />
-        <PackageReference Include="SpaceEngineersDedicated.ReferenceAssemblies" ExcludeAssets="runtime" />
         <PackageReference Include="Lib.Harmony.Thin" />
         <PackageReference Include="MonoMod.Core" />
     </ItemGroup>

@@ -1,8 +1,9 @@
-﻿using System.Diagnostics.CodeAnalysis;
+using System.Diagnostics.CodeAnalysis;
 using System.Net;
 using System.Text.Json;
 using CliWrap;
 using CringeBootstrap.Abstractions;
+using CringeLauncher.CrashPad.Supplemental;
 using CringeLauncher.Render;
 using CringeLauncher.Utils;
 using CringePlugins.Render;
@@ -22,6 +23,10 @@ public sealed class CrashPadLauncher : ICorePlugin
     private string? _stderrPath;
     private string? _dumpPath;
     private string? _dumpLogPath;
+    private string? _appHostPath;
+    private string? _alcMapPath;
+    private string? _peMapPath;
+    private string? _crossGenCacheKey;
 
     private readonly string _appdataDir = Path.Join(
         Environment.GetEnvironmentVariable("DOTNET_USERDEV_RUNDIR") ??
@@ -30,8 +35,9 @@ public sealed class CrashPadLauncher : ICorePlugin
 
     private readonly string _logsDir;
     private bool _isDedicated;
-    
+
     private readonly CancellationTokenSource _gracefulCts = new();
+    private readonly CrashSupplementalCollector _supplementalCollector = CrashSupplementalCollector.CreateDefault();
 
     public CrashPadLauncher()
     {
@@ -48,18 +54,32 @@ public sealed class CrashPadLauncher : ICorePlugin
         try
         {
             _isDedicated = args.Contains("--dedicated", StringComparer.OrdinalIgnoreCase);
-            
+
+            using var provider = services.BuildServiceProvider();
+            _crossGenCacheKey = provider.GetService<ICrossGenService>()?.CacheKey;
+
             RestartRequested = false;
             Directory.CreateDirectory(_logsDir);
             _stderrPath = FindFreePath("crashpad-stderr-redirect.txt", _logsDir);
             _dumpPath = FindFreePath("crashpad-dump.dmp", _logsDir);
             _dumpLogPath = FindFreePath("crashpad-dump-log.log", _logsDir);
+            _alcMapPath = FindFreePath("crashpad-alc-map.jsonl", _logsDir);
+            _peMapPath = FindFreePath("crashpad-pe-map.json", _logsDir);
+            _appHostPath = FindValidAppHostPath(args);
+
+            var crashTest = args.Contains("--crash-test", StringComparer.OrdinalIgnoreCase);
+            var childEntrypoint = crashTest
+                ? CrashPathTestPlugin.TypeName
+                : _isDedicated
+                    ? LauncherConstants.DedicatedServerEntrypoint
+                    : LauncherConstants.ActualBootstrapEntrypoint;
+
+            if (crashTest)
+                Log.Warn("Crash-test mode enabled; child entrypoint={Entrypoint}", childEntrypoint);
 
             var environment = new Dictionary<string, string?>
             {
-                ["DOTNET_BOOTSTRAP_ENTRYPOINT"] = _isDedicated
-                    ? LauncherConstants.DedicatedServerEntrypoint
-                    : LauncherConstants.ActualBootstrapEntrypoint,
+                ["DOTNET_BOOTSTRAP_ENTRYPOINT"] = childEntrypoint,
                 ["DOTNET_DbgEnableMiniDump"] =
                     "1", // https://learn.microsoft.com/en-us/dotnet/core/diagnostics/collect-dumps-crash
                 ["DOTNET_DbgMiniDumpType"] =
@@ -76,15 +96,25 @@ public sealed class CrashPadLauncher : ICorePlugin
 #endif
 #endif
             };
-            
+
+            // Unix-only runtime crashreport.json (gated inside; no-op on Windows).
+            if (OperatingSystem.IsLinux())
+                LinuxCrashProcessSetup.ApplyChildEnvironment(environment);
+
+            // Forward crash-test mode to the child if set.
+            var crashTestMode = Environment.GetEnvironmentVariable("CRINGE_CRASH_TEST_MODE");
+            if (!string.IsNullOrWhiteSpace(crashTestMode))
+                environment["CRINGE_CRASH_TEST_MODE"] = crashTestMode;
+
             if (_isDedicated)
             {
                 environment["SteamAppId"] = LauncherConstants.AppId.ToString();
             }
 
-            var cmd = Cli.Wrap(FindValidAppHostPath(args))
+            var cmd = Cli.Wrap(_appHostPath)
                 .WithArguments([
-                    ..args, "--crashpad-stderr-redirect", _stderrPath
+                    ..args, "--crashpad-stderr-redirect", _stderrPath, "--crashpad-alc-map", _alcMapPath,
+                    "--crashpad-pe-map", _peMapPath
                 ])
                 .WithWorkingDirectory(AppContext.BaseDirectory)
                 .WithEnvironmentVariables(environment)
@@ -114,7 +144,7 @@ public sealed class CrashPadLauncher : ICorePlugin
         try
         {
             if (_actualHostProcess is null) return true;
-            
+
             Console.CancelKeyPress += ConsoleOnCancelKeyPress;
 
             var path = Path.Join(_logsDir, $"crash-info-{_actualHostProcess.ProcessId}.json");
@@ -128,8 +158,8 @@ public sealed class CrashPadLauncher : ICorePlugin
             Log.Error("Actual host process exited with code {ExitCode:x8}", exitCode);
 
             var information = ReadCrashInformation(path);
-            var processInformation = new CrashProcessInformation(_stderrPath!, _dumpPath!, _dumpLogPath!, exitCode);
-            
+            var processInformation = BuildProcessInformation(exitCode);
+
             if (_isDedicated)
                 WriteCrashReport(information, processInformation);
             else
@@ -144,6 +174,36 @@ public sealed class CrashPadLauncher : ICorePlugin
         return true;
     }
 
+    private CrashProcessInformation BuildProcessInformation(int exitCode)
+    {
+        var exitedAt = DateTimeOffset.UtcNow;
+        var pid = _actualHostProcess?.ProcessId ?? 0;
+
+        IReadOnlyList<CrashSupplementalSection> sections = [];
+        try
+        {
+            sections = _supplementalCollector.Collect(new CrashSupplementalContext
+            {
+                ProcessId = pid,
+                ExitCode = exitCode,
+                DumpPath = _dumpPath!,
+                DumpLogPath = _dumpLogPath!,
+                StderrPath = _stderrPath!,
+                ExecutablePath = _appHostPath,
+                AlcMapPath = _alcMapPath,
+                PeMapPath = _peMapPath,
+                CrossGenCacheKey = _crossGenCacheKey,
+                ExitedAtUtc = exitedAt
+            });
+        }
+        catch (Exception e)
+        {
+            Log.Warn(e, "Supplemental crash collection failed");
+        }
+
+        return new CrashProcessInformation(_stderrPath!, _dumpPath!, _dumpLogPath!, exitCode, sections);
+    }
+
     private void ConsoleOnCancelKeyPress(object? sender, ConsoleCancelEventArgs e)
     {
         e.Cancel = true;
@@ -154,14 +214,14 @@ public sealed class CrashPadLauncher : ICorePlugin
 
     private void WriteCrashReport(CrashInformation? information, CrashProcessInformation processInformation)
     {
-        if (information is null) return;
+        // Still emit a report when only supplemental sources produced data.
+        if (information is null && processInformation.SupplementalSections.Count == 0) return;
 
         var crashReportDir = Path.Join(_appdataDir, "crash-reports");
         Directory.CreateDirectory(crashReportDir);
         var path = Path.Join(crashReportDir, $"crash-report-{DateTime.Now:yyyy-MM-dd_HH-mm-ss}.txt");
-        using (var stream =
-               File.Create(path)) 
-            new CrashReportWriter(information, processInformation).Write(stream);
+        using (var stream = File.Create(path))
+            new CrashReportWriter(information ?? EmptyCrashInformation(), processInformation).Write(stream);
         Log.Info("Crash report written to {Path}", path);
         Console.WriteLine(File.ReadAllText(path));
     }
@@ -222,6 +282,14 @@ public sealed class CrashPadLauncher : ICorePlugin
         }
     }
 
+    private static CrashInformation EmptyCrashInformation() => new()
+    {
+        Network = new(),
+        Plugins = [],
+        ModScripts = [],
+        Version = new()
+    };
+
     [MemberNotNullWhen(false, nameof(_actualHostProcess))]
     private bool WaitForProcessExit(out int exitCode)
     {
@@ -271,4 +339,9 @@ public sealed class CrashPadLauncher : ICorePlugin
     void ICorePlugin.Restart() => throw new NotSupportedException("Cannot restart the crashpad directly");
 }
 
-public record CrashProcessInformation(string StderrPath, string DumpPath, string DumpLogPath, int ExitCode);
+public record CrashProcessInformation(
+    string StderrPath,
+    string DumpPath,
+    string DumpLogPath,
+    int ExitCode,
+    IReadOnlyList<CrashSupplementalSection> SupplementalSections);

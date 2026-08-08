@@ -41,6 +41,10 @@ internal abstract class CrossGenService(string gameDirectoryPath, string cacheKe
         "VRage.Scripting.dll",
         "VRage.Steam.dll",
         "VRage.UserInterface.dll",
+        // Transformer output with preserve rids has UB under crossgen
+        "HavokWrapper.dll",
+        "SharpDX.dll",
+        "SharpDX.XAudio2.dll",
     ];
 
     private readonly ImmutableHashSet<string> _includedAssemblies =
@@ -173,8 +177,15 @@ internal abstract class CrossGenService(string gameDirectoryPath, string cacheKe
         var token = transformationService.PrepareTransformation(inputAssemblyPath);
         if (token is null) return;
 
-        inputAssemblyPath = Path.Join(Path.GetTempPath(), Path.GetRandomFileName() + ".dll");
+        // Keep the original file name through the temp hop: downstream consumers
+        // name their outputs with Path.GetFileName (e.g. crossgen --out)
+        var tempDir = Directory.CreateDirectory(Path.Join(Path.GetTempPath(), Path.GetRandomFileName()));
+        inputAssemblyPath = Path.Join(tempDir.FullName, Path.GetFileName(inputAssemblyPath));
         transformationService.Transform(token, inputAssemblyPath);
+
+        // dnlib writes an empty stub pdb next to the assembly (only the PE
+        // CodeView record matters); crossgen2 would try to load it and fail.
+        File.Delete(Path.ChangeExtension(inputAssemblyPath, ".pdb"));
     }
     
     private static async Task<ImmutableArray<string>> CollectFrameworkReferencesAsync()

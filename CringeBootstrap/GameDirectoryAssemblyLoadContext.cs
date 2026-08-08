@@ -5,6 +5,7 @@ using System.Runtime.InteropServices;
 using System.Runtime.InteropServices.Marshalling;
 using System.Runtime.Loader;
 using CringeBootstrap.Abstractions;
+using SharedCringe.Loader;
 
 namespace CringeBootstrap;
 
@@ -44,6 +45,8 @@ public partial class GameDirectoryAssemblyLoadContext : AssemblyLoadContext, ICo
         if (isRelaunch)
             LoadReexport(unmanagedAssembliesDir);
 #endif
+        
+        AlcMapper.Add(this);
     }
 
     public void AddOverride(AssemblyName name, string file)

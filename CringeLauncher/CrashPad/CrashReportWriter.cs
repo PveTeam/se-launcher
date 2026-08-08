@@ -40,10 +40,18 @@ public class CrashReportWriter(CrashInformation information, CrashProcessInforma
                 writer.WriteLine(unhandledException.Thread.Type);
             }
         }
+        else if (processInformation.SupplementalSections is { Count: > 0 } sections &&
+                 sections.FirstOrDefault(s => !string.IsNullOrEmpty(s.Summary)) is { Summary: { } summary })
+        {
+            writer.WriteLine(summary);
+            writer.WriteLine($"ExitCode: 0x{processInformation.ExitCode:x8}");
+        }
         else
         {
             writer.WriteLine($"No exception information available. Process disappeared? ExitCode: 0x{processInformation.ExitCode:x8}");
         }
+
+        WriteSupplementalSections(writer);
 
         string? stdErrContent;
         if (File.Exists(processInformation.StderrPath))
@@ -86,6 +94,21 @@ public class CrashReportWriter(CrashInformation information, CrashProcessInforma
         writer.WriteLine();
         writer.WriteLine("-- System Details --");
         WriteSystemDetails(writer);
+    }
+
+    private void WriteSupplementalSections(StreamWriter writer)
+    {
+        foreach (var section in processInformation.SupplementalSections)
+        {
+            if (string.IsNullOrWhiteSpace(section.Body))
+                continue;
+
+            writer.WriteLine();
+            writer.Write("-- ");
+            writer.Write(section.Title);
+            writer.WriteLine(" --");
+            writer.WriteLine(section.Body.TrimEnd());
+        }
     }
 
     private void WriteNetworkInformation(StreamWriter writer)

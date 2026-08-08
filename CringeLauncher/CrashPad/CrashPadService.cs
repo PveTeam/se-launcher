@@ -5,6 +5,7 @@ using System.Runtime.Loader;
 using System.Text;
 using System.Text.Json;
 using CringeBootstrap.Abstractions;
+using CringeLauncher.CrashPad.Supplemental;
 using CringeLauncher.Loader;
 using CringeLauncher.Utils;
 using CringePlugins.Loader;
@@ -39,6 +40,10 @@ internal class CrashPadService
             "logs")).FullName;
         _nextInfoPath = Path.Join(dirPath, $"crash-info-{Environment.ProcessId}.json");
         AppDomain.CurrentDomain.UnhandledException += CurrentDomainOnUnhandledException;
+
+        // Linux: improve quality of any systemd-captured core (no-op elsewhere).
+        if (OperatingSystem.IsLinux())
+            LinuxCrashProcessSetup.TryApplyCoredumpFilter();
     }
 
     public void PullPluginInfo(PluginsLifetime lifetime)

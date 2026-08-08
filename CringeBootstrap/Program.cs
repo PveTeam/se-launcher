@@ -1,4 +1,4 @@
-﻿using System.Diagnostics;
+using System.Diagnostics;
 using System.Reflection.Metadata;
 using System.Runtime.InteropServices;
 using System.Runtime.Loader;
@@ -10,6 +10,7 @@ using CringeBootstrap.Transformers.Impl;
 using CringeBootstrap.Utils;
 using Microsoft.Extensions.DependencyInjection;
 using NLog;
+using SharedCringe.Loader;
 using Velopack;
 
 // #if DEBUG
@@ -64,6 +65,13 @@ var dirIndex = Array.FindIndex(args, b => b.EndsWith("SpaceEngineers.exe"));
 var dir = Path.GetDirectoryName(args[dirIndex])!;
 args = args[dirIndex..];
 var gameDir = dir;
+
+string? peMapPath = null;
+if (args.IndexOf("--crashpad-alc-map") is var alcMapIdx and > 0) 
+    AlcMapper.Initialize(args[alcMapIdx + 1]);
+
+if (args.IndexOf("--crashpad-pe-map") is var peMapIdx and > 0)
+    peMapPath = args[peMapIdx + 1];
 
 var customEntrypoint = Environment.GetEnvironmentVariable("DOTNET_BOOTSTRAP_ENTRYPOINT");
 
@@ -124,6 +132,9 @@ CrossGenResult RunCrossGen(CrossGenService crossGen)
 }
 
 var context = new GameDirectoryAssemblyLoadContext(dir, gameDir, customEntrypoint is not null);
+
+if (peMapPath is not null && customEntrypoint is not null)
+    PeMapWriter.Write(peMapPath);
 
 // a list of assemblies which are not in the game binaries but reference them
 context.AddDependencyOverride("CringeLauncher");

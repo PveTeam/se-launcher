@@ -156,9 +156,37 @@ jobs:
           sudo apt update && sudo apt install -y squashfs-tools
         name: Prepare AppDir
 
+      # Debug companions for the bundled runtime, consumed by symbolic-crash
+      # (CrashPad 'Symbolicated Stack' section passes the runtime dir as a -s root;
+      # libmscordaccore.so itself already ships with the runtime).
+      - name: Fetch runtime debug symbols
+        run: |
+          RUNTIME_DIR=$(echo ./CringeLauncher.AppDir/usr/share/dotnet/shared/Microsoft.NETCore.App/*)
+          FXR_DIR=$(echo ./CringeLauncher.AppDir/usr/share/dotnet/host/fxr/*)
+          dotnet tool install -g dotnet-symbol
+          export PATH="$PATH:$HOME/.dotnet/tools"
+          # Native .dbg companions (symcache input). Never fail the build on symbol server issues.
+          dotnet-symbol --microsoft-symbol-server --symbols --modules --debugging \
+            -o "$RUNTIME_DIR" -d "$RUNTIME_DIR"/*.so || true
+          dotnet-symbol --microsoft-symbol-server --symbols --modules --debugging \
+            -o "$FXR_DIR" -d "$FXR_DIR"/*.so || true
+          # Portable pdbs for the managed runtime assemblies.
+          dotnet-symbol --microsoft-symbol-server --symbols --modules \
+            -o "$RUNTIME_DIR" -d "$RUNTIME_DIR"/*.dll || true
+          ls -la "$RUNTIME_DIR" | grep -cE '\.dbg|\.pdb' || true
+
+      # Precompile symcache/ppdbcache sidecars so on-machine symbolication
+      # skips conversion (~2s once here vs ~2s per crash report).
+      - name: Precompile symbol caches
+        run: |
+          RUNTIME_DIR=$(echo ./CringeLauncher.AppDir/usr/share/dotnet/shared/Microsoft.NETCore.App/*)
+          FXR_DIR=$(echo ./CringeLauncher.AppDir/usr/share/dotnet/host/fxr/*)
+          ./CringeLauncher.AppDir/usr/bin/symbolic-crash precompile \
+            "$RUNTIME_DIR" "$FXR_DIR" \
+            ./CringeLauncher.AppDir/usr/share/CringeLauncher || true
+
       - run: dotnet tool install -g vpk
         name: Install VPK
-
       - run: ~/.dotnet/tools/vpk download s3 --bucket $VPK_BUCKET --endpoint $VPK_ENDPOINT
         name: Download previous release
         env:
