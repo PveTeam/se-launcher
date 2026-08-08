@@ -1,4 +1,4 @@
-﻿using System.Collections.Immutable;
+using System.Collections.Immutable;
 using System.Reflection;
 using System.Security.Cryptography;
 using System.Text;
@@ -43,7 +43,10 @@ internal class DebugSymbolsTransformer(string versionString) : ITransformer
         context.WriterOptions.WritePdb = true;
         context.WriterOptions.PdbFileNameInDebugDirectory = Path.ChangeExtension(context.Module.Name, ".pdb");
         context.WriterOptions.PdbOptions = PdbWriterOptions.None;
-        context.WriterOptions.GetPdbContentId = (_, _) => new(new(debugHash), 0); 
+        context.WriterOptions.GetPdbContentId = (_, _) => new(new(debugHash), 0);
+        // Keep original metadata rows stable so pdb lookups by MethodDef token match
+        // pdbs built from the untransformed assembly (server symbols source).
+        context.WriterOptions.MetadataOptions.Flags |= MetadataFlags.PreserveRids;
         return true;
     }
 }
