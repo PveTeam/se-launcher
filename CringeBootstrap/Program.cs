@@ -19,7 +19,14 @@ using Velopack;
 // #endif
 
 SharedCringe.Utils.NLogLogging.Init();
-VelopackApp.Build().SetLogger(new VelopackNLogLogger()).Run();
+{
+    var app = VelopackApp.Build();
+    var velopackLogger = new VelopackNLogLogger();
+    app.SetLogger(velopackLogger);
+    if (OperatingSystem.IsLinux())
+        app.SetLocator(new LauncherLinuxVelopackLocator(null, velopackLogger));
+    app.Run();
+}
 
 if (args.Length == 0)
 {
