@@ -1,15 +1,15 @@
 ﻿using System.Runtime.Loader;
 using Microsoft.Extensions.DependencyInjection;
 
-namespace CringePlugins.Abstractions;
+namespace CringePlugins.Abstractions.Loader;
 
-internal interface IPluginServiceProviderFactory
+public interface IPluginServiceProviderFactory
 {
     IServiceCollection CreateBuilder();
     IServiceProviderScope CreateServiceProviderScope(AssemblyLoadContext context, IServiceCollection services);
 }
 
-internal interface IServiceProviderScope : IDisposable
+public interface IServiceProviderScope : IDisposable
 {
     IServiceProvider Provider { get; }
 }

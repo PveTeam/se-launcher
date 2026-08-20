@@ -19,6 +19,8 @@ using System.Collections.Immutable;
 using System.Diagnostics;
 using System.Text.Json;
 using System.Xml.Serialization;
+using CringePlugins.Abstractions.Loader;
+using CringePlugins.Loader.PluginProvider;
 using VRageMath;
 using CringePlugins.Render;
 using static ImGuiNET.ImGui;
@@ -70,14 +72,14 @@ internal class PluginListComponent : IRenderComponent
 
     public PluginListComponent(ConfigReference<PackagesConfig> packagesConfig,
         ConfigReference<LauncherConfig> launcherConfig,
-        PackageSourceMapping sourceMapping, string gameFolder, ImmutableHashSet<PluginInstance> plugins,
+        PackageSourceMapping sourceMapping, string gameFolder, IEnumerable<IPluginInstance> plugins,
         DirectoryInfo dataDir, DirectoryInfo cacheDir, IReadOnlyDictionary<string, CachedPackage> loadedPackages)
     {
         _packagesConfig = packagesConfig;
         _launcherConfig = launcherConfig;
         _sourceMapping = sourceMapping;
         _gameFolder = gameFolder;
-        _plugins = [..plugins];
+        _plugins = [..plugins.OfType<PluginInstance>()];
         _packages = packagesConfig.Value.Packages.ToImmutableDictionary(b => b.Id, b => b.Range,
             StringComparer.OrdinalIgnoreCase);
         _profiles = packagesConfig.Value.Profiles;

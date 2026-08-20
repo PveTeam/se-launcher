@@ -100,7 +100,8 @@ public static class IntrospectionPatches
     private static bool AllAssembliesHarmonyPrefix(ref IEnumerable<Assembly> __result)
     {
         __result = AssemblyLoadContext.GetLoadContext(typeof(IntrospectionPatches).Assembly)?.Assemblies
-            .Concat(PluginsLifetime.Contexts.SelectMany(x => x.Assemblies)) ?? [];
+            .Concat(PluginsLifetime.Instance?.LoadedPlugins.Values.SelectMany(x =>
+                x.ContextFactory.Context?.Assemblies ?? []) ?? []) ?? [];
         return false;
     }
 

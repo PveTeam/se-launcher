@@ -90,7 +90,7 @@ public partial class GameDirectoryAssemblyLoadContext : AssemblyLoadContext, ICo
         {
             case Transformers.Impl.DllImportTransformer.EntrypointModuleName:
                 return LoadEntrypointLibrary();
-            case "c":
+            case "c" or "vulkan" or "fontconfig" or "harfbuzz" or "freetype" or "icuuc":
                 return NativeLibrary.Load(unmanagedDllName, typeof(object).Assembly, DllImportSearchPath.System32);
         }
 #endif

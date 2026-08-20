@@ -9,6 +9,7 @@ using CringeLauncher.CrashPad.Supplemental;
 using CringeLauncher.Loader;
 using CringeLauncher.Utils;
 using CringePlugins.Loader;
+using CringePlugins.Loader.PluginProvider;
 using HarmonyLib;
 using MonoMod.Utils;
 using NLog;
@@ -48,12 +49,12 @@ internal class CrashPadService
 
     public void PullPluginInfo(PluginsLifetime lifetime)
     {
-        var installedPlugins = lifetime.LoadedPlugins.Select(b => new CrashInformation.InstalledPlugin(b.Metadata.Name,
+        var installedPlugins = lifetime.LoadedPlugins.Keys.Select(b => new CrashInformation.InstalledPlugin(b.Metadata.Name,
             b.Metadata.Version.ToString(),
             b.Metadata.Source)
         {
-            Exception = b.WrappedInstance?.HasError is true
-                ? CaptureExceptionFrame(b.WrappedInstance.LastException)
+            Exception = b is PluginInstance { WrappedInstance.HasError: true } instance
+                ? CaptureExceptionFrame(instance.WrappedInstance.LastException)
                 : null
         });
         

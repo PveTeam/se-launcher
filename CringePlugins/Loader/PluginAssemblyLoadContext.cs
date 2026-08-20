@@ -1,4 +1,4 @@
-﻿using System.Collections.Concurrent;
+using System.Collections.Concurrent;
 using System.Reflection;
 using System.Runtime.Loader;
 using CringeBootstrap.Abstractions;
@@ -52,18 +52,18 @@ internal class PluginAssemblyLoadContext : DerivedAssemblyLoadContext, ICoreLoad
 
     protected override Assembly? Load(AssemblyName assemblyName)
     {
+        if (AssemblyName.ReferenceMatchesDefinition(assemblyName, _entrypointName))
+            return LoadEntrypoint();
         if (_dependencyResolver.ResolveAssemblyToPath(assemblyName) is { } path)
             return LoadAssemblyFile(path);
-        return ResolveFromAssemblyName(assemblyName) ?? base.Load(assemblyName);
+        return base.Load(assemblyName);
     }
 
     protected override nint LoadUnmanagedDll(string unmanagedDllName)
     {
-        if (_dependencyResolver.ResolveUnmanagedDllToPath(unmanagedDllName) is { } path)
-            return LoadUnmanagedDllFromPath(path);
-        
-        var handle = ResolveUnmanagedDll(unmanagedDllName);
-        return handle != nint.Zero ? handle : base.LoadUnmanagedDll(unmanagedDllName);
+        return _dependencyResolver.ResolveUnmanagedDllToPath(unmanagedDllName) is { } path
+            ? LoadUnmanagedDllFromPath(path)
+            : base.LoadUnmanagedDll(unmanagedDllName);
     }
 
     protected virtual Assembly LoadAssemblyFile(string path) => LoadFromAssemblyPath(path);
@@ -80,13 +80,7 @@ internal class PluginAssemblyLoadContext : DerivedAssemblyLoadContext, ICoreLoad
         pluginContext._loadedTypes.Clear();
     }
 
-    public Assembly? ResolveFromAssemblyName(AssemblyName assemblyName)
-    {
-        return AssemblyName.ReferenceMatchesDefinition(assemblyName, _entrypointName) ? LoadEntrypoint() : base.Load(assemblyName);
-    }
+    public Assembly? ResolveFromAssemblyName(AssemblyName assemblyName) => Load(assemblyName);
 
-    public nint ResolveUnmanagedDll(string unmanagedDllName)
-    {
-        return base.LoadUnmanagedDll(unmanagedDllName);
-    }
+    public nint ResolveUnmanagedDll(string unmanagedDllName) => LoadUnmanagedDll(unmanagedDllName);
 }

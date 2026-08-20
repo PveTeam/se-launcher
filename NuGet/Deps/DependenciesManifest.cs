@@ -1,8 +1,9 @@
-﻿using System.Collections.Immutable;
+using System.Collections.Immutable;
 using System.IO.Compression;
 using System.Runtime.InteropServices;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using NLog;
 using NuGet.Converters;
 using NuGet.Frameworks;
 using NuGet.Models;
@@ -77,8 +78,9 @@ public static class DependencyManifestSerializer
     public static ValueTask<DependenciesManifest> DeserializeAsync(Stream stream) => JsonSerializer.DeserializeAsync<DependenciesManifest>(stream, SerializerOptions)!;
 }
 
-public class DependencyManifestBuilder(DirectoryInfo cacheDirectory, PackageSourceMapping packageSources, Func<Models.Dependency, CatalogEntry?> catalogEntryResolver)
+public class DependencyManifestBuilder(DirectoryInfo cacheDirectory, PackageSourceMapping packageSources, Func<Models.Dependency, CatalogEntry?> catalogEntryResolver, Func<string, bool>? isHostProvided = null)
 {
+    private static readonly Logger Log = LogManager.GetCurrentClassLogger();
     public async ValueTask WriteDependencyManifestAsync(Stream stream, CatalogEntry catalogEntry, NuGetRuntimeFramework targetFramework, Predicate<CatalogEntry>? dependencyLeafPredicate = null)
     {
         var runtimeTarget = new RuntimeTarget(targetFramework);
@@ -119,10 +121,23 @@ public class DependencyManifestBuilder(DirectoryInfo cacheDirectory, PackageSour
         libraries.Add(packageKey,
             new DependencyLibrary(LibraryType.Package, Serviceable: true, Path: packageKey));
 
-        foreach (var entry in (nearest.Dependencies ?? []).Select(catalogEntryResolver))
+        foreach (var dependency in nearest.Dependencies ?? [])
         {
-            // predicate is invoked lately so the root entry cannot be skipped
-            if (entry is null || dependencyLeafPredicate?.Invoke(catalogEntry) is false)
+            var entry = catalogEntryResolver(dependency);
+
+            // The predicate decides whether a DEPENDENCY (a leaf in the manifest tree) is a
+            // component that must be loaded through its own context. The root's own mapping
+            // happens above, so the predicate can never skip the root itself.
+            if (entry is null)
+            {
+                Log.Debug(isHostProvided?.Invoke(dependency.Id) is true
+                        ? "Dependency {Dependency} {Range} of {Package} {Version} is provided by the host"
+                        : "Dependency {Dependency} {Range} of {Package} {Version} was not resolved",
+                    dependency.Id, dependency.Range, catalogEntry.Id, catalogEntry.Version);
+                continue;
+            }
+
+            if (dependencyLeafPredicate?.Invoke(entry) is false)
                 continue;
 
             await MapCatalogEntryAsync(entry, targetFramework, targets, libraries, dependencyLeafPredicate);
@@ -131,16 +146,23 @@ public class DependencyManifestBuilder(DirectoryInfo cacheDirectory, PackageSour
 
     private async Task<DependencyTarget> MapEntryAsync(CatalogEntry entry, DependencyGroup group)
     {
-        var packageEntries = entry.PackageEntries ?? await GetPackageContent(entry);
+        var packageEntries = entry.PackageEntries is { IsDefaultOrEmpty: false } packageEntryList
+            ? packageEntryList
+            : await GetPackageContent(entry);
 
         return new(
-            group.Dependencies?.ToImmutableDictionary(b => b.Id, b => catalogEntryResolver(b)!.Version) ??
+            group.Dependencies?.Select(b => (Dependency: b, Entry: catalogEntryResolver(b)))
+                .Where(x => x.Entry is not null)
+                .ToImmutableDictionary(x => x.Dependency.Id, x => x.Entry!.Version) ??
             ImmutableDictionary<string, NuGetVersion>.Empty,
-            packageEntries.Where(b => b.FullName.StartsWith($@"lib\{group.TargetFramework.GetShortFolderName()}\") && 
-                                      Path.GetExtension(b.FullName.AsSpan()) is ".dll")
+            packageEntries.Where(b =>
+                    b.FullName.Replace('\\', '/')
+                        .StartsWith($"lib/{group.TargetFramework.GetShortFolderName()}/") &&
+                    Path.GetExtension(b.FullName.AsSpan()) is ".dll")
                 .ToImmutableDictionary(b => b.FullName.Replace('\\', '/'), _ => new RuntimeDependency()),
             packageEntries.Where(b =>
-                    b.FullName.StartsWith($@"runtimes\{RuntimeInformation.RuntimeIdentifier}\native\"))
+                    b.FullName.Replace('\\', '/')
+                        .StartsWith($"runtimes/{RuntimeInformation.RuntimeIdentifier}/native/"))
                 .ToImmutableDictionary(b => b.FullName.Replace('\\', '/'), _ => new Dependency()));
     }
 
@@ -164,10 +186,16 @@ public class DependencyManifestBuilder(DirectoryInfo cacheDirectory, PackageSour
 
             dir.Create();
 
+            try
             {
                 await using var stream = await client!.GetPackageContentStreamAsync(entry.Id, entry.Version);
                 await using var archive = await ZipArchive.CreateAsync(stream, ZipArchiveMode.Read, true, null);
                 await archive.ExtractToDirectoryAsync(dir.FullName);
+            }
+            catch (Exception e)
+            {
+                Log.Error(e, "Failed to download package content for {Package} {Version} from {Client}", entry.Id, entry.Version, client);
+                throw;
             }
         }
     }

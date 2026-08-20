@@ -38,6 +38,7 @@ using Windows.Win32;
 using Windows.Win32.System.Console;
 using CringeLauncher.Platform;
 using CringeLauncher.Platform.Xplat;
+using CringePlugins.Abstractions.Loader;
 using SharedCringe.Utils;
 
 namespace CringeLauncher;
@@ -50,8 +51,8 @@ public class Launcher : ICorePlugin
     private SpaceEngineersGame? _game;
     private IPluginsLifetime? _lifetime;
 
-    private readonly DirectoryInfo _configDir;
-    private readonly DirectoryInfo _dir;
+    public DirectoryInfo ConfigDirectory { get; }
+    public DirectoryInfo DataDirectory { get; }
     private EarlyRenderThread? _renderThread;
     private CrashPadService? _crashPadService;
     
@@ -62,10 +63,10 @@ public class Launcher : ICorePlugin
     protected Launcher(string? gameDataDirectoryPathOverride)
     {
         _gameDataDirectoryPathOverride = gameDataDirectoryPathOverride;
-        _dir = Directory.CreateDirectory(Path.Join(
+        DataDirectory = Directory.CreateDirectory(Path.Join(
             gameDataDirectoryPathOverride ?? Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
             "CringeLauncher"));
-        _configDir = _dir.CreateSubdirectory("config");
+        ConfigDirectory = DataDirectory.CreateSubdirectory("config");
     }
 
     public bool Initialize(string[] args, ServiceCollection services)
@@ -78,9 +79,6 @@ public class Launcher : ICorePlugin
             ConsoleHandler.RedirectStandardError(redirectPath);
         }
 
-        if (Type.GetType("GameAnalyticsSDK.Net.Logging.GALogger, GameAnalytics.Mono") is { } gaLoggerType)
-            RuntimeHelpers.RunClassConstructor(gaLoggerType.TypeHandle);
-
         NLogLogging.Init();
 
         var logger = LogManager.GetLogger("CringeLauncher");
@@ -89,21 +87,7 @@ public class Launcher : ICorePlugin
 
         var serviceProvider = SetupServices(services);
 
-        if (!IsDedicated)
-        {
-#if WINDOWS
-            Application.SetHighDpiMode(HighDpiMode.PerMonitorV2);
-            ImGuiHandler.Instance = new Render.Win.WinImGuiHandler(_configDir);
-#else
-            new HarmonyLib.Harmony("CringeBootstrap").PatchCategory(typeof(Launcher).Assembly, "EarlyRender");
-            if (!RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
-                throw new PlatformNotSupportedException("Platforms other than linux are not supported");
-            ImGuiHandler.Instance = new Render.Xplat.XplatImGuiHandler(_configDir);
-#endif
-        
-            _renderThread = new EarlyRenderThread(ConsoleHandler.ShouldKeepConsole(args));
-        }
-        else RenderHandler.InitializeNoop();
+        InitializeEarlyWindow(args);
         
         using var splash = new Splash();
         RenderHandler.Current.RegisterComponent(splash);
@@ -157,6 +141,22 @@ public class Launcher : ICorePlugin
 
         _renderThread?.WaitForInit();
 
+        try
+        {
+            CreateGame(args);
+        }
+        catch (Exception e)
+        {
+            logger.Fatal(e, "Failed to create game");
+            _crashPadService?.CaptureCurrentThreadException(e);
+            return false;
+        }
+
+        return true;
+    }
+
+    private void CreateGame(string[] args)
+    {
         Sandbox.Engine.Platform.Game.IsDedicated = IsDedicated;
         _game = new(args)
         {
@@ -180,8 +180,6 @@ public class Launcher : ICorePlugin
         }
 
         MyRenderProxy.EnableAppEventsCall = false;
-
-        return true;
     }
 
     public bool Run()
@@ -206,6 +204,11 @@ public class Launcher : ICorePlugin
         MySandboxGame.Static.Invoke(CloseGame, nameof(Restart));
     }
 
+    public void Stop()
+    {
+        MySandboxGame.Static.Invoke(CloseGame, nameof(Stop));
+    }
+
     private static void CloseGame()
     {
         MyAudio.Static.Mute = true;
@@ -222,8 +225,8 @@ public class Launcher : ICorePlugin
             .WaitAndRetryAsync(5, _ => TimeSpan.FromSeconds(1));
 
         services.AddHttpClient<PluginsLifetime, PluginsLifetime>((client, provider) =>
-                new PluginsLifetime(provider.GetRequiredService<ConfigHandler>(),
-                    provider.GetRequiredService<IPluginServiceProviderFactory>(), client, _dir,
+                new PluginsLifetime(provider, provider.GetRequiredService<ConfigHandler>(),
+                    provider.GetRequiredService<IPluginServiceProviderFactory>(), client, DataDirectory,
                     IsDedicated ? "CringePluginDedicated" : "CringePlugin"))
             .ConfigurePrimaryHttpMessageHandler(() => new HttpClientHandler
             {
@@ -241,7 +244,7 @@ public class Launcher : ICorePlugin
         services.AddSingleton(_ => RenderHandler.Current)
             .AddSingleton<IPluginsLifetime>(s => s.GetRequiredService<PluginsLifetime>())
             .AddSingleton<IImGuiImageService>(s => s.GetRequiredService<ImGuiImageService>())
-            .AddSingleton(_ => new ConfigHandler(_configDir))
+            .AddSingleton(_ => new ConfigHandler(ConfigDirectory))
             .AddSingleton(_crashPadService!);
         
         var factory = new AutofacServiceProviderFactory();
@@ -254,7 +257,7 @@ public class Launcher : ICorePlugin
 
     protected virtual async ValueTask<LauncherConfig?> ReadUpdateConfigAsync(Logger logger)
     {
-        var path = Path.Join(_configDir.FullName, "launcher.json");
+        var path = Path.Join(ConfigDirectory.FullName, "launcher.json");
 
         if (!File.Exists(path))
             return null;
@@ -275,14 +278,25 @@ public class Launcher : ICorePlugin
         return null;
     }
 
-    #region Keen shit
-
     protected virtual void Initialize(Splash splash)
     {
         splash.DefineStage(new GameServiceInitializationStage(IsDedicated));
     }
 
-    #endregion
+    protected virtual void InitializeEarlyWindow(string[] args)
+    {
+#if WINDOWS
+        Application.SetHighDpiMode(HighDpiMode.PerMonitorV2);
+        ImGuiHandler.Instance = new Render.Win.WinImGuiHandler(ConfigDirectory);
+#else
+        new HarmonyLib.Harmony("CringeBootstrap").PatchCategory(typeof(Launcher).Assembly, "EarlyRender");
+        if (!OperatingSystem.IsLinux())
+            throw new PlatformNotSupportedException("Platforms other than linux are not supported");
+        ImGuiHandler.Instance = new Render.Xplat.XplatImGuiHandler(ConfigDirectory);
+#endif
+        
+        _renderThread = new EarlyRenderThread(ConsoleHandler.ShouldKeepConsole(args));
+    }
 
     public void Dispose()
     {

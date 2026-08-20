@@ -1,6 +1,7 @@
 ﻿using System.Collections.Immutable;
 using System.Diagnostics;
 using System.IO.Compression;
+using System.Net;
 using System.Runtime.InteropServices;
 using System.Text;
 using CringeBootstrap.Transformers;
@@ -31,7 +32,10 @@ internal class CrossGenServiceImpl(string gameDirectoryPath, string cachePath, s
         if (File.Exists(toolPath))
             return toolPath;
 
-        using var httpClient = new HttpClient();
+        using var httpClient = new HttpClient(new HttpClientHandler
+        {
+            AutomaticDecompression = DecompressionMethods.All
+        });
         try
         {
             var client = await NuGetClient.CreateFromIndexUrlAsync(nugetUrl, httpClient);

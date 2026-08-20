@@ -6,6 +6,7 @@ using Sandbox;
 using Sandbox.Engine.Multiplayer;
 using Sandbox.Engine.Networking;
 using Sandbox.Game;
+using SharedCringe.Utils;
 using SpaceEngineers.Game.Achievements;
 using VRage;
 using VRage.GameServices;
@@ -22,6 +23,9 @@ public class GameServiceInitializationStage(bool isDedicated) : ILoadingStage
         progress.DefineStepsCount(2);
         
         progress.Report("Steam game service initialization");
+        
+        if (isDedicated)
+            Environment.SetEnvironmentVariableNoCap("SteamAppId", LauncherConstants.AppId.ToString());
         
         var steamGameService = MySteamGameService.Create(isDedicated, LauncherConstants.AppId);
         MyServiceManager.Instance.AddService(steamGameService);

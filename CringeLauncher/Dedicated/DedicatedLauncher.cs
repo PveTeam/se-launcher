@@ -1,5 +1,7 @@
-﻿using CringeLauncher.Stages;
+﻿using CringeLauncher.Render;
+using CringeLauncher.Stages;
 using CringePlugins.Config;
+using CringePlugins.Render;
 using CringePlugins.Splash;
 using NLog;
 
@@ -14,5 +16,11 @@ public class DedicatedLauncher() : Launcher(Environment.GetEnvironmentVariable("
         base.Initialize(splash);
         
         splash.DefineStage(new DedicatedPlatformInitializationStep());
+    }
+
+    protected override void InitializeEarlyWindow(string[] args)
+    {
+        RenderHandler.InitializeNoop();
+        ImGuiHandler.Instance = new Render.NoopImGuiHandler(ConfigDirectory);
     }
 }

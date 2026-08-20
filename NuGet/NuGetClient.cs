@@ -1,4 +1,5 @@
-﻿using System.Net.Http.Json;
+﻿using System.Collections.Immutable;
+using System.Net.Http.Json;
 using System.Text.Json;
 using System.Web;
 using NuGet.Converters;
@@ -40,6 +41,11 @@ public sealed class NuGetClient
         id = id.ToLower();
         return _client.GetStreamAsync(new Uri(_packageBaseAddress,
             new Uri($"{id}/{version}/{id}.{version}.nupkg", UriKind.Relative)));
+    }
+
+    public Task<RegistrationPage> GetPackageRegistrationPageAsync(string url)
+    {
+        return _client.GetFromJsonAsync<RegistrationPage>(url, SerializerOptions)!;
     }
 
     public Task<Registration> GetPackageRegistrationAsync(string id, NuGetVersion version)
@@ -102,9 +108,9 @@ public sealed class NuGetClient
         {
             var index = await client.GetFromJsonAsync<NuGetIndex>(indexUrl, SerializerOptions);
 
-            var (packageBaseAddress, _, _) = index!.Resources.First(b => b.Type.Id == "PackageBaseAddress");
-            var (registration, _, _) = index.Resources.First(b => b.Type.Id == "RegistrationsBaseUrl");
-            var (search, _, _) = index.Resources.First(b => b.Type.Id == "SearchQueryService");
+            var (packageBaseAddress, _, _) = SelectBestResourceVersion(index!.Resources, "PackageBaseAddress");
+            var (registration, _, _) = SelectBestResourceVersion(index.Resources, "RegistrationsBaseUrl");
+            var (search, _, _) = SelectBestResourceVersion(index.Resources, "SearchQueryService");
 
             if (!packageBaseAddress.EndsWith('/'))
                 packageBaseAddress += '/';
@@ -118,6 +124,17 @@ public sealed class NuGetClient
         {
             throw new Exception($"Failed to create NuGetClient for {indexUrl}", e);
         }
+    }
+
+    private static Resource SelectBestResourceVersion(Resource[] resources, string id)
+    {
+        var candidates = resources.Where(r => r.Type.Id.Equals(id, StringComparison.OrdinalIgnoreCase))
+            .ToImmutableSortedSet();
+        
+        if (candidates.IsEmpty || candidates.Max is null)
+            throw new KeyNotFoundException($"Resource {id} not found");
+
+        return candidates.Max;
     }
 
     public override string ToString() => _index.ToString();

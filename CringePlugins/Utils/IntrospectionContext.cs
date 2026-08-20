@@ -1,6 +1,7 @@
-﻿using System.Reflection;
+using System.Reflection;
 using System.Runtime.CompilerServices;
 using dnlib.DotNet;
+using SharedCringe.Loader;
 using VRage.FileSystem;
 
 namespace CringePlugins.Utils;
@@ -23,9 +24,22 @@ public class IntrospectionContext
         Context = new(assemblyResolver);
     }
 
-    internal ModuleDefMD Load(Module module)
+    public IntrospectionContext(DerivedAssemblyLoadContext loadContext)
+    {
+        var assemblyResolver = new LoadContextAssemblyResolver(loadContext);
+
+        Context = new(assemblyResolver);
+        assemblyResolver.DefaultModuleContext = Context;
+    }
+
+    public ModuleDefMD Load(Module module)
     {
         return _moduleDefCache.GetValue(module, LoadDefUncached);
+    }
+
+    public ModuleDefMD LoadModule(string fileName)
+    {
+        return ModuleDefMD.Load(fileName, Context);
     }
     
     private ModuleDefMD LoadDefUncached(Module module) => ModuleDefMD.Load(module, Context);
@@ -89,7 +103,7 @@ public class IntrospectionContext
     }
 }
 
-internal static class TypeDefExtensions
+public static class TypeDefExtensions
 {
     extension(TypeDef def)
     {

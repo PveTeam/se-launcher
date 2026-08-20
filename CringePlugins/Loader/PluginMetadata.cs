@@ -9,7 +9,7 @@ namespace CringePlugins.Loader;
 
 public record PluginMetadata(string Id, string Name, NuGetVersion Version, string Source)
 {
-    public required string EntrypointTypeName { get; init; }
+    public string EntrypointTypeName { get; init; }
     
     public DirectoryInfo? AssetsDirectory { get; init; }
     

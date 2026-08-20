@@ -1,11 +1,9 @@
 ﻿using System.Collections.Immutable;
 using System.Reflection;
 using System.Runtime.Loader;
-using CringeBootstrap.Abstractions;
 using CringePlugins.Abstractions;
-using CringePlugins.Utils;
+using CringePlugins.Abstractions.Loader;
 using Microsoft.Extensions.DependencyInjection;
-using NLog;
 using Sandbox;
 using Sandbox.Game.World;
 using SharedCringe.Loader;
@@ -14,65 +12,28 @@ using VRage.Game;
 using VRage.Game.ObjectBuilder;
 using VRage.Plugins;
 
-namespace CringePlugins.Loader;
+namespace CringePlugins.Loader.PluginProvider;
 
-internal sealed class PluginInstance(
-    PluginMetadata metadata,
-    string entrypointPath,
-    bool local,
-    IPluginServiceProviderFactory serviceProviderFactory,
-    AssemblyDependencyResolver? dependencyResolver,
-    PluginsLifetime pluginsLifetime,
-    PluginInstance? parent = null) : IEquatable<PluginInstance>
+internal sealed class PluginInstance(PluginMetadata metadata, IPluginDependencyContextFactory contextFactory)
+    : PluginInstanceBase(metadata, contextFactory)
 {
     private static readonly MethodInfo RegisterServicesMethod =
-        typeof(PluginInstance).GetMethod(nameof(RegisterServices), BindingFlags.NonPublic | BindingFlags.Static)!;
+        typeof(PluginInstance).GetMethod(nameof(RegisterPluginServices), BindingFlags.NonPublic | BindingFlags.Static)!;
     
-    public bool HasConfig => _openConfigAction != null;
-    public bool IsReloading => _disposeTcs?.Task.IsCompleted == false;
+    public override bool HasConfig => _openConfigAction != null;
+    public override bool IsReloading => _disposeTcs?.Task.IsCompleted == false;
 
-    public bool IsLocal => local;
-
-    private PluginAssemblyLoadContext? _context;
     private IPlugin? _instance;
-    private TaskCompletionSource<(DerivedAssemblyLoadContext OldContext, DerivedAssemblyLoadContext NewContext)>? _disposeTcs;
+    private TaskCompletionSource<bool>? _disposeTcs;
 
     private Action? _openConfigAction;
-    private IServiceProviderScope? _serviceProviderScope;
-    private AssemblyDependencyResolver? _dependencyResolver = dependencyResolver;
     public PluginWrapper? WrappedInstance { get; private set; }
 
-    private static readonly ILogger Log = LogManager.GetCurrentClassLogger();
-    public PluginMetadata Metadata { get; } = metadata;
-
-    public void Instantiate(ImmutableArray<DerivedAssemblyLoadContext>.Builder contextBuilder)
+    protected override void Instantiate(Type entrypointType, IServiceProvider serviceProvider)
     {
-        if (AssemblyLoadContext.GetLoadContext(typeof(PluginInstance).Assembly) is not ICoreLoadContext parentContext)
-            throw new NotSupportedException("Plugin instantiation is not supported in this context");
+        _instance = serviceProvider.GetRequiredService<IPlugin>();
 
-        _dependencyResolver ??= new(entrypointPath);
-
-        _context = local
-            ? new LocalLoadContext(parentContext, entrypointPath, _dependencyResolver)
-            : new PluginAssemblyLoadContext(parent?._context ?? parentContext, entrypointPath, _dependencyResolver);
-        contextBuilder.Add(_context);
-
-        var entrypoint = _context.LoadEntrypoint();
-
-        var implementationType = entrypoint.GetMainModule().GetType(Metadata.EntrypointTypeName, true, false)!;
-
-        var services = serviceProviderFactory.CreateBuilder();
-
-        services.AddSingleton(typeof(IPlugin), implementationType);
-
-        if (implementationType.IsAssignableTo(typeof(IPluginWithServices)))
-            RegisterServicesMethod.MakeGenericMethod(implementationType).Invoke(null, [services]);
-
-        _serviceProviderScope = serviceProviderFactory.CreateServiceProviderScope(_context, services);
-
-        _instance = _serviceProviderScope.Provider.GetRequiredService<IPlugin>();
-
-        var openConfigMethod = implementationType.GetMethod("OpenConfigDialog");
+        var openConfigMethod = entrypointType.GetMethod("OpenConfigDialog");
 
         if (openConfigMethod is not null)
         {
@@ -87,9 +48,12 @@ internal sealed class PluginInstance(
             }
         }
 
-        WrappedInstance = new PluginWrapper(new PluginContext(Metadata, _serviceProviderScope.Provider, pluginsLifetime), _instance);
+        WrappedInstance =
+            new PluginWrapper(
+                new PluginContext(Metadata, serviceProvider,
+                    serviceProvider.GetRequiredService<PluginsLifetime>()), _instance);
         
-        var loadAssetsMethod = implementationType.GetMethod("LoadAssets", [typeof(string)]);
+        var loadAssetsMethod = entrypointType.GetMethod("LoadAssets", [typeof(string)]);
 
         if (loadAssetsMethod is null) return;
         
@@ -104,17 +68,15 @@ internal sealed class PluginInstance(
         }
     }
 
-    public void RegisterLifetime()
+    protected override void RegisterServices(IServiceCollection services, Type entrypointType)
     {
-        if (_instance is null)
-            throw new InvalidOperationException("Must call Instantiate first");
+        services.AddSingleton(typeof(IPlugin), entrypointType);
 
-        MyPlugins.m_plugins.Add(WrappedInstance);
-        if (_instance is IHandleInputPlugin)
-            MyPlugins.m_handleInputPlugins.Add(WrappedInstance);
+        if (entrypointType.IsAssignableTo(typeof(IPluginWithServices)))
+            RegisterServicesMethod.MakeGenericMethod(entrypointType).Invoke(null, [services]);
     }
 
-    public void OpenConfig()
+    public override void OpenConfig()
     {
         if (_openConfigAction is null)
             throw new InvalidOperationException("Plugin does not have OpenConfigDialog method");
@@ -129,15 +91,15 @@ internal sealed class PluginInstance(
         }
     }
 
-    public Task<(DerivedAssemblyLoadContext OldContext, DerivedAssemblyLoadContext NewContext)> ReloadAsync()
+    public override Task ReloadAsync()
     {
-        if (!local)
+        if (!IsLocal)
             throw new NotSupportedException("Reload is only supported for local plugins");
 
         if (_disposeTcs != null)
             return _disposeTcs.Task;
 
-        var tcs = new TaskCompletionSource<(DerivedAssemblyLoadContext OldContext, DerivedAssemblyLoadContext NewContext)>();
+        var tcs = new TaskCompletionSource<bool>();
 
         _disposeTcs = tcs;
         MySandboxGame.Static.Invoke(ReloadInternal, "PluginInstance.Reload");
@@ -150,7 +112,7 @@ internal sealed class PluginInstance(
 
         Log.Info("Reloading local plugin {Name}", Metadata.Name);
 
-        if (_context is null)
+        if (Context is null)
             throw new InvalidOperationException("Must call Instantiate first");
 
         MyPlugins.m_plugins.Remove(WrappedInstance);
@@ -177,12 +139,9 @@ internal sealed class PluginInstance(
         WrappedInstance = null;
         _instance = null;
 
-        _serviceProviderScope?.Dispose();
-        _context.Unload();
-        var oldContext = _context;
+        Context.Dispose();
 
-        var builder = ImmutableArray.CreateBuilder<DerivedAssemblyLoadContext>();
-        Instantiate(builder);
+        Instantiate();
         RegisterLifetime();
         WrappedInstance!.Init(MySandboxGame.Static);
         Log.Info("Plugin Init: {Metadata}", WrappedInstance.ToString());
@@ -190,15 +149,25 @@ internal sealed class PluginInstance(
         MyGlobalTypeMetadata.Static.RegisterAssembly(WrappedInstance!.InstanceType.Assembly);
         MySession.Static?.RegisterComponentsFromAssembly(WrappedInstance!.InstanceType.Assembly, true);
 
-        _disposeTcs.SetResult((oldContext, builder[0]));
+        _disposeTcs.SetResult(true);
         _disposeTcs = null;
 
         Log.Info("Reloaded local plugin {Name}", Metadata.Name);
     }
 
-    private static void RegisterServices<T>(IServiceCollection services) where T : IPluginWithServices
+    private static void RegisterPluginServices<T>(IServiceCollection services) where T : IPluginWithServices
     {
         T.RegisterServices(services);
+    }
+
+    public override void RegisterLifetime()
+    {
+        if (_instance is null)
+            throw new InvalidOperationException("Must call Instantiate first");
+
+        MyPlugins.m_plugins.Add(WrappedInstance);
+        if (_instance is IHandleInputPlugin)
+            MyPlugins.m_handleInputPlugins.Add(WrappedInstance);
     }
 
     private record PluginContext(PluginMetadata Metadata, IServiceProvider Provider, PluginsLifetime Lifetime) : IPluginContext
@@ -207,12 +176,4 @@ internal sealed class PluginInstance(
 
         public ImmutableDictionary<string, PluginMetadata> Plugins => Lifetime.Plugins;
     }
-
-    public bool Equals(PluginInstance? other) => 
-        Metadata.Id.Equals(other?.Metadata.Id, StringComparison.OrdinalIgnoreCase);
-    
-    public override bool Equals(object? obj) => 
-        obj is PluginInstance other && Equals(other);
-    
-    public override int GetHashCode() => Metadata.Id.GetHashCode(StringComparison.OrdinalIgnoreCase);
 }

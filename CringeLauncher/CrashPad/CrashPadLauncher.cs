@@ -28,10 +28,12 @@ public sealed class CrashPadLauncher : ICorePlugin
     private string? _peMapPath;
     private string? _crossGenCacheKey;
 
-    private readonly string _appdataDir = Path.Join(
+    public DirectoryInfo DataDirectory { get; } = Directory.CreateDirectory(Path.Join(
         Environment.GetEnvironmentVariable("DOTNET_USERDEV_RUNDIR") ??
         Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
-        "CringeLauncher");
+        "CringeLauncher"));
+
+    public DirectoryInfo ConfigDirectory { get; }
 
     private readonly string _logsDir;
     private bool _isDedicated;
@@ -41,7 +43,8 @@ public sealed class CrashPadLauncher : ICorePlugin
 
     public CrashPadLauncher()
     {
-        _logsDir = Path.Join(_appdataDir, "logs");
+        ConfigDirectory = DataDirectory.CreateSubdirectory("config");
+        _logsDir = DataDirectory.CreateSubdirectory("logs").FullName;
     }
 
     public void Dispose()
@@ -59,7 +62,6 @@ public sealed class CrashPadLauncher : ICorePlugin
             _crossGenCacheKey = provider.GetService<ICrossGenService>()?.CacheKey;
 
             RestartRequested = false;
-            Directory.CreateDirectory(_logsDir);
             _stderrPath = FindFreePath("crashpad-stderr-redirect.txt", _logsDir);
             _dumpPath = FindFreePath("crashpad-dump.dmp", _logsDir);
             _dumpLogPath = FindFreePath("crashpad-dump-log.log", _logsDir);
@@ -67,15 +69,9 @@ public sealed class CrashPadLauncher : ICorePlugin
             _peMapPath = FindFreePath("crashpad-pe-map.json", _logsDir);
             _appHostPath = FindValidAppHostPath(args);
 
-            var crashTest = args.Contains("--crash-test", StringComparer.OrdinalIgnoreCase);
-            var childEntrypoint = crashTest
-                ? CrashPathTestPlugin.TypeName
-                : _isDedicated
-                    ? LauncherConstants.DedicatedServerEntrypoint
-                    : LauncherConstants.ActualBootstrapEntrypoint;
-
-            if (crashTest)
-                Log.Warn("Crash-test mode enabled; child entrypoint={Entrypoint}", childEntrypoint);
+            var childEntrypoint = _isDedicated
+                ? LauncherConstants.DedicatedServerEntrypoint
+                : LauncherConstants.ActualBootstrapEntrypoint;
 
             var environment = new Dictionary<string, string?>
             {
@@ -217,9 +213,8 @@ public sealed class CrashPadLauncher : ICorePlugin
         // Still emit a report when only supplemental sources produced data.
         if (information is null && processInformation.SupplementalSections.Count == 0) return;
 
-        var crashReportDir = Path.Join(_appdataDir, "crash-reports");
-        Directory.CreateDirectory(crashReportDir);
-        var path = Path.Join(crashReportDir, $"crash-report-{DateTime.Now:yyyy-MM-dd_HH-mm-ss}.txt");
+        var crashReportDir = DataDirectory.CreateSubdirectory("crash-reports");
+        var path = Path.Join(crashReportDir.FullName, $"crash-report-{DateTime.Now:yyyy-MM-dd_HH-mm-ss}.txt");
         using (var stream = File.Create(path))
             new CrashReportWriter(information ?? EmptyCrashInformation(), processInformation).Write(stream);
         Log.Info("Crash report written to {Path}", path);
@@ -230,12 +225,11 @@ public sealed class CrashPadLauncher : ICorePlugin
     {
         InitializeCrashDialogServices();
 
-        var configDir = Path.Join(_appdataDir, "config");
         ImGuiHandler.Instance =
 #if WINDOWS
-            new Render.Win.WinImGuiHandler(Directory.CreateDirectory(configDir));
+            new Render.Win.WinImGuiHandler(ConfigDirectory);
 #else
-            new Render.Xplat.XplatImGuiHandler(Directory.CreateDirectory(configDir));
+            new Render.Xplat.XplatImGuiHandler(ConfigDirectory);
 #endif
 
         var exitEvent = new ManualResetEventSlim();
@@ -337,6 +331,7 @@ public sealed class CrashPadLauncher : ICorePlugin
     }
 
     void ICorePlugin.Restart() => throw new NotSupportedException("Cannot restart the crashpad directly");
+    void ICorePlugin.Stop() => throw new NotSupportedException("Cannot stop the crashpad directly");
 }
 
 public record CrashProcessInformation(

@@ -1,35 +1,43 @@
-﻿using System.Collections.Immutable;
+using System.Collections.Immutable;
 using System.Runtime.InteropServices;
 using System.Runtime.Loader;
-using CringePlugins.Abstractions;
+using CringePlugins.Abstractions.Loader;
 using CringePlugins.Config;
+using CringePlugins.Loader.ProviderProvider;
 using CringePlugins.Render;
 using CringePlugins.Resolver;
 using CringePlugins.Splash;
 using CringePlugins.Ui;
 using CringePlugins.Utils;
+using dnlib.DotNet;
+using dnlib.PE;
 using Microsoft.TemplateEngine.Utils;
 using NLog;
 using NuGet;
 using NuGet.Deps;
 using NuGet.Frameworks;
 using NuGet.Models;
-using SharedCringe.Loader;
+using SharedCringe.Utils;
 using VRage.FileSystem;
 using Dependency = NuGet.Models.Dependency;
 
 namespace CringePlugins.Loader;
 
-internal class PluginsLifetime(ConfigHandler configHandler, IPluginServiceProviderFactory serviceProviderFactory, HttpClient client, DirectoryInfo dir, string packageType) : IPluginsLifetime
+internal class PluginsLifetime(
+    IServiceProvider serviceProvider,
+    ConfigHandler configHandler,
+    IPluginServiceProviderFactory serviceProviderFactory,
+    HttpClient client,
+    DirectoryInfo dir,
+    string packageType) : IPluginsLifetime
 {
-    public static ImmutableArray<DerivedAssemblyLoadContext> Contexts { get; private set; } = [];
-    private static readonly Lock ContextsLock = new();
+    internal static PluginsLifetime? Instance;
 
     private static readonly Logger Log = LogManager.GetCurrentClassLogger();
 
     public string Name => "Loading Plugins";
 
-    internal ImmutableHashSet<PluginInstance> LoadedPlugins = [];
+    internal ImmutableDictionary<IPluginInstance, PluginInstanceData> LoadedPlugins = [];
     internal ImmutableDictionary<string, PluginMetadata> Plugins = [];
     internal bool SomeSourcesAreUnavailable { get; private set; }
 
@@ -41,7 +49,18 @@ internal class PluginsLifetime(ConfigHandler configHandler, IPluginServiceProvid
 
     public async ValueTask Load(ISplashProgress progress)
     {
+        Instance = this;
         progress.DefineStepsCount(6);
+        
+        progress.Report("Loading config");
+
+        _configReference = configHandler.RegisterConfig("packages", PackagesConfig.Default);
+        _launcherConfig = configHandler.RegisterConfig("launcher", LauncherConfig.Default);
+        var packagesConfig = _configReference.Value;
+        var launcherConfig = _launcherConfig.Value;
+        
+        var cacheDir = dir.CreateSubdirectory("cache");
+        InitializeSharedStore(ref cacheDir);
 
         progress.Report("Discovering local plugins");
 
@@ -51,26 +70,17 @@ internal class PluginsLifetime(ConfigHandler configHandler, IPluginServiceProvid
 
         var (localPlugins, localRequestedReferences) = await DiscoverLocalPlugins(dir.CreateSubdirectory("plugins"));
 
-        progress.Report("Loading config");
-
-        _configReference = configHandler.RegisterConfig("packages", PackagesConfig.Default);
-        _launcherConfig = configHandler.RegisterConfig("launcher", LauncherConfig.Default);
-        var packagesConfig = _configReference.Value;
-        var launcherConfig = _launcherConfig.Value;
-
         progress.Report("Resolving packages");
 
         var sourceMapping = new PackageSourceMapping(packagesConfig.Sources, client);
-        // TODO take into account the target framework runtime identifier
-        var resolver = new PackageResolver(_runtimeFramework.Framework, [..packagesConfig.Packages, ..localRequestedReferences], sourceMapping);
 
-        var cacheDir = dir.CreateSubdirectory("cache");
-        
-        InitializeSharedStore(ref cacheDir);
-
-        var invalidPackages = new List<PackageReference>();
         var builtInPackages = await BuiltInPackages.GetPackagesAsync(_runtimeFramework);
         var builtInPackageIds = builtInPackages.Keys.ToHashSet();
+        
+        // TODO take into account the target framework runtime identifier
+        var resolver = new PackageResolver(_runtimeFramework.Framework, [..packagesConfig.Packages, ..localRequestedReferences], sourceMapping);
+        
+        var invalidPackages = new List<PackageReference>();
         var packages = await resolver.ResolveAsync(cacheDir, launcherConfig.DisablePluginUpdates, builtInPackageIds, invalidPackages);
 
         if (invalidPackages.Count > 0)
@@ -101,55 +111,41 @@ internal class PluginsLifetime(ConfigHandler configHandler, IPluginServiceProvid
             .Order()
             .DistinctBy(b => b.Package.Id)
             .ToDictionary(b => b.Package.Id, StringComparer.OrdinalIgnoreCase);
-        await LoadPlugins(loadedPackages.Values, sourceMapping, packagesConfig, builtInPackages, cacheDir);
+
+        var rootProvider = new PluginProviderPluginProvider();
+
+        var providerInstances = await LoadComponentsAsync(loadedPackages.Values, [rootProvider], sourceMapping,
+            packagesConfig, builtInPackages, cacheDir, []);
+        
+        AttachComponents(providerInstances);
+
+        var providers = providerInstances.Keys.OfType<PluginProviderInstance>().Select(b => b.Provider)
+            .Append(new PluginProvider.PluginProvider(packageType))
+            .ToImmutableArray();
+
+        var loadedComponents =
+            providerInstances.ToImmutableDictionary(b => b.Key.Metadata.Id, b => b.Value,
+                StringComparer.OrdinalIgnoreCase);
+
+        LoadedPlugins = await LoadComponentsAsync(loadedPackages.Values, providers, sourceMapping,
+            packagesConfig, builtInPackages, cacheDir, loadedComponents);
+        
+        Plugins = LoadedPlugins.Keys.ToImmutableDictionary(b => b.Metadata.Id, b => b.Metadata, StringComparer.OrdinalIgnoreCase);
 
         RenderHandler.Current.RegisterComponent(new PluginListComponent(_configReference, _launcherConfig,
-            sourceMapping, MyFileSystem.ExePath, LoadedPlugins, dir, cacheDir, loadedPackages));
+            sourceMapping, MyFileSystem.ExePath, LoadedPlugins.Keys, dir, cacheDir, loadedPackages));
 
         SomeSourcesAreUnavailable = sourceMapping.SomeSourcesAreUnavailable;
     }
 
-    public static async Task ReloadPluginAsync(PluginInstance instance)
+    private async Task<ImmutableDictionary<IPluginInstance, PluginInstanceData>> LoadComponentsAsync(IReadOnlyCollection<CachedPackage> packages,
+        ImmutableArray<IPluginProvider> providers, PackageSourceMapping sourceMapping, PackagesConfig packagesConfig,
+        ImmutableDictionary<string, ResolvedPackage> builtInPackages, DirectoryInfo cacheDir, ImmutableDictionary<string, PluginInstanceData> loadedComponents)
     {
-        try
-        {
-            var (oldContext, newContext) = await instance.ReloadAsync();
-
-            using (ContextsLock.EnterScope())
-            {
-                Contexts = Contexts.Replace(oldContext, newContext);
-            }
-        }
-        catch (Exception e)
-        {
-            Log.Error(e, "Failed to reload plugin {Plugin}", instance.Metadata);
-        }
-    }
-
-    public void RegisterLifetime()
-    {
-        var contextBuilder = Contexts.ToBuilder();
-        foreach (var instance in LoadedPlugins)
-        {
-            try
-            {
-                instance.Instantiate(contextBuilder);
-                instance.RegisterLifetime();
-            }
-            catch (Exception e)
-            {
-                Log.Error(e, "Failed to instantiate plugin {Plugin}", instance.Metadata);
-            }
-        }
-
-        Contexts = contextBuilder.ToImmutable();
-    }
-
-    private async Task LoadPlugins(IReadOnlyCollection<CachedPackage> packages, PackageSourceMapping sourceMapping,
-        PackagesConfig packagesConfig, ImmutableDictionary<string, ResolvedPackage> builtInPackages, DirectoryInfo cacheDir)
-    {
-        var plugins = LoadedPlugins.ToBuilder();
-
+        var packageTypes = providers
+            .SelectMany(b => b.PackageTypes.Select(c => new KeyValuePair<string, IPluginProvider>(c, b)))
+            .ToImmutableDictionary();
+        
         var resolvedPackages = builtInPackages.ToDictionary();
         foreach (var package in packages)
         {
@@ -159,15 +155,19 @@ internal class PluginsLifetime(ConfigHandler configHandler, IPluginServiceProvid
         var manifestBuilder = new DependencyManifestBuilder(cacheDir, sourceMapping,
             dependency =>
             {
+                if (builtInPackages.ContainsKey(dependency.Id))
+                    return null;
                 resolvedPackages.TryGetValue(dependency.Id, out var package);
                 return package?.Entry;
-            });
+            },
+            isHostProvided: id => builtInPackages.ContainsKey(id));
 
-        var pluginPackages = packages.Where(package =>
-                !builtInPackages.ContainsKey(package.Package.Id) && package.Entry.PackageTypes?.Contains(packageType) is true)
+        var componentPackages = packages.Where(package =>
+                !builtInPackages.ContainsKey(package.Package.Id) && package.Entry.PackageTypes is [..] &&
+                packageTypes.Keys.Intersect(package.Entry.PackageTypes).Any())
             .ToImmutableArray();
 
-        var dependenciesMap = pluginPackages.OfType<ResolvedPackage>().ToDictionary(b => b, b =>
+        var dependenciesMap = componentPackages.ToDictionary(ResolvedPackage (b) => b, b =>
         {
             if (b.Entry.DependencyGroups is null or []) return [];
 
@@ -179,22 +179,33 @@ internal class PluginsLifetime(ConfigHandler configHandler, IPluginServiceProvid
                 return [];
 
             return nearest.Dependencies.Value.Select(p =>
-            {
-                resolvedPackages.TryGetValue(p.Id, out var package);
-                return package;
-            }).Where(p => p is { Entry.PackageTypes: ["CringePlugin"] }).ToHashSet();
+                {
+                    resolvedPackages.TryGetValue(p.Id, out var package);
+                    return package;
+                }).Where(p =>
+                    p.Entry.PackageTypes is { IsEmpty: false } types &&
+                    packageTypes.Keys.Intersect(types).Any())
+                .ToHashSet();
         });
 
+        var plugins = ImmutableDictionary.CreateBuilder<IPluginInstance, PluginInstanceData>();
+        
         foreach (var subGraph in DependenciesUtils.SplitIntoSubGraphs(dependenciesMap!))
         {
             DirectedGraph<ResolvedPackage> graph = subGraph;
             if (!graph.TryGetTopologicalSort(out var sortedElements))
                 throw new Exception("Plugin dependency cycle detected");
 
-            PluginInstance? parent = null;
+            AlcFactory? parent = null;
             var anyLoaded = false;
-            foreach (var package in sortedElements.OfType<CachedPackage>().Where(b => b.Entry.PackageTypes is ["CringePlugin"]))
+            var order = 0;
+            foreach (var package in sortedElements.OfType<CachedPackage>())
             {
+                if (package.Entry.PackageTypes is not [..] ||
+                    packageTypes.IntersectBy(package.Entry.PackageTypes.Value, b => b.Key).FirstOrDefault() is not
+                        { Value: { } provider })
+                    continue;
+                
                 anyLoaded = true;
                 var packageClient = await sourceMapping.GetClientAsync(package.Package.Id);
 
@@ -223,7 +234,7 @@ internal class PluginsLifetime(ConfigHandler configHandler, IPluginServiceProvid
                             //client should not be null for calls to this
                             //filter out plugins from the dependency tree so they're loaded as port of their own trees
                             await manifestBuilder.WriteDependencyManifestAsync(stream, package.Entry, _runtimeFramework,
-                                entry => entry.PackageTypes is not ["CringePlugin"]);
+                                dependency => !dependency.PackageTypes.GetValueOrDefault([]).Any(packageTypes.ContainsKey));
                         }
                         catch (Exception ex)
                         {
@@ -242,28 +253,85 @@ internal class PluginsLifetime(ConfigHandler configHandler, IPluginServiceProvid
                     : packageClient == null
                         ? "Local Cache"
                         : packagesConfig.Sources.First(b => b.Url == packageClient.ToString()).Name;
+
+                var entryTitle = string.IsNullOrEmpty(package.Entry.Title) ? package.Package.Id : package.Entry.Title;
+                var metadata = new PluginMetadata(package.Package.Id, entryTitle, package.Package.Version,
+                    sourceName);
+
                 var entrypointPath = Path.Join(packageDir, $"{package.Package.Id}.dll");
-                parent = LoadComponent(plugins, entrypointPath,
-                    new(package.Package.Id, package.Entry.Title ?? package.Package.Id, package.Package.Version,
-                        sourceName)
-                    {
-                        EntrypointTypeName = PluginMetadata.ResolveEntrypointTypeName(entrypointPath),
-                        AssetsDirectory = assetsDirectory
-                    },
-                    dependencyResolver: package is LocalPluginPackage pluginPackage
+                var entrypoint = new LazyPluginEntrypoint(metadata, provider);
+
+                var factory = loadedComponents.TryGetValue(package.Package.Id, out var instanceData)
+                    ? new AlcFactory(instanceData.ContextFactory.Context!, entrypoint, serviceProviderFactory)
+                    : new AlcFactory(entrypointPath, entrypoint, package is LocalPluginPackage pluginPackage
                         ? pluginPackage.DependencyResolver
-                        : new(entrypointPath),
-                    package is LocalPluginPackage,
-                    parent);
+                        : new(entrypointPath), serviceProviderFactory, parent, package is LocalPluginPackage);
+
+                var topoIndex = order;
+                order++;
+
+                try
+                {
+                    var pluginInstance = provider.LoadComponent(metadata, factory);
+
+                    if (pluginInstance is not null && !plugins.TryAdd(pluginInstance, new(factory, topoIndex)))
+                    {
+
+                        plugins.TryGetKey(pluginInstance, out var actualInstance);
+                        plugins.TryGetValue(actualInstance, out var actualData);
+                        Log.Warn(
+                            "Plugin Id {PluginId} is already occupied, using previously loaded {PreviousMetadata} instead of {NewMetadata}",
+                            metadata.Id, actualInstance.Metadata, metadata);
+                        factory = actualData!.ContextFactory;
+                    }
+                }
+                catch (Exception e)
+                {
+                    Log.Error(e, "Failed to load plugin {PluginPath}", entrypointPath);
+                }
+                
+                parent = factory;
             }
             
             if (anyLoaded)
                 Log.Info("Topological Sorted Leaf: {Leaf}",
-                    string.Join(", ", sortedElements.Select(b => b.Entry.Title ?? b.Entry.Id)));
+                    string.Join(", ", sortedElements.Select(b =>
+                        string.IsNullOrEmpty(b.Entry.Title) ? b.Entry.Id : b.Entry.Title)));
         }
-        
-        LoadedPlugins = plugins.ToImmutable();
-        Plugins = plugins.ToImmutableDictionary(b => b.Metadata.Id, b => b.Metadata, StringComparer.OrdinalIgnoreCase);
+
+        return plugins.ToImmutable();
+    }
+
+    public static async Task ReloadPluginAsync(IPluginInstance instance)
+    {
+        try
+        {
+            await instance.ReloadAsync();
+        }
+        catch (Exception e)
+        {
+            Log.Error(e, "Failed to reload plugin {Plugin}", instance.Metadata);
+        }
+    }
+
+    public void RegisterLifetime() => AttachComponents(LoadedPlugins);
+
+    private static void AttachComponents(ImmutableDictionary<IPluginInstance, PluginInstanceData> instances)
+    {
+        // Dependency-first instantiation: a package's ALC (and its host role, e.g. a combined
+        // provider+plugin package) must exist before anything that depends on it instantiates.
+        foreach (var (instance, data) in instances.OrderBy(b => b.Value.Order))
+        {
+            try
+            {
+                instance.Instantiate();
+                instance.RegisterLifetime();
+            }
+            catch (Exception e)
+            {
+                Log.Error(e, "Failed to instantiate plugin {Plugin}", instance.Metadata);
+            }
+        }
     }
 
     private async ValueTask<(ImmutableArray<CachedPackage>localPlugins, ImmutableArray<PackageReference> references)>
@@ -330,27 +398,6 @@ internal class PluginsLifetime(ConfigHandler configHandler, IPluginServiceProvid
         return (localPlugins.ToImmutable(), references.ToImmutable());
     }
 
-    private PluginInstance? LoadComponent(ImmutableHashSet<PluginInstance>.Builder plugins, string path,
-        PluginMetadata metadata, AssemblyDependencyResolver? dependencyResolver, bool local, PluginInstance? parent)
-    {
-        try
-        {
-            var instance = new PluginInstance(metadata, path, local, serviceProviderFactory, dependencyResolver, this, parent);
-            if (plugins.Add(instance)) return instance;
-
-            plugins.TryGetValue(instance, out var actualInstance);
-            Log.Warn(
-                "Plugin Id {PluginId} is already occupied, using previously loaded {PreviousMetadata} instead of {NewMetadata}",
-                metadata.Id, actualInstance, metadata);
-            return actualInstance;
-        }
-        catch (Exception e)
-        {
-            Log.Error(e, "Failed to load plugin {PluginPath}", path);
-            return null;
-        }
-    }
-
     // initializes dotnet shared store for plugin resolver to look for dependencies
     private void InitializeSharedStore(ref DirectoryInfo cacheDir)
     {
@@ -363,10 +410,13 @@ internal class PluginsLifetime(ConfigHandler configHandler, IPluginServiceProvid
         }
 
         paths = [cacheDir.FullName, ..paths];
-        
-        Environment.SetEnvironmentVariable(envVar, string.Join(Path.PathSeparator, paths));
+
+        var storeValue = string.Join(Path.PathSeparator, paths);
+        Environment.SetEnvironmentVariableNoCap(envVar, storeValue);
 
         cacheDir = cacheDir.CreateSubdirectory("x64"); // todo change this to automatic if we ever get to aarch64
         cacheDir = cacheDir.CreateSubdirectory(new NuGetFramework(_runtimeFramework.Framework.Framework, _runtimeFramework.Framework.Version).GetShortFolderName());
     }
+
+    internal record PluginInstanceData(AlcFactory ContextFactory, int Order = 0);
 }

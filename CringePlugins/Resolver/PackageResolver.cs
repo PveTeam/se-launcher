@@ -1,4 +1,4 @@
-﻿using CringePlugins.Compatability;
+using CringePlugins.Compatability;
 using CringePlugins.Utils;
 using NLog;
 using NuGet;
@@ -34,7 +34,7 @@ public class PackageResolver(NuGetFramework runtimeFramework, ImmutableHashSet<P
                 continue;
             }
 
-            var availableVersions = items.Values.Where(b => b.CatalogEntry.PackageTypes is ["CringePlugin"])
+            var availableVersions = items.Values.Where(b => b.CatalogEntry.PackageTypes is [..])
                 .Select(b => b.CatalogEntry.Version).OrderDescending().ToImmutableArray();
             var version = availableVersions.FirstOrDefault(reference.Range.Satisfies);
 
@@ -103,25 +103,45 @@ public class PackageResolver(NuGetFramework runtimeFramework, ImmutableHashSet<P
 
         var dependencyVersions = new Dictionary<Package, VersionRange>();
         var dependencyPackages = new HashSet<RemoteDependencyPackage>();
-        for (var i = 0; i < set.Count; i++)
+        
+        var pending = new Queue<ResolvedPackage>(set);
+        var nextOrder = set.Count;
+        while (pending.Count > 0)
         {
-            if (set[i] is not RemotePackage package) continue;
+            var package = pending.Dequeue();
+            if (package is not RemotePackage and not RemoteDependencyPackage)
+                continue;
+
+            if (package.Entry.DependencyGroups is null)
+                Log.Warn("No dependency metadata for {Package} {Version} (framework {Framework})",
+                    package.Package.Id, package.Package.Version, package.ResolvedFramework);
 
             var dependencies = package.Entry.DependencyGroups
                                    ?.Single(b => b.TargetFramework == package.ResolvedFramework)?.Dependencies ??
                                [];
 
+            Log.Info("Resolving {Count} dependencies of {Package} {Version} (framework {Framework}, groups [{Groups}])",
+                dependencies.Length, package.Package.Id, package.Package.Version, package.ResolvedFramework,
+                string.Join(", ", package.Entry.DependencyGroups?.Select(g => g.TargetFramework.ToString()) ?? ["<null>"]));
+
             foreach (var (id, versionRange) in dependencies)
             {
                 if (builtinPackages.Contains(id))
+                {
+                    Log.Debug("Skipping {Dependency} {Range} of {Package}: provided by the host", id, versionRange, package.Package.Id);
                     continue;
+                }
 
-                (var items, var client, _) = await ResolvePackageEntriesAsync(baseDir, packageSources, id);
+                var (items, client, _) = await ResolvePackageEntriesAsync(baseDir, packageSources, id);
 
                 if (items == null || items.Count == 0)
                     throw new NotSupportedException($"Missing required dependency {id} {versionRange} for {package.Package}");
 
-                var version = items.Values.Select(b => b.CatalogEntry.Version).OrderDescending().FirstOrDefault(versionRange.Satisfies);
+                //i could think on it more, but probably following other nuget resolvers behavior is more favourable here
+                //and it removes issues related to unwanted dependency upgrades
+                //id still leave descending upgrades for direct packages
+                //items.Values.Select(b => b.CatalogEntry.Version).OrderDescending().FirstOrDefault(versionRange.Satisfies);
+                var version = versionRange.FindBestMatch(items.Values.Select(b => b.CatalogEntry.Version));
 
                 if (version is null)
                     throw new NotSupportedException($"Unable to find version for package {id} as dependency of {package.Package}");
@@ -145,7 +165,7 @@ public class PackageResolver(NuGetFramework runtimeFramework, ImmutableHashSet<P
 
                 var catalogEntry = items[version].CatalogEntry;
 
-                var dependencyPackage = new Package(i, id, version);
+                var dependencyPackage = new Package(nextOrder++, id, version);
 
                 if (packages.TryGetValue(dependencyPackage, out var existingCatalog))
                 {
@@ -164,7 +184,8 @@ public class PackageResolver(NuGetFramework runtimeFramework, ImmutableHashSet<P
                     if (!minimalVersionRange.Satisfies(version))
                     {
                         //do one last check for a matching version
-                        version = items.Values.Select(b => b.CatalogEntry.Version).OrderDescending().FirstOrDefault(minimalVersionRange.Satisfies);
+                        //items.Values.Select(b => b.CatalogEntry.Version).OrderDescending().FirstOrDefault(minimalVersionRange.Satisfies)
+                        version = minimalVersionRange.FindBestMatch(items.Values.Select(b => b.CatalogEntry.Version));
 
                         if (version is null)
                             throw new NotSupportedException($"Unable to find version for package {id} as dependency of {package.Package} (and others) that satisfies {minimalVersionRange}");
@@ -197,12 +218,12 @@ public class PackageResolver(NuGetFramework runtimeFramework, ImmutableHashSet<P
                 var nearestGroup = NuGetFrameworkUtility.GetNearest(catalogEntry.DependencyGroups ?? [], runtimeFramework,
                     g => g.TargetFramework) ?? throw new NotSupportedException($"Unable to find compatible dependency group for {dependencyPackage} as dependency of {package.Package}");
 
-                dependencyPackages.Add(new RemoteDependencyPackage(dependencyPackage, nearestGroup.TargetFramework, client, package, catalogEntry));
+                var dependency = new RemoteDependencyPackage(dependencyPackage, nearestGroup.TargetFramework, client, package, catalogEntry);
+                dependencyPackages.Add(dependency);
+                set.Add(dependency);
+                pending.Enqueue(dependency);
             }
         }
-
-        foreach (var item in dependencyPackages)
-            set.Add(item);
 
         return set.ToImmutable();
     }
@@ -234,8 +255,22 @@ public class PackageResolver(NuGetFramework runtimeFramework, ImmutableHashSet<P
             return (await GetCachedVersionsAsync(baseDir, id), null, false);
         }
 
-        return (registrationRoot.Items.SelectMany(page => page.Items!)
-                    .ToImmutableDictionary(b => b.CatalogEntry.Version), client, false);
+        var entries = new List<RegistrationEntry>();
+        foreach (var page in registrationRoot.Items)
+        {
+            if (page.Items is { Length: > 0 } inline)
+            {
+                entries.AddRange(inline);
+            }
+            else if (page.Url is { Length: > 0 })
+            {
+                var leaf = await client.GetPackageRegistrationPageAsync(page.Url);
+                if (leaf.Items is { Length: > 0 } leafItems)
+                    entries.AddRange(leafItems);
+            }
+        }
+
+        return (entries.ToImmutableDictionary(b => b.CatalogEntry.Version), client, false);
     }
 
 
@@ -334,7 +369,10 @@ public class PackageResolver(NuGetFramework runtimeFramework, ImmutableHashSet<P
         foreach (var package in resolvedPackages)
         {
             if (ignorePackages?.Contains(package.Package.Id) == true)
+            {
+                Log.Debug("Not staging {Package} {Version}: provided by the host", package.Package.Id, package.Package.Version);
                 continue;
+            }
 
             switch (package)
             {
@@ -367,6 +405,9 @@ public class PackageResolver(NuGetFramework runtimeFramework, ImmutableHashSet<P
             progress?.Report(i++ / resolvedPackages.Count);
         }
 
+        Log.Info("Staged {Count} packages: {Packages}", packages.Count,
+            string.Join(", ", packages.Select(b => $"{b.Package.Id} {b.Package.Version}")));
+
         return packages.ToImmutable();
     }
 }
@@ -392,7 +433,7 @@ public record RemoteDependencyPackage(
     Package Package,
     NuGetFramework ResolvedFramework,
     NuGetClient? Client,
-    RemotePackage Parent,
+    ResolvedPackage Parent,
     CatalogEntry Entry) : ResolvedPackage(Package, ResolvedFramework, Entry);
 
 public abstract record ResolvedPackage(Package Package, NuGetFramework ResolvedFramework, CatalogEntry Entry)

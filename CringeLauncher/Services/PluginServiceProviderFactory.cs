@@ -2,6 +2,7 @@
 using Autofac;
 using Autofac.Extensions.DependencyInjection;
 using CringePlugins.Abstractions;
+using CringePlugins.Abstractions.Loader;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace CringeLauncher.Services;

@@ -20,7 +20,8 @@ public class PackageSourceMapping(ImmutableArray<PackageSource> sources, HttpCli
 
     public ValueTask<NuGetClient?> GetClientAsync(string packageId)
     {
-        var clientTask = _clients.FirstOrDefault(b => Regex.IsMatch(packageId, b.pattern)).client;
+        var clientTask = _clients.FirstOrDefault(b => Regex.IsMatch(packageId, b.pattern)).client ??
+                         throw new KeyNotFoundException($"No package source matched for {packageId}");
         return ResolveClientTask(clientTask);
     }
 
