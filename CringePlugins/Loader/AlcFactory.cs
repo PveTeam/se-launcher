@@ -2,6 +2,7 @@ using System.Runtime.Loader;
 using CringeBootstrap.Abstractions;
 using CringePlugins.Abstractions.Loader;
 using Microsoft.Extensions.DependencyInjection;
+using SharedCringe.Abstractions.Transformers;
 using SharedCringe.Loader;
 
 namespace CringePlugins.Loader;
@@ -26,11 +27,14 @@ internal class AlcFactory : IPluginDependencyContextFactory
         AssemblyDependencyResolver resolver,
         IPluginServiceProviderFactory serviceProviderFactory,
         AlcFactory? parentInstance,
-        bool local)
+        bool local,
+        ITransformationService transformationService,
+        IPluginProvider provider,
+        PluginMetadata metadata)
     {
         _serviceProviderFactory = serviceProviderFactory;
         _pluginEntrypoint = pluginEntrypoint;
-        _contextParams = new(entrypointPath, resolver, parentInstance, local);
+        _contextParams = new(entrypointPath, resolver, parentInstance, local, transformationService, provider, metadata);
     }
 
     public bool Local => _contextParams?.Local is true || Context is LocalLoadContext;
@@ -70,14 +74,20 @@ internal class AlcFactory : IPluginDependencyContextFactory
             ?? parentContext;
 
         return Context = _contextParams.Local
-            ? new LocalLoadContext(chainParent, _contextParams.EntrypointPath, _contextParams.Resolver)
-            : new PluginAssemblyLoadContext(chainParent, _contextParams.EntrypointPath, _contextParams.Resolver);
+            ? new LocalLoadContext(chainParent, _contextParams.EntrypointPath, _contextParams.Resolver,
+                _contextParams.TransformationService, _contextParams.Provider, _contextParams.Metadata)
+            : new PluginAssemblyLoadContext(chainParent, _contextParams.EntrypointPath, _contextParams.Resolver,
+                _contextParams.TransformationService, _contextParams.Provider, _contextParams.Metadata);
     }
 
-    private record ContextParams(string EntrypointPath,
+    private record ContextParams(
+        string EntrypointPath,
         AssemblyDependencyResolver Resolver,
         AlcFactory? ParentInstance,
-        bool Local);
+        bool Local,
+        ITransformationService TransformationService,
+        IPluginProvider Provider,
+        PluginMetadata Metadata);
 }
 
 internal record AlcContext(DerivedAssemblyLoadContext Context, Type EntrypointType, IServiceProviderScope ProviderScope) : IPluginDependencyContext

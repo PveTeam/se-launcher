@@ -9,7 +9,7 @@
         <!-- NuGet does validation that libraries in a package are exposed as dependencies, but we _explicitly_ do not want that behavior for MSBuild tasks. They are isolated by design. Therefore we ignore this specific warning. -->
         <NoWarn>NU5100</NoWarn>
         <DebugType>embedded</DebugType>
-        <IsPackable>true</IsPackable>
+        <IsPackable>false</IsPackable>
         <Version>1.0.2</Version>
     </PropertyGroup>
 

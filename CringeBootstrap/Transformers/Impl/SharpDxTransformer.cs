@@ -5,6 +5,7 @@ using System.Runtime.InteropServices;
 using System.Text;
 using dnlib.DotNet;
 using dnlib.DotNet.Emit;
+using SharedCringe.Abstractions.Transformers;
 
 namespace CringeBootstrap.Transformers.Impl;
 
@@ -55,7 +56,7 @@ internal class SharpDxTransformer : ITransformer
         }
     }
 
-    private static void TransformResultDescriptor(ModuleDefMD moduleDefinition)
+    private static void TransformResultDescriptor(ModuleDef moduleDefinition)
     {
         var type = moduleDefinition.FindReflectionThrow("SharpDX.ResultDescriptor");
         
@@ -101,7 +102,7 @@ internal class SharpDxTransformer : ITransformer
         };
     }
 
-    private static void TransformNativeStream(ModuleDefMD moduleDefinition, MemberRef instanceField,
+    private static void TransformNativeStream(ModuleDef moduleDefinition, MemberRef instanceField,
         MemberRef normalizePathMethod)
     {
         var type = moduleDefinition.FindReflectionThrow("SharpDX.IO.NativeFileStream");
@@ -327,7 +328,7 @@ internal class SharpDxTransformer : ITransformer
         };
     }
 
-    private static void TransformNativeFile(ModuleDefMD moduleDefinition, TypeDef fileProviderType, MemberRef instanceField, MemberRef normalizePathMethod)
+    private static void TransformNativeFile(ModuleDef moduleDefinition, TypeDef fileProviderType, MemberRef instanceField, MemberRef normalizePathMethod)
     {
         var type = moduleDefinition.FindReflectionThrow("SharpDX.IO.NativeFile");
         

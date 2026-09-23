@@ -8,11 +8,17 @@ using CringeBootstrap.Transformers;
 using NLog;
 using NuGet;
 using NuGet.Versioning;
+using SharedCringe.Abstractions.Transformers;
 
 namespace CringeBootstrap.CrossGen;
 
-internal class CrossGenServiceImpl(string gameDirectoryPath, string cachePath, string cacheKey, ITransformationService transformationService)
-    : CrossGenService(gameDirectoryPath, cacheKey, transformationService)
+internal class CrossGenServiceImpl(
+    string gameDirectoryPath,
+    string cachePath,
+    string cacheKey,
+    ITransformationService transformationService,
+    ImmutableArray<ITransformer> transformers)
+    : CrossGenService(gameDirectoryPath, cacheKey, transformationService, transformers)
 {
     private static readonly Logger Log = LogManager.GetCurrentClassLogger();
     protected override string CrossGenCachePath { get; } =

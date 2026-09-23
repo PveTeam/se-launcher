@@ -5,6 +5,7 @@ using System.Runtime.InteropServices;
 using dnlib.DotNet;
 using dnlib.DotNet.Emit;
 using NLog;
+using SharedCringe.Abstractions.Transformers;
 using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.Advanced;
 using SixLabors.ImageSharp.Memory;
@@ -25,7 +26,7 @@ internal class ImageSharpTransformer : ITransformer
         return true;
     }
 
-    private static bool PatchGenericType(ModuleDefMD moduleDefinition)
+    private static bool PatchGenericType(ModuleDef moduleDefinition)
     {
         var typeDefinition = moduleDefinition.Find("VRage.Render.Image.MyImage`1", true);
         if (typeDefinition is null) return false;
@@ -109,7 +110,7 @@ internal class ImageSharpTransformer : ITransformer
         return true;
     }
 
-    private static bool PatchStaticCtor(ModuleDefMD moduleDefinition)
+    private static bool PatchStaticCtor(ModuleDef moduleDefinition)
     {
         var typeDefinition = moduleDefinition.Find("VRage.Render.Image.MyImage", true);
         if (typeDefinition is null) return false;

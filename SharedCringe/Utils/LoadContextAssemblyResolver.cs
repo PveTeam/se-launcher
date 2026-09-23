@@ -1,10 +1,10 @@
 using System.Reflection;
+using System.Runtime.Loader;
 using dnlib.DotNet;
-using SharedCringe.Loader;
 
-namespace CringePlugins.Utils;
+namespace SharedCringe.Utils;
 
-internal sealed class LoadContextAssemblyResolver(DerivedAssemblyLoadContext loadContext) : AssemblyResolver
+internal sealed class LoadContextAssemblyResolver(AssemblyLoadContext loadContext) : AssemblyResolver
 {
     protected override IEnumerable<string> PostFindAssemblies(IAssembly assembly, ModuleDef sourceModule, bool matchExactly)
     {

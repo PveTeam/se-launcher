@@ -2,8 +2,10 @@ using System.Collections.Concurrent;
 using System.Reflection;
 using System.Runtime.Loader;
 using CringeBootstrap.Abstractions;
+using CringePlugins.Abstractions.Loader;
 using CringePlugins.Utils;
 using dnlib.DotNet;
+using SharedCringe.Abstractions.Transformers;
 using SharedCringe.Loader;
 
 namespace CringePlugins.Loader;
@@ -15,14 +17,25 @@ internal class PluginAssemblyLoadContext : DerivedAssemblyLoadContext, ICoreLoad
 
     private readonly string _entrypointPath;
     private readonly AssemblyDependencyResolver _dependencyResolver;
+    private readonly ITransformationService _transformationService;
+    private readonly IPluginProvider _provider;
+    private readonly PluginMetadata _metadata;
     private readonly HashSet<string> _loadedTypes = [];
     private Assembly? _assembly;
     private readonly AssemblyName _entrypointName;
 
-    internal PluginAssemblyLoadContext(ICoreLoadContext parentContext, string entrypointPath, AssemblyDependencyResolver dependencyResolver) : base(parentContext, $"Plugin Context {Path.GetFileNameWithoutExtension(entrypointPath)}")
+    internal PluginAssemblyLoadContext(ICoreLoadContext parentContext,
+        string entrypointPath,
+        AssemblyDependencyResolver dependencyResolver,
+        ITransformationService transformationService,
+        IPluginProvider provider, PluginMetadata metadata) : base(parentContext,
+        $"Plugin Context {Path.GetFileNameWithoutExtension(entrypointPath)}")
     {
         _entrypointPath = entrypointPath;
         _dependencyResolver = dependencyResolver;
+        _transformationService = transformationService;
+        _provider = provider;
+        _metadata = metadata;
         _entrypointName = AssemblyName.GetAssemblyName(entrypointPath);
 
         Unloading += OnUnload;
@@ -33,21 +46,44 @@ internal class PluginAssemblyLoadContext : DerivedAssemblyLoadContext, ICoreLoad
         if (_assembly is not null)
             return _assembly;
 
-        _assembly = LoadAssemblyFile(_entrypointPath);
-        
-        var moduleDef = ModuleDefMD.Load(_assembly.GetMainModule(), IntrospectionContext.Global.Context);
+        var transformers = _provider.PrepareTransformers(_metadata);
+        using var transaction = _transformationService.PrepareTransaction(transformers, this);
 
-        foreach (var type in moduleDef.GetTypes())
+        var token = _transformationService.PrepareTransformation(transaction, _entrypointPath);
+
+        var entrypointPath = _entrypointPath;
+        if (token is not null)
         {
-            var name = type.FullName?.Replace('/', '+');
+            if (transformers is not [])
+                Transform(token, ref entrypointPath);
+                
+            foreach (var type in token.ModuleDef.GetTypes())
+            {
+                var name = type.FullName?.Replace('/', '+');
 
-            if (string.IsNullOrEmpty(name) || !_loadedTypes.Add(name))
-                continue;
+                if (string.IsNullOrEmpty(name) || !_loadedTypes.Add(name))
+                    continue;
+            }
+        }
 
-            TypeToAssembly[name] = _assembly;
+        _assembly = LoadAssemblyFile(entrypointPath);
+        
+        foreach (var loadedType in _loadedTypes)
+        {
+            TypeToAssembly[loadedType] = _assembly;
         }
 
         return _assembly;
+    }
+
+    private void Transform(ITransformationToken token, ref string entrypointPath)
+    {
+        // todo ask transformers for their version token, hash them and lookup assembly cache
+
+        entrypointPath = Path.Join(Path.GetTempPath(),
+            $"{Path.GetFileNameWithoutExtension(entrypointPath.AsSpan())}.{Path.GetRandomFileName()}.dll");
+        
+        _transformationService.Transform(token, entrypointPath);
     }
 
     protected override Assembly? Load(AssemblyName assemblyName)

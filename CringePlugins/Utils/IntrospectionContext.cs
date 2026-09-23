@@ -2,6 +2,7 @@ using System.Reflection;
 using System.Runtime.CompilerServices;
 using dnlib.DotNet;
 using SharedCringe.Loader;
+using SharedCringe.Utils;
 using VRage.FileSystem;
 
 namespace CringePlugins.Utils;

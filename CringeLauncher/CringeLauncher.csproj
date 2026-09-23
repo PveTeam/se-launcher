@@ -8,6 +8,7 @@
         <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
         <EnableWindowsTargeting>true</EnableWindowsTargeting>
         <NoWarn>$(NoWarn);WFO1000</NoWarn>
+        <IsPackable>false</IsPackable>
     </PropertyGroup>
     
     <!-- Xplat -->

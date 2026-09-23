@@ -9,6 +9,7 @@
         <EnableDynamicLoading>true</EnableDynamicLoading>
         <PackageType>CringePlugin</PackageType>
         <LangVersion>preview</LangVersion>
+        <IsPackable>false</IsPackable>
     </PropertyGroup>
 
     <ItemGroup>

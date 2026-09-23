@@ -7,7 +7,7 @@
         <GenerateAssemblyInfo>False</GenerateAssemblyInfo>
         <OutputPath>$(ArtifactsTmpDir)</OutputPath>
         <EnableDefaultItems>False</EnableDefaultItems>
-        <IsPackable>true</IsPackable>
+        <IsPackable>false</IsPackable>
         <IsShipping>true</IsShipping>
         <IsShippingPackage>true</IsShippingPackage>
         <NoWarn>2008;NU5105</NoWarn>

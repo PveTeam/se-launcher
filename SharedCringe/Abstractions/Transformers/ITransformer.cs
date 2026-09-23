@@ -1,8 +1,7 @@
 ﻿using System.Collections.Immutable;
 using System.Reflection;
-using dnlib.DotNet;
 
-namespace CringeBootstrap.Transformers;
+namespace SharedCringe.Abstractions.Transformers;
 
 public interface ITransformer
 {

@@ -1,12 +1,18 @@
 ﻿using CringeBootstrap.Abstractions;
 using System.Reflection;
 using System.Runtime.Loader;
+using CringePlugins.Abstractions.Loader;
+using SharedCringe.Abstractions.Transformers;
 
 namespace CringePlugins.Loader;
 internal class LocalLoadContext(
     ICoreLoadContext parentContext,
     string entrypointPath,
-    AssemblyDependencyResolver dependencyResolver) : PluginAssemblyLoadContext(parentContext, entrypointPath, dependencyResolver)
+    AssemblyDependencyResolver dependencyResolver,
+    ITransformationService transformationService,
+    IPluginProvider provider,
+    PluginMetadata metadata) : PluginAssemblyLoadContext(parentContext, entrypointPath, dependencyResolver,
+    transformationService, provider, metadata)
 {
     //use MemoryStream so the file can be written over, and check for .pdb
 #if WINDOWS

@@ -4,6 +4,7 @@ using System.Reflection;
 using System.Runtime.InteropServices;
 using dnlib.DotNet;
 using dnlib.DotNet.Emit;
+using SharedCringe.Abstractions.Transformers;
 using CallingConvention = dnlib.DotNet.CallingConvention;
 using FieldAttributes = dnlib.DotNet.FieldAttributes;
 using MethodAttributes = dnlib.DotNet.MethodAttributes;
@@ -52,7 +53,7 @@ internal class DllImportTransformer : ITransformer
         return true;
     }
 
-    private void ApplyStructFixUps(ModuleDefMD module)
+    private void ApplyStructFixUps(ModuleDef module)
     {
         switch (module.Name)
         {
@@ -65,7 +66,7 @@ internal class DllImportTransformer : ITransformer
         }
     }
 
-    private void ApplyHavokWrapperFixUps(ModuleDefMD module)
+    private void ApplyHavokWrapperFixUps(ModuleDef module)
     {
         {
             var bufferType = module.FindReflectionThrow("Havok.Utils.HkManagedIntermediateBuffer+Native");
@@ -183,7 +184,7 @@ internal class DllImportTransformer : ITransformer
         }
     }
 
-    private void RewriteReversePInvoke(ModuleDefMD moduleDefinition)
+    private void RewriteReversePInvoke(ModuleDef moduleDefinition)
     {
         var marshaller = new TypeDefUser("InteropServices", "Marshaller", moduleDefinition.CorLibTypes.Object.ToTypeDefOrRef())
         {
@@ -613,7 +614,7 @@ internal class DllImportTransformer : ITransformer
         return getProc;
     }
 
-    private List<MethodDef> CollectInteropMethods(ModuleDefMD module)
+    private List<MethodDef> CollectInteropMethods(ModuleDef module)
     {
         return module.GetTypes().SelectMany(t => t.Methods)
             .Where(m => m.Attributes.HasFlag(MethodAttributes.PinvokeImpl))

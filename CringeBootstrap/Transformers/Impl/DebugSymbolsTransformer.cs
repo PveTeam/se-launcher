@@ -4,6 +4,7 @@ using System.Security.Cryptography;
 using System.Text;
 using dnlib.DotNet.Pdb;
 using dnlib.DotNet.Writer;
+using SharedCringe.Abstractions.Transformers;
 
 namespace CringeBootstrap.Transformers.Impl;
 

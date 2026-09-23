@@ -1,3 +1,4 @@
+using System.Collections.Immutable;
 using System.Diagnostics;
 using System.Reflection.Metadata;
 using System.Runtime.InteropServices;
@@ -10,6 +11,7 @@ using CringeBootstrap.Transformers.Impl;
 using CringeBootstrap.Utils;
 using Microsoft.Extensions.DependencyInjection;
 using NLog;
+using SharedCringe.Abstractions.Transformers;
 using SharedCringe.Loader;
 using Velopack;
 
@@ -84,21 +86,24 @@ var customEntrypoint = Environment.GetEnvironmentVariable("DOTNET_BOOTSTRAP_ENTR
 
 var cacheKey = GameCacheKey.FromDirectory(gameDir).Value;
 
-var transformationService = new TransformationService(gameDir, [
-    new ImageSharpTransformer(), 
-    new DebugSymbolsTransformer(cacheKey),
-#if !WINDOWS
-    new DllImportTransformer(),
-    new SharpDxTransformer(),
-#endif
-]);
+var transformationService = new TransformationService(gameDir);
 var cacheDir = Directory.CreateDirectory(Path.Join(
     Environment.GetEnvironmentVariable("DOTNET_USERDEV_RUNDIR") ??
     Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
     "CringeLauncher", "cache"));
 
+ImmutableArray<ITransformer> transformers =
+[
+    new ImageSharpTransformer(),
+    new DebugSymbolsTransformer(cacheKey),
+#if !WINDOWS
+    new DllImportTransformer(),
+    new SharpDxTransformer(),
+#endif
+]; 
+
 CrossGenResult? result = null;
-CrossGenService crossGenService = new CrossGenServiceImpl(gameDir, cacheDir.FullName, cacheKey, transformationService);
+CrossGenService crossGenService = new CrossGenServiceImpl(gameDir, cacheDir.FullName, cacheKey, transformationService, transformers);
 if (!args.Contains("--skip-crossgen", StringComparer.OrdinalIgnoreCase))
 {
     result = RunCrossGen(crossGenService);
@@ -108,7 +113,7 @@ if (result is null or { Failed: true })
     if (result is null) logger.Info("Running without crossgen as it has been skipped");
     else if (result.Failed) logger.Info("Running without crossgen as it has failed");
     
-    crossGenService = new NoOpCrossGenService(gameDir, cacheDir.FullName, cacheKey, transformationService);
+    crossGenService = new NoOpCrossGenService(gameDir, cacheDir.FullName, cacheKey, transformationService, transformers);
         
     result = RunCrossGen(crossGenService);
 }
@@ -175,6 +180,7 @@ using var corePlugin = (ICorePlugin) launcher.CreateInstance(entrypointName.Full
 var services = new ServiceCollection();
 services.AddSingleton<ICrossGenService>(crossGenService);
 services.AddSingleton(corePlugin);
+services.AddSingleton<ITransformationService>(transformationService);
 
 do
 {

@@ -17,6 +17,7 @@
         <ApplicationIcon>..\icon.ico</ApplicationIcon>
         <ActualHostName>SpaceEngineers</ActualHostName>
         <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+        <IsPackable>false</IsPackable>
     </PropertyGroup>
 
     <!-- Xplat -->

@@ -32,26 +32,20 @@ jobs:
           version_format: ${{ github.ref_name == 'master' && '${major}.${minor}.${patch}' || '${major}.${minor}.${patch}-preview.${increment}' }}
           
   build-nuget:
-    name: Build Nuget package
+    name: Build Nuget packages
     runs-on: ubuntu-latest
     if: "!contains(github.event.commits[0].message, '[skip ci]')"
     needs: [compute-version]
-    strategy: 
-      matrix:
-        project: [CringeBootstrap.Abstractions, NuGet, SharedCringe, CringePlugins]
     steps:
       - uses: actions/checkout@master
         
       - uses: actions/setup-dotnet@v5
         
-      - run: dotnet restore ${{ matrix.project }}/${{ matrix.project }}.csproj --locked-mode
-        name: Restore Project
+      - run: dotnet pack -c Release -o ./pub -p:Version="${{ needs.compute-version.outputs.version }}"
+        name: Pack Projects
         
-      - run: dotnet pack -c Release -o ./pub ${{ matrix.project }}/${{ matrix.project }}.csproj --no-restore -p:Version="${{ needs.compute-version.outputs.version }}"
-        name: Pack Project
-        
-      - name: Push Project
-        run: dotnet nuget push --skip-duplicate -s https://ng.zznty.ru/v3/index.json -k ${{ secrets.NUGET_API_KEY  }} ./pub/${{ matrix.project }}.${{ needs.compute-version.outputs.version }}.nupkg
+      - name: Push Projects
+        run: dotnet nuget push --skip-duplicate -s https://ng.zznty.ru/v3/index.json -k ${{ secrets.NUGET_API_KEY  }} ./pub/*.nupkg
   
   build:
     name: Build Launcher

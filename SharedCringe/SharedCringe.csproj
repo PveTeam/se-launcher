@@ -12,6 +12,7 @@
         <PackageReference Include="NLog" />
         <PackageReference Include="Lib.Harmony.Thin" />
         <PackageReference Include="MonoMod.Core" />
+        <PackageReference Include="dnlib" />
     </ItemGroup>
     
     <ItemGroup>

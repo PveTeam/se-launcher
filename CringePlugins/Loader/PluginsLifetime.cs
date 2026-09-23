@@ -11,12 +11,14 @@ using CringePlugins.Ui;
 using CringePlugins.Utils;
 using dnlib.DotNet;
 using dnlib.PE;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.TemplateEngine.Utils;
 using NLog;
 using NuGet;
 using NuGet.Deps;
 using NuGet.Frameworks;
 using NuGet.Models;
+using SharedCringe.Abstractions.Transformers;
 using SharedCringe.Utils;
 using VRage.FileSystem;
 using Dependency = NuGet.Models.Dependency;
@@ -264,8 +266,9 @@ internal class PluginsLifetime(
                 var factory = loadedComponents.TryGetValue(package.Package.Id, out var instanceData)
                     ? new AlcFactory(instanceData.ContextFactory.Context!, entrypoint, serviceProviderFactory)
                     : new AlcFactory(entrypointPath, entrypoint, package is LocalPluginPackage pluginPackage
-                        ? pluginPackage.DependencyResolver
-                        : new(entrypointPath), serviceProviderFactory, parent, package is LocalPluginPackage);
+                            ? pluginPackage.DependencyResolver
+                            : new(entrypointPath), serviceProviderFactory, parent, package is LocalPluginPackage,
+                        serviceProvider.GetRequiredService<ITransformationService>(), provider, metadata);
 
                 var topoIndex = order;
                 order++;

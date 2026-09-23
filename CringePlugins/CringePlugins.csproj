@@ -33,7 +33,6 @@
         <PackageReference Include="Microsoft.TemplateEngine.Utils" />
         <PackageReference Include="ImGui.NET.DirectX" />
         <PackageReference Include="SpaceEngineersDedicated.ReferenceAssemblies" ExcludeAssets="runtime" />
-        <PackageReference Include="dnlib" />
         <PackageReference Include="Steamworks.NET" />
         <PackageReference Include="SixLabors.ImageSharp" />
         <PackageReference Include="Krafs.Publicizer">

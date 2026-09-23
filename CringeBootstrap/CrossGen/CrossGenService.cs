@@ -3,10 +3,15 @@ using CringeBootstrap.Transformers;
 using NuGet.Deps;
 using System.Collections.Immutable;
 using NLog;
+using SharedCringe.Abstractions.Transformers;
 
 namespace CringeBootstrap.CrossGen;
 
-internal abstract class CrossGenService(string gameDirectoryPath, string cacheKey, ITransformationService transformationService) : ICrossGenService
+internal abstract class CrossGenService(
+    string gameDirectoryPath,
+    string cacheKey,
+    ITransformationService transformationService,
+    ImmutableArray<ITransformer> transformers) : ICrossGenService
 {
     private static readonly Logger Log = LogManager.GetCurrentClassLogger();
     public string CacheKey { get; } = $"{FormatVersion}_{cacheKey}_{Environment.Version}";
@@ -133,12 +138,14 @@ internal abstract class CrossGenService(string gameDirectoryPath, string cacheKe
 
         Directory.CreateDirectory(cacheDirectory);
 
+        using var transformationTransaction = transformationService.PrepareTransaction(transformers, null);
+
         for (var index = 0; index < inputAssemblies.Length; index++)
         {
             var inputAssembly = inputAssemblies[index];
             var inputReferences = references.Remove(inputAssembly);
             
-            TransformInputAssembly(ref inputAssembly);
+            TransformInputAssembly(transformationTransaction, ref inputAssembly);
 
             Console.WriteLine($"Running crossgen... {index / (inputAssemblies.Length - 1.0):P0}");
             var success = await RunCrossGenAsync(_crossGenPath, inputReferences, cacheDirectory, inputAssembly);
@@ -156,7 +163,7 @@ internal abstract class CrossGenService(string gameDirectoryPath, string cacheKe
             var inputAssemblyPath = Path.Join(gameDirectoryPath, excludedAssembly);
             if (!File.Exists(inputAssemblyPath)) continue;
 
-            TransformInputAssembly(ref inputAssemblyPath);
+            TransformInputAssembly(transformationTransaction, ref inputAssemblyPath);
             
             File.Copy(inputAssemblyPath, Path.Join(cacheDirectory, excludedAssembly), true);
         }
@@ -172,9 +179,9 @@ internal abstract class CrossGenService(string gameDirectoryPath, string cacheKe
 
     protected abstract Task<string?> DownloadCrossGenAsync();
 
-    private void TransformInputAssembly(ref string inputAssemblyPath)
+    private void TransformInputAssembly(ITransformationTransaction transaction, ref string inputAssemblyPath)
     {
-        var token = transformationService.PrepareTransformation(inputAssemblyPath);
+        var token = transformationService.PrepareTransformation(transaction, inputAssemblyPath);
         if (token is null) return;
 
         // Keep the original file name through the temp hop: downstream consumers
