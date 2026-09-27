@@ -4,6 +4,7 @@
   </Configurations>
   <Folder Name="/GitHub Actions/">
     <File Path=".github/workflows/build.yml" />
+    <File Path=".github\workflows\release-linux.yml" />
   </Folder>
   <Folder Name="/Package Versions/">
     <File Path="Directory.Packages.props" />
