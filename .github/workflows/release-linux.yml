@@ -91,6 +91,8 @@ jobs:
           name: appdir
           path: CringeLauncher.AppDir
 
+      - uses: actions/setup-dotnet@v5
+
       - name: Lay managed IL into AppDir
         run: |
           mkdir -p CringeLauncher.AppDir/usr/share/CringeLauncher
