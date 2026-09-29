@@ -26,8 +26,12 @@ internal class CrossGenServiceImpl(
 
     protected override async Task<string?> DownloadCrossGenAsync()
     {
-        const string nugetUrl = "https://api.nuget.org/v3/index.json";
         const string toolName = "crossgen2";
+
+        if (!OperatingSystem.IsWindows())
+            return toolName; // use bundled
+        
+        const string nugetUrl = "https://api.nuget.org/v3/index.json";
         const string packageIdBase = "Microsoft.NETCore.App.Crossgen2.";
         var packageId = $"{packageIdBase}{RuntimeInformation.RuntimeIdentifier}";
         var nugetCachePath = Path.Join(cachePath, "x64", $"net{Environment.Version.Major}.{Environment.Version.Minor}");

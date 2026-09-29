@@ -49,6 +49,7 @@ public class LauncherLinuxVelopackLocator : VelopackLocator
 
     /// <summary> File path of the .AppImage which mounted and ran this application. </summary>
     public string? AppImagePath => Environment.GetEnvironmentVariable("APPIMAGE");
+    public string? AppDirPath => Environment.GetEnvironmentVariable("APPDIR");
 
     public override IVelopackLogger Log => _logger ??= new NullVelopackLogger();
 
@@ -69,21 +70,22 @@ public class LauncherLinuxVelopackLocator : VelopackLocator
         _logger.Info($"Initializing {nameof(LauncherLinuxVelopackLocator)}");
 
         // are we inside a mounted .AppImage?
-        if (!string.IsNullOrEmpty(AppImagePath)) {
-            var updateExe = Path.Combine(AppContext.BaseDirectory, "UpdateNix");
-            var metadataPath = Path.Combine(AppContext.BaseDirectory, "sq.version");
+        if (!string.IsNullOrEmpty(AppImagePath) && !string.IsNullOrEmpty(AppDirPath)) {
+            var binPath = Path.Join(AppDirPath, "usr", "bin");
+            var updateExe = Path.Combine(binPath, "UpdateNix");
+            var metadataPath = Path.Combine(binPath, "sq.version");
 
             if (File.Exists(AppImagePath)) {
                 if (File.Exists(updateExe) && PackageManifest.TryParseFromFile(metadataPath, out var manifest)) {
                     _logger.Info("Located valid manifest file at: " + metadataPath);
                     AppId = manifest.Id;
                     RootAppDir = AppImagePath;
-                    AppContentDir = AppContext.BaseDirectory;
+                    AppContentDir = binPath;
                     UpdateExePath = updateExe;
                     CurrentlyInstalledVersion = manifest.Version;
                     Channel = manifest.Channel;
                 } else {
-                    _logger.Error($"Unable to locate UpdateNix in {AppContext.BaseDirectory}");
+                    _logger.Error($"Unable to locate UpdateNix in {binPath}");
                 }
             } else {
                 _logger.Error("Unable to locate .AppImage ($APPIMAGE)");
