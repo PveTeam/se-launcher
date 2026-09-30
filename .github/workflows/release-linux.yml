@@ -190,3 +190,61 @@ jobs:
           VPK_ENDPOINT: ${{ secrets.MIRROR_S3_ENDPOINT }}
           VPK_BUCKET: ${{ secrets.MIRROR_S3_BUCKET }}
           VPK_KEEP_MAX_RELEASES: 15
+
+  docker:
+    name: Build Docker image
+    runs-on: ubuntu-latest
+    needs: [version, managed, fetch]
+    steps:
+      - uses: actions/checkout@master
+
+      - uses: actions/download-artifact@v3
+        with:
+          name: managed-il
+          path: /tmp/managed-il
+
+      - uses: actions/download-artifact@v3
+        with:
+          name: appdir
+          path: /tmp/appdir-artifact
+
+      - name: Extract AppDir
+        run: |
+          echo "${{ needs.fetch.outputs.appimage_sha256 }}  /tmp/appdir-artifact/appdir.tar.zst" | sha256sum -c -
+          mkdir -p CringeLauncher.AppDir
+          zstd -dc /tmp/appdir-artifact/appdir.tar.zst | tar -xp -C CringeLauncher.AppDir
+          rm -f CringeLauncher.AppDir/usr/lib/libav*.so*
+          rm -f CringeLauncher.AppDir/AppRun CringeLauncher.AppDir/CringeLauncher.png \
+                CringeLauncher.AppDir/CringeLauncher.desktop
+
+      - name: Lay managed IL into AppDir
+        run: |
+          mkdir -p CringeLauncher.AppDir/usr/share/CringeLauncher
+          tar -xf /tmp/managed-il/managed-il.tar -C CringeLauncher.AppDir/usr/share/CringeLauncher
+
+      - name: Launcher-owned extras
+        run: |
+          curl -LO https://github.com/SteamRE/DepotDownloader/releases/latest/download/DepotDownloader-framework.zip
+          mkdir -p CringeLauncher.AppDir/usr/share/DepotDownloader
+          unzip DepotDownloader-framework.zip -d CringeLauncher.AppDir/usr/share/DepotDownloader
+          rm DepotDownloader-framework.zip
+      
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: docker/Dockerfile
+          build-args: |
+            VERSION=${{ needs.version.outputs.version }}
+          push: true
+          tags: |
+            ${{ secrets.DOCKERHUB_USERNAME }}/cringelauncher:${{ github.ref_name == 'master' && 'latest' || 'preview' }}

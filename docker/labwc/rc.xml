@@ -1,0 +1,8 @@
+<?xml version="1.0"?>
+<labwc_config>
+  <windowRules>
+    <windowRule title="*" matchOnce="true">
+      <action name="Execute" command="wayvnc -a -L info -n CringeLauncher 0.0.0.0"/>
+    </windowRule>
+  </windowRules>
+</labwc_config>
