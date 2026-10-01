@@ -3,7 +3,7 @@ using HarmonyLib;
 
 namespace CringeLauncher.Stages;
 
-public class LauncherPatchesStage : ILoadingStage
+public class LauncherPatchesStage(bool isDedicated) : ILoadingStage
 {
     public string Name { get; } = "Launcher Patches";
     public ValueTask Load(ISplashProgress progress)
@@ -13,7 +13,10 @@ public class LauncherPatchesStage : ILoadingStage
         
         try
         {
-            new Harmony("CringeBootstrap").PatchAllUncategorized(typeof(Launcher).Assembly);
+            var harmony = new Harmony("CringeBootstrap");
+            harmony.PatchAllUncategorized(typeof(Launcher).Assembly);
+            if (isDedicated)
+                harmony.PatchCategory(typeof(Launcher).Assembly, "Dedicated");
         }
         catch (Exception e)
         {

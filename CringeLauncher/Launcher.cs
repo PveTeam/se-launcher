@@ -93,7 +93,7 @@ public class Launcher : ICorePlugin
         RenderHandler.Current.RegisterComponent(splash);
 
         splash.DefineStage(new CheckUpdatesStage(args, ReadUpdateConfigAsync, _crashPadService));
-        splash.DefineStage(new LauncherPatchesStage());
+        splash.DefineStage(new LauncherPatchesStage(IsDedicated));
 
         //environment variable for viktor's plugins
         Environment.SetEnvironmentVariable("SE_PLUGIN_DISABLE_METHOD_VERIFICATION", "True");
