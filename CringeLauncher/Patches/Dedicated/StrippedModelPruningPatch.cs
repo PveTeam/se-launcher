@@ -16,7 +16,7 @@ internal static class StrippedModelPruningPatch
         
         try
         {
-            structure.Collect(__instance.HavokCollisionShapes);
+            structure.Collect(__instance.HavokCollisionShapes ?? []);
         }
         catch (Exception e)
         {
