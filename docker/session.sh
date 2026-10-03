@@ -28,11 +28,4 @@ fi
 WAYLAND_DISPLAY=wayland-0
 export WAYLAND_DISPLAY
 
-"$@" & # the launcher
-app_pid=$!
-
-status=0
-wait "$app_pid" || status=$?
-down
-wait "$labwc_pid" 2>/dev/null || true
-exit "$status"
+exec "$@"

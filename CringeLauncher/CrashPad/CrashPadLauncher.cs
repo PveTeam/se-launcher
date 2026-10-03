@@ -1,5 +1,6 @@
 using System.Diagnostics.CodeAnalysis;
 using System.Net;
+using System.Runtime.InteropServices;
 using System.Text.Json;
 using CliWrap;
 using CringeBootstrap.Abstractions;
@@ -142,6 +143,11 @@ public sealed class CrashPadLauncher : ICorePlugin
             if (_actualHostProcess is null) return true;
 
             Console.CancelKeyPress += ConsoleOnCancelKeyPress;
+            using var signal = PosixSignalRegistration.Create(PosixSignal.SIGTERM, c =>
+            {
+                c.Cancel = true;
+                RequestShutdown();
+            });
 
             var path = Path.Join(_logsDir, $"crash-info-{_actualHostProcess.ProcessId}.json");
 
@@ -203,6 +209,11 @@ public sealed class CrashPadLauncher : ICorePlugin
     private void ConsoleOnCancelKeyPress(object? sender, ConsoleCancelEventArgs e)
     {
         e.Cancel = true;
+        RequestShutdown();
+    }
+
+    private void RequestShutdown()
+    {
         if (_gracefulCts.IsCancellationRequested) return;
         Log.Info("Requesting graceful shutdown");
         _gracefulCts.Cancel();

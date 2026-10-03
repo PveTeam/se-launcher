@@ -1,14 +1,14 @@
-﻿using CringeLauncher.Render;
+﻿using System.Runtime.InteropServices;
+using CringeLauncher.Render;
 using CringeLauncher.Stages;
-using CringePlugins.Config;
 using CringePlugins.Render;
 using CringePlugins.Splash;
-using NLog;
 
 namespace CringeLauncher.Dedicated;
 
 public class DedicatedLauncher() : Launcher(Environment.GetEnvironmentVariable("DOTNET_USERDEV_RUNDIR"))
 {
+    private PosixSignalRegistration? _reg;
     protected override bool IsDedicated => true;
 
     protected override void Initialize(Splash splash)
@@ -16,6 +16,13 @@ public class DedicatedLauncher() : Launcher(Environment.GetEnvironmentVariable("
         base.Initialize(splash);
         
         splash.DefineStage(new DedicatedPlatformInitializationStep());
+
+        if (!OperatingSystem.IsWindows())
+            _reg = PosixSignalRegistration.Create(PosixSignal.SIGTERM, c =>
+            {
+                c.Cancel = true;
+                Stop();
+            }); 
     }
 
     protected override void InitializeEarlyWindow(string[] args)
