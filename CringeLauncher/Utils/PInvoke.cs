@@ -6,6 +6,7 @@ using System.Runtime.InteropServices;
 using System.Runtime.InteropServices.Marshalling;
 using Windows.Win32.Foundation;
 using Windows.Win32.System.Console;
+using SharedCringe.Utils;
 
 namespace Windows.Win32
 {
@@ -45,7 +46,7 @@ namespace Windows.Win32
         [LibraryImport(LibCName, EntryPoint = "close", SetLastError = true)]
         public static partial int Close(int fd);
 
-        [LibraryImport(LibCName, EntryPoint = "strerror", StringMarshalling = StringMarshalling.Utf8)]
+        [LibraryImport(LibCName, EntryPoint = "strerror", StringMarshallingCustomType = typeof(SharedUtf8StringMarshaller))]
         private static partial string StrError(int errnum);
         
         public static Exception? GetExceptionForLastError()

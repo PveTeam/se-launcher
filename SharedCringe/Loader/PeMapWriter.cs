@@ -1,10 +1,11 @@
 using System.Runtime.InteropServices;
+using SharedCringe.Utils;
 
 namespace SharedCringe.Loader;
 
 public partial class PeMapWriter
 {
-    public static void Write(string mapFilePath)
+    public static unsafe void Write(string mapFilePath)
     {
         if (!OperatingSystem.IsLinux())
             return;
@@ -25,6 +26,7 @@ public partial class PeMapWriter
     }
 
     [LibraryImport("libCringeBootstrap.Native.so", EntryPoint = "CringeBootstrap_GetPeMapJson",
-        StringMarshalling = StringMarshalling.Utf8)]
+        StringMarshallingCustomType = typeof(SharedUtf8StringMarshaller))]
+    
     private static partial string? GetPeMapJson();
 }
