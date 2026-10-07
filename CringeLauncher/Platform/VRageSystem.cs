@@ -166,6 +166,8 @@ internal class VRageSystem(string applicationName, VRageWindowSurrogate? surroga
         set => surrogate?.Window.ClipboardText = value;
     }
 
+    public VRageWindowSurrogate? Surrogate => surrogate;
+
     public bool IsAllocationProfilingReady => false;
     public bool IsSingleInstance => true;
     public bool IsRemoteDebuggingSupported => false;
