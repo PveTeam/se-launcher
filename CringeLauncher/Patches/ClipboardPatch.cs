@@ -5,6 +5,7 @@ using CringeLauncher.Platform;
 using HarmonyLib;
 using Sandbox.Graphics;
 using Sandbox.Graphics.GUI;
+using Sandbox.Game.Screens.Terminal;
 using VRage;
 
 namespace CringeLauncher.Patches;
@@ -17,6 +18,7 @@ internal static class ClipboardPatch
         yield return AccessTools.DeclaredMethod(
             AccessTools.Inner(typeof(MyGuiControlTextbox), "MyGuiControlTextboxSelection"), "PasteText");
         yield return AccessTools.DeclaredMethod(typeof(MyClipboardService), nameof(MyClipboardService.GetText));
+        yield return AccessTools.DeclaredMethod(typeof(MyTerminalGpsController), "OnButtonPressedNewFromClipboard");
     } 
     
     private static IEnumerable<CodeInstruction> Transpiler(IEnumerable<CodeInstruction> instructions)
@@ -38,6 +40,7 @@ internal static class ClipboardPastePatch
         yield return AccessTools.DeclaredMethod(
             AccessTools.Inner(typeof(MyGuiControlTextbox), "MyGuiControlTextboxSelection"), "PasteFromClipboard");
         yield return AccessTools.DeclaredMethod(typeof(MyClipboardService), "PasteFromClipboard");
+        yield return AccessTools.DeclaredMethod(typeof(MyTerminalGpsController), "PasteFromClipboard");
     }
 
     private static IEnumerable<CodeInstruction> Transpiler(IEnumerable<CodeInstruction> instructions)
