@@ -12,14 +12,15 @@ internal class AlcFactory : IPluginDependencyContextFactory
     private readonly IPluginServiceProviderFactory _serviceProviderFactory;
     private readonly IPluginEntrypoint _pluginEntrypoint;
     private readonly ContextParams? _contextParams;
+    private readonly AlcFactory? _parentFactory;
     public PluginAssemblyLoadContext? Context { get; private set; }
 
-    public AlcFactory(PluginAssemblyLoadContext context, IPluginEntrypoint pluginEntrypoint,
+    public AlcFactory(AlcFactory parentFactory, IPluginEntrypoint pluginEntrypoint,
         IPluginServiceProviderFactory serviceProviderFactory)
     {
         _serviceProviderFactory = serviceProviderFactory;
         _pluginEntrypoint = pluginEntrypoint;
-        Context = context;
+        _parentFactory = parentFactory;
     }
     
     public AlcFactory(string entrypointPath,
@@ -60,6 +61,11 @@ internal class AlcFactory : IPluginDependencyContextFactory
     private PluginAssemblyLoadContext CreateContext()
     {
         if (Context is not null) return Context;
+        if (_parentFactory is not null)
+        {
+            // in case parent wasn't attached in time, force context creation either way, it would be cached in both factories 
+            return Context = _parentFactory.CreateContext();
+        }
         if (_contextParams is null)
             throw new InvalidOperationException("AlcFactory requires a context parameter");
         if (AssemblyLoadContext.GetLoadContext(typeof(AlcFactory).Assembly) is not ICoreLoadContext parentContext)

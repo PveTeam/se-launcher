@@ -49,13 +49,17 @@ internal class CrashPadService
 
     public void PullPluginInfo(PluginsLifetime lifetime)
     {
-        var installedPlugins = lifetime.LoadedPlugins.Keys.Select(b => new CrashInformation.InstalledPlugin(b.Metadata.Name,
-            b.Metadata.Version.ToString(),
-            b.Metadata.Source)
+        var installedPlugins = lifetime.LoadedPlugins.Values.SelectMany(b => b.Instances.Values).Select(b =>
         {
-            Exception = b is PluginInstance { WrappedInstance.HasError: true } instance
-                ? CaptureExceptionFrame(instance.WrappedInstance.LastException)
-                : null
+            var metadata = b.PluginInstance.Metadata;
+            return new CrashInformation.InstalledPlugin(metadata.Name,
+                metadata.Version.ToString(),
+                metadata.Source)
+            {
+                Exception = b.PluginInstance is PluginInstance { WrappedInstance.HasError: true } instance
+                    ? CaptureExceptionFrame(instance.WrappedInstance.LastException)
+                    : null
+            };
         });
         
         NextInfo.Plugins.Clear();

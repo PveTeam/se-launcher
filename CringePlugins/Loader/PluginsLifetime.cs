@@ -39,7 +39,7 @@ internal class PluginsLifetime(
 
     public string Name => "Loading Plugins";
 
-    internal ImmutableDictionary<IPluginInstance, PluginInstanceData> LoadedPlugins = [];
+    internal ImmutableDictionary<string, PluginInstanceData> LoadedPlugins = [];
     internal ImmutableDictionary<string, PluginMetadata> Plugins = [];
     internal bool SomeSourcesAreUnavailable { get; private set; }
 
@@ -115,34 +115,43 @@ internal class PluginsLifetime(
             .ToDictionary(b => b.Package.Id, StringComparer.OrdinalIgnoreCase);
 
         var rootProvider = new PluginProviderPluginProvider();
+        var loadedComponents = ImmutableDictionary.CreateBuilder<string, PluginInstanceData>(StringComparer.OrdinalIgnoreCase);
 
-        var providerInstances = await LoadComponentsAsync(loadedPackages.Values, [rootProvider], sourceMapping,
-            packagesConfig, builtInPackages, cacheDir, []);
+        await LoadComponentsAsync(loadedPackages.Values, [rootProvider], sourceMapping,
+            packagesConfig, builtInPackages, cacheDir, loadedComponents);
         
-        AttachComponents(providerInstances);
+        AttachComponents(loadedComponents);
 
-        var providers = providerInstances.Keys.OfType<PluginProviderInstance>().Select(b => b.Provider)
+        var providers = loadedComponents.Values
+            .Select(b => b.Instances[PluginProviderPluginProvider.PackageType].PluginInstance)
+            .OfType<PluginProviderInstance>()
+            .Select(b => b.Provider)
             .Append(new PluginProvider.PluginProvider(packageType))
             .ToImmutableArray();
 
-        var loadedComponents =
-            providerInstances.ToImmutableDictionary(b => b.Key.Metadata.Id, b => b.Value,
-                StringComparer.OrdinalIgnoreCase);
-
-        LoadedPlugins = await LoadComponentsAsync(loadedPackages.Values, providers, sourceMapping,
+        await LoadComponentsAsync(loadedPackages.Values, providers, sourceMapping,
             packagesConfig, builtInPackages, cacheDir, loadedComponents);
+
+        LoadedPlugins = loadedComponents.ToImmutable();
         
-        Plugins = LoadedPlugins.Keys.ToImmutableDictionary(b => b.Metadata.Id, b => b.Metadata, StringComparer.OrdinalIgnoreCase);
+        Plugins = LoadedPlugins.Values.ToImmutableDictionary(b => b.Metadata.Id, b => b.Metadata,
+            StringComparer.OrdinalIgnoreCase);
 
         RenderHandler.Current.RegisterComponent(new PluginListComponent(_configReference, _launcherConfig,
-            sourceMapping, MyFileSystem.ExePath, LoadedPlugins.Keys, dir, cacheDir, loadedPackages));
+            sourceMapping, MyFileSystem.ExePath,
+            LoadedPlugins.Values.SelectMany(b => b.Instances.Values).Select(b => b.PluginInstance), dir, cacheDir,
+            loadedPackages));
 
         SomeSourcesAreUnavailable = sourceMapping.SomeSourcesAreUnavailable;
     }
 
-    private async Task<ImmutableDictionary<IPluginInstance, PluginInstanceData>> LoadComponentsAsync(IReadOnlyCollection<CachedPackage> packages,
-        ImmutableArray<IPluginProvider> providers, PackageSourceMapping sourceMapping, PackagesConfig packagesConfig,
-        ImmutableDictionary<string, ResolvedPackage> builtInPackages, DirectoryInfo cacheDir, ImmutableDictionary<string, PluginInstanceData> loadedComponents)
+    private async Task LoadComponentsAsync(IReadOnlyCollection<CachedPackage> packages,
+        ImmutableArray<IPluginProvider> providers, 
+        PackageSourceMapping sourceMapping, 
+        PackagesConfig packagesConfig,
+        ImmutableDictionary<string, ResolvedPackage> builtInPackages, 
+        DirectoryInfo cacheDir,
+        ImmutableDictionary<string, PluginInstanceData>.Builder loadedComponents)
     {
         var packageTypes = providers
             .SelectMany(b => b.PackageTypes.Select(c => new KeyValuePair<string, IPluginProvider>(c, b)))
@@ -162,7 +171,7 @@ internal class PluginsLifetime(
                 resolvedPackages.TryGetValue(dependency.Id, out var package);
                 return package?.Entry;
             },
-            isHostProvided: id => builtInPackages.ContainsKey(id));
+            isHostProvided: builtInPackages.ContainsKey);
 
         var componentPackages = packages.Where(package =>
                 !builtInPackages.ContainsKey(package.Package.Id) && package.Entry.PackageTypes is [..] &&
@@ -189,8 +198,6 @@ internal class PluginsLifetime(
                     packageTypes.Keys.Intersect(types).Any())
                 .ToHashSet();
         });
-
-        var plugins = ImmutableDictionary.CreateBuilder<IPluginInstance, PluginInstanceData>();
         
         foreach (var subGraph in DependenciesUtils.SplitIntoSubGraphs(dependenciesMap!))
         {
@@ -203,97 +210,113 @@ internal class PluginsLifetime(
             var order = 0;
             foreach (var package in sortedElements.OfType<CachedPackage>())
             {
-                if (package.Entry.PackageTypes is not [..] ||
-                    packageTypes.IntersectBy(package.Entry.PackageTypes.Value, b => b.Key).FirstOrDefault() is not
-                        { Value: { } provider })
+                if (package.Entry.PackageTypes is not [..])
                     continue;
                 
-                anyLoaded = true;
-                var packageClient = await sourceMapping.GetClientAsync(package.Package.Id);
-
-                string packageDir;
-                if (package is LocalPluginPackage)
-                    packageDir = package.Directory.FullName;
-                else
+                foreach (var (providerKey, provider) in packageTypes.IntersectBy(package.Entry.PackageTypes.Value, b => b.Key))
                 {
-                    packageDir = Path.Join(package.Directory.FullName, "lib",
-                        package.ResolvedFramework.GetShortFolderName());
-                    
-                    var path = Path.Join(packageDir, $"{package.Package.Id}.deps.json");
-                    if (!File.Exists(path))
+                    anyLoaded = true;
+                    var packageClient = await sourceMapping.GetClientAsync(package.Package.Id);
+
+                    string packageDir;
+                    if (package is LocalPluginPackage)
+                        packageDir = package.Directory.FullName;
+                    else
                     {
-                        if (packageClient == null)
-                        {
-                            Log.Warn("No package source found for {Package}, cannot generate dependency manifest",
-                                package.Package.Id);
-                            continue;
-                        }
+                        packageDir = Path.Join(package.Directory.FullName, "lib",
+                            package.ResolvedFramework.GetShortFolderName());
 
-                        try
+                        var path = Path.Join(packageDir, $"{package.Package.Id}.deps.json");
+                        if (!File.Exists(path))
                         {
-                            await using var stream = File.Create(path);
+                            if (packageClient == null)
+                            {
+                                Log.Warn("No package source found for {Package}, cannot generate dependency manifest",
+                                    package.Package.Id);
+                                continue;
+                            }
 
-                            //client should not be null for calls to this
-                            //filter out plugins from the dependency tree so they're loaded as port of their own trees
-                            await manifestBuilder.WriteDependencyManifestAsync(stream, package.Entry, _runtimeFramework,
-                                dependency => !dependency.PackageTypes.GetValueOrDefault([]).Any(packageTypes.ContainsKey));
-                        }
-                        catch (Exception ex)
-                        {
-                            Log.Error(ex, $"Failed to write dependency manifest for {path}");
-                            File.Delete(path); //delete file to avoid breaking cache
-                            throw;
+                            try
+                            {
+                                await using var stream = File.Create(path);
+
+                                //client should not be null for calls to this
+                                //filter out plugins from the dependency tree so they're loaded as port of their own trees
+                                await manifestBuilder.WriteDependencyManifestAsync(stream, package.Entry,
+                                    _runtimeFramework,
+                                    dependency =>
+                                        !dependency.PackageTypes.GetValueOrDefault([]).Any(packageTypes.ContainsKey));
+                            }
+                            catch (Exception ex)
+                            {
+                                Log.Error(ex, $"Failed to write dependency manifest for {path}");
+                                File.Delete(path); //delete file to avoid breaking cache
+                                throw;
+                            }
                         }
                     }
-                }
-                
-                var assetsDirectory = new DirectoryInfo(Path.Join(package.Directory.FullName, "assets"));
-                if (!assetsDirectory.Exists) assetsDirectory = null;
 
-                var sourceName = package is LocalPluginPackage
-                    ? "Local"
-                    : packageClient == null
-                        ? "Local Cache"
-                        : packagesConfig.Sources.First(b => b.Url == packageClient.ToString()).Name;
+                    var assetsDirectory = new DirectoryInfo(Path.Join(package.Directory.FullName, "assets"));
+                    if (!assetsDirectory.Exists) assetsDirectory = null;
 
-                var entryTitle = string.IsNullOrEmpty(package.Entry.Title) ? package.Package.Id : package.Entry.Title;
-                var metadata = new PluginMetadata(package.Package.Id, entryTitle, package.Package.Version,
-                    sourceName);
+                    var sourceName = package is LocalPluginPackage
+                        ? "Local"
+                        : packageClient == null
+                            ? "Local Cache"
+                            : packagesConfig.Sources.First(b => b.Url == packageClient.ToString()).Name;
 
-                var entrypointPath = Path.Join(packageDir, $"{package.Package.Id}.dll");
-                var entrypoint = new LazyPluginEntrypoint(metadata, provider);
+                    var entryTitle = string.IsNullOrEmpty(package.Entry.Title)
+                        ? package.Package.Id
+                        : package.Entry.Title;
+                    var metadata = new PluginMetadata(package.Package.Id, entryTitle, package.Package.Version,
+                        sourceName);
 
-                var factory = loadedComponents.TryGetValue(package.Package.Id, out var instanceData)
-                    ? new AlcFactory(instanceData.ContextFactory.Context!, entrypoint, serviceProviderFactory)
-                    : new AlcFactory(entrypointPath, entrypoint, package is LocalPluginPackage pluginPackage
-                            ? pluginPackage.DependencyResolver
-                            : new(entrypointPath), serviceProviderFactory, parent, package is LocalPluginPackage,
-                        serviceProvider.GetRequiredService<ITransformationService>(), provider, metadata);
+                    var entrypointPath = Path.Join(packageDir, $"{package.Package.Id}.dll");
+                    var entrypoint = new LazyPluginEntrypoint(metadata, provider);
 
-                var topoIndex = order;
-                order++;
+                    var factory = loadedComponents.TryGetValue(package.Package.Id, out var instanceData) &&
+                                  instanceData.Instances.Count > 0 && instanceData.Instances.Last().Value is { } contextInstanceData
+                        ? new AlcFactory(contextInstanceData.ContextFactory, entrypoint,
+                            serviceProviderFactory)
+                        : new AlcFactory(entrypointPath, entrypoint, package is LocalPluginPackage pluginPackage
+                                ? pluginPackage.DependencyResolver
+                                : new(entrypointPath), serviceProviderFactory, parent, package is LocalPluginPackage,
+                            serviceProvider.GetRequiredService<ITransformationService>(), provider, metadata);
 
-                try
-                {
-                    var pluginInstance = provider.LoadComponent(metadata, factory);
+                    var topoIndex = order;
+                    order++;
 
-                    if (pluginInstance is not null && !plugins.TryAdd(pluginInstance, new(factory, topoIndex)))
+                    try
                     {
+                        var pluginInstance = provider.LoadComponent(metadata, factory);
 
-                        plugins.TryGetKey(pluginInstance, out var actualInstance);
-                        plugins.TryGetValue(actualInstance, out var actualData);
-                        Log.Warn(
-                            "Plugin Id {PluginId} is already occupied, using previously loaded {PreviousMetadata} instead of {NewMetadata}",
-                            metadata.Id, actualInstance.Metadata, metadata);
-                        factory = actualData!.ContextFactory;
+                        if (pluginInstance is not null)
+                        {
+                            if (!loadedComponents.TryGetValue(metadata.Id, out var pluginInstanceData))
+                            {
+                                pluginInstanceData = new(metadata);
+                                loadedComponents.Add(metadata.Id, pluginInstanceData);
+                            }
+
+                            pluginInstanceData.Order = topoIndex;
+                            
+                            if (!pluginInstanceData.Instances.TryAdd(providerKey, new(pluginInstance, factory)))
+                            {
+                                pluginInstanceData.Instances.TryGetValue(providerKey, out var actualData);
+                                Log.Warn(
+                                    "Provider {ProviderKey} is already occupied by {PreviousInstance} for plugin {PluginId}! Using previous instance instead",
+                                    providerKey, actualData?.PluginInstance, metadata.Id);
+                                factory = actualData!.ContextFactory;
+                            }
+                        }
                     }
+                    catch (Exception e)
+                    {
+                        Log.Error(e, "Failed to load plugin {PluginPath}", entrypointPath);
+                    }
+
+                    parent = factory;
                 }
-                catch (Exception e)
-                {
-                    Log.Error(e, "Failed to load plugin {PluginPath}", entrypointPath);
-                }
-                
-                parent = factory;
             }
             
             if (anyLoaded)
@@ -301,8 +324,6 @@ internal class PluginsLifetime(
                     string.Join(", ", sortedElements.Select(b =>
                         string.IsNullOrEmpty(b.Entry.Title) ? b.Entry.Id : b.Entry.Title)));
         }
-
-        return plugins.ToImmutable();
     }
 
     public static async Task ReloadPluginAsync(IPluginInstance instance)
@@ -319,16 +340,18 @@ internal class PluginsLifetime(
 
     public void RegisterLifetime() => AttachComponents(LoadedPlugins);
 
-    private static void AttachComponents(ImmutableDictionary<IPluginInstance, PluginInstanceData> instances)
+    private static void AttachComponents(IReadOnlyDictionary<string, PluginInstanceData> instances)
     {
-        // Dependency-first instantiation: a package's ALC (and its host role, e.g. a combined
-        // provider+plugin package) must exist before anything that depends on it instantiates.
-        foreach (var (instance, data) in instances.OrderBy(b => b.Value.Order))
+        foreach (var data in instances.OrderBy(b => b.Value.Order)
+                     .SelectMany(b => b.Value.Instances.Values)
+                     .Where(b => !b.Attached))
         {
+            var instance = data.PluginInstance;
             try
             {
                 instance.Instantiate();
                 instance.RegisterLifetime();
+                data.Attached = true;
             }
             catch (Exception e)
             {
@@ -421,5 +444,14 @@ internal class PluginsLifetime(
         cacheDir = cacheDir.CreateSubdirectory(new NuGetFramework(_runtimeFramework.Framework.Framework, _runtimeFramework.Framework.Version).GetShortFolderName());
     }
 
-    internal record PluginInstanceData(AlcFactory ContextFactory, int Order = 0);
+    internal record PluginInstanceData(PluginMetadata Metadata)
+    {
+        public OrderedDictionary<string, PluginContextInstanceData> Instances { get; } = new();
+        public int Order { get; set; }
+    }
+
+    internal record PluginContextInstanceData(IPluginInstance PluginInstance, AlcFactory ContextFactory)
+    {
+        public bool Attached { get; set; }
+    }
 }

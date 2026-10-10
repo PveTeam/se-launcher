@@ -8,7 +8,8 @@ namespace CringePlugins.Loader.ProviderProvider;
 
 internal class PluginProviderPluginProvider : IPluginProvider
 {
-    public FrozenSet<string> PackageTypes { get; } = ["CringePluginProvider"];
+    public const string PackageType = "CringePluginProvider";
+    public FrozenSet<string> PackageTypes { get; } = [PackageType];
 
     public IPluginInstance LoadComponent(PluginMetadata metadata, IPluginDependencyContextFactory dependencyContextFactory)
     {
