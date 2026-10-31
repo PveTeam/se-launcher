@@ -102,7 +102,7 @@ public class PackageResolver(NuGetFramework runtimeFramework, ImmutableHashSet<P
         }
 
         var dependencyVersions = new Dictionary<Package, VersionRange>();
-        var dependencyPackages = new HashSet<RemoteDependencyPackage>();
+        var dependencyPackages = new Dictionary<Package, RemoteDependencyPackage>();
         
         var pending = new Queue<ResolvedPackage>(set);
         var nextOrder = set.Count;
@@ -111,6 +111,14 @@ public class PackageResolver(NuGetFramework runtimeFramework, ImmutableHashSet<P
             var package = pending.Dequeue();
             if (package is not RemotePackage and not RemoteDependencyPackage)
                 continue;
+
+            //the entry may have been replaced by a different version since it was queued
+            if (packages.TryGetValue(package.Package, out var currentEntry) && currentEntry.Version != package.Package.Version)
+            {
+                Log.Debug("Skipping superseded {Package} {Version} (replaced by {CurrentVersion})",
+                    package.Package.Id, package.Package.Version, currentEntry.Version);
+                continue;
+            }
 
             if (package.Entry.DependencyGroups is null)
                 Log.Warn("No dependency metadata for {Package} {Version} (framework {Framework})",
@@ -202,12 +210,17 @@ public class PackageResolver(NuGetFramework runtimeFramework, ImmutableHashSet<P
                     var replacementGroup = NuGetFrameworkUtility.GetNearest(catalogEntry.DependencyGroups ?? [], runtimeFramework, g => g.TargetFramework)
                          ?? throw new NotSupportedException($"Unable to find compatible dependency group for {dependencyPackage} as dependency of {package.Package}");
 
+                    if (!dependencyPackages.Remove(dependencyPackage, out var replaced))
+                        throw new InvalidOperationException(
+                            $"Replaced dependency {id} {existingCatalog.Version} -> {dependencyPackage.Version} wasn't there (required by {package.Package})");
+
+                    set.Remove(replaced);
+
                     var replacement = new RemoteDependencyPackage(dependencyPackage, replacementGroup.TargetFramework, client, package, catalogEntry);
 
-                    if (!dependencyPackages.Remove(replacement))
-                        throw new InvalidOperationException("Replaced dependency wasn't there");
-
-                    dependencyPackages.Add(replacement);
+                    dependencyPackages[dependencyPackage] = replacement;
+                    set.Add(replacement);
+                    pending.Enqueue(replacement);
 
                     continue;
                 }
@@ -219,7 +232,7 @@ public class PackageResolver(NuGetFramework runtimeFramework, ImmutableHashSet<P
                     g => g.TargetFramework) ?? throw new NotSupportedException($"Unable to find compatible dependency group for {dependencyPackage} as dependency of {package.Package}");
 
                 var dependency = new RemoteDependencyPackage(dependencyPackage, nearestGroup.TargetFramework, client, package, catalogEntry);
-                dependencyPackages.Add(dependency);
+                dependencyPackages[dependencyPackage] = dependency;
                 set.Add(dependency);
                 pending.Enqueue(dependency);
             }
