@@ -11,7 +11,8 @@ public class VersionRangeJsonConverter : JsonConverter<VersionRange>
         if (reader.TokenType != JsonTokenType.String)
             throw new JsonException("Invalid version range");
 
-        return VersionRange.Parse(reader.GetString()!);
+        var str = reader.GetString();
+        return string.IsNullOrEmpty(str) ? VersionRange.AllStable : VersionRange.Parse(str);
     }
 
     public override void Write(Utf8JsonWriter writer, VersionRange value, JsonSerializerOptions options)
