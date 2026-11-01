@@ -78,7 +78,7 @@ public static class DependencyManifestSerializer
     public static ValueTask<DependenciesManifest> DeserializeAsync(Stream stream) => JsonSerializer.DeserializeAsync<DependenciesManifest>(stream, SerializerOptions)!;
 }
 
-public class DependencyManifestBuilder(DirectoryInfo cacheDirectory, PackageSourceMapping packageSources, Func<Models.Dependency, CatalogEntry?> catalogEntryResolver, Func<string, bool>? isHostProvided = null)
+public class DependencyManifestBuilder(DirectoryInfo cacheDirectory, PackageSourceMapping packageSources, Func<Models.Dependency, CatalogEntry?> catalogEntryResolver)
 {
     private static readonly Logger Log = LogManager.GetCurrentClassLogger();
     public async ValueTask WriteDependencyManifestAsync(Stream stream, CatalogEntry catalogEntry, NuGetRuntimeFramework targetFramework, Predicate<CatalogEntry>? dependencyLeafPredicate = null)
@@ -125,19 +125,7 @@ public class DependencyManifestBuilder(DirectoryInfo cacheDirectory, PackageSour
         {
             var entry = catalogEntryResolver(dependency);
 
-            // The predicate decides whether a DEPENDENCY (a leaf in the manifest tree) is a
-            // component that must be loaded through its own context. The root's own mapping
-            // happens above, so the predicate can never skip the root itself.
-            if (entry is null)
-            {
-                Log.Debug(isHostProvided?.Invoke(dependency.Id) is true
-                        ? "Dependency {Dependency} {Range} of {Package} {Version} is provided by the host"
-                        : "Dependency {Dependency} {Range} of {Package} {Version} was not resolved",
-                    dependency.Id, dependency.Range, catalogEntry.Id, catalogEntry.Version);
-                continue;
-            }
-
-            if (dependencyLeafPredicate?.Invoke(entry) is false)
+            if (entry is null || dependencyLeafPredicate?.Invoke(entry) is false)
                 continue;
 
             await MapCatalogEntryAsync(entry, targetFramework, targets, libraries, dependencyLeafPredicate);

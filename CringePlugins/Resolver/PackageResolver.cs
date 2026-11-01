@@ -16,7 +16,7 @@ namespace CringePlugins.Resolver;
 public class PackageResolver(NuGetFramework runtimeFramework, ImmutableHashSet<PackageReference> references, PackageSourceMapping packageSources)
 {
     private static readonly ILogger Log = LogManager.GetCurrentClassLogger();
-    public async Task<ImmutableSortedSet<ResolvedPackage>> ResolveAsync(DirectoryInfo baseDir, bool disableUpdates, IReadOnlySet<string> builtinPackages, List<PackageReference> invalidPackages)
+    public async Task<ImmutableSortedSet<ResolvedPackage>> ResolveAsync(DirectoryInfo baseDir, bool disableUpdates, ImmutableDictionary<string, ResolvedPackage> builtinPackages, List<PackageReference> invalidPackages)
     {
         var order = 0;
         var packages = new Dictionary<Package, CatalogEntry>();
@@ -134,10 +134,15 @@ public class PackageResolver(NuGetFramework runtimeFramework, ImmutableHashSet<P
 
             foreach (var (id, versionRange) in dependencies)
             {
-                if (builtinPackages.Contains(id))
+                if (builtinPackages.TryGetValue(id, out var builtin))
                 {
-                    Log.Debug("Skipping {Dependency} {Range} of {Package}: provided by the host", id, versionRange, package.Package.Id);
-                    continue;
+                    if (versionRange.Satisfies(builtin.Package.Version))
+                    {
+                        Log.Debug("Skipping {Dependency} {Range} of {Package}: provided by the host", id, versionRange,
+                            package.Package.Id);
+                        continue;
+                    }
+                    Log.Warn("Package {Dependency} is upgraded to {Range} from builtin {Version} by {RequestingPackage}", id, versionRange, builtin.Package.Version, package.Package);
                 }
 
                 var (items, client, _) = await ResolvePackageEntriesAsync(baseDir, packageSources, id);
@@ -374,14 +379,14 @@ public class PackageResolver(NuGetFramework runtimeFramework, ImmutableHashSet<P
     }
 
     public static async Task<ImmutableHashSet<CachedPackage>> DownloadPackagesAsync(DirectoryInfo baseDirectory,
-        IReadOnlySet<ResolvedPackage> resolvedPackages, IReadOnlySet<string>? ignorePackages = null, IProgress<float>? progress = null)
+        IReadOnlySet<ResolvedPackage> resolvedPackages, ImmutableDictionary<string, ResolvedPackage>? ignorePackages = null, IProgress<float>? progress = null)
     {
         var packages = ImmutableHashSet<CachedPackage>.Empty.ToBuilder();
 
         var i = 0f;
         foreach (var package in resolvedPackages)
         {
-            if (ignorePackages?.Contains(package.Package.Id) == true)
+            if (ignorePackages?.TryGetValue(package.Package.Id, out var ignoredPackage) == true && ignoredPackage.Package.Version >= package.Package.Version)
             {
                 Log.Debug("Not staging {Package} {Version}: provided by the host", package.Package.Id, package.Package.Version);
                 continue;

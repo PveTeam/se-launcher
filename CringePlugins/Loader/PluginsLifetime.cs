@@ -77,13 +77,12 @@ internal class PluginsLifetime(
         var sourceMapping = new PackageSourceMapping(packagesConfig.Sources, client);
 
         var builtInPackages = await BuiltInPackages.GetPackagesAsync(_runtimeFramework);
-        var builtInPackageIds = builtInPackages.Keys.ToHashSet();
         
         // TODO take into account the target framework runtime identifier
         var resolver = new PackageResolver(_runtimeFramework.Framework, [..packagesConfig.Packages, ..localRequestedReferences], sourceMapping);
         
         var invalidPackages = new List<PackageReference>();
-        var packages = await resolver.ResolveAsync(cacheDir, launcherConfig.DisablePluginUpdates, builtInPackageIds, invalidPackages);
+        var packages = await resolver.ResolveAsync(cacheDir, launcherConfig.DisablePluginUpdates, builtInPackages, invalidPackages);
 
         if (invalidPackages.Count > 0)
         {
@@ -102,7 +101,7 @@ internal class PluginsLifetime(
         progress.Report("Downloading packages");
 
         var cachedPackages =
-            await PackageResolver.DownloadPackagesAsync(cacheDir, packages, builtInPackageIds, progress);
+            await PackageResolver.DownloadPackagesAsync(cacheDir, packages, builtInPackages, progress);
 
         progress.Report("Loading plugins");
 
@@ -156,25 +155,26 @@ internal class PluginsLifetime(
         var packageTypes = providers
             .SelectMany(b => b.PackageTypes.Select(c => new KeyValuePair<string, IPluginProvider>(c, b)))
             .ToImmutableDictionary();
-        
-        var resolvedPackages = builtInPackages.ToDictionary();
-        foreach (var package in packages)
-        {
-            resolvedPackages.TryAdd(package.Package.Id, package);
-        }
 
+        var resolvedPackages =
+            packages.ToDictionary<ResolvedPackage, string, ResolvedPackage>(b => b.Package.Id, b => b,
+                StringComparer.OrdinalIgnoreCase);   // staged versions win
+        
+        foreach (var (id, package) in builtInPackages) resolvedPackages.TryAdd(id, package);
+        
         var manifestBuilder = new DependencyManifestBuilder(cacheDir, sourceMapping,
             dependency =>
             {
-                if (builtInPackages.ContainsKey(dependency.Id))
+                if (builtInPackages.TryGetValue(dependency.Id, out var builtin) && dependency.Range.Satisfies(builtin.Package.Version))
                     return null;
+
                 resolvedPackages.TryGetValue(dependency.Id, out var package);
                 return package?.Entry;
-            },
-            isHostProvided: builtInPackages.ContainsKey);
+            });
 
         var componentPackages = packages.Where(package =>
-                !builtInPackages.ContainsKey(package.Package.Id) && package.Entry.PackageTypes is [..] &&
+                !(builtInPackages.TryGetValue(package.Package.Id, out var builtin) &&
+                  builtin.Package.Version >= package.Package.Version) && package.Entry.PackageTypes is [..] &&
                 packageTypes.Keys.Intersect(package.Entry.PackageTypes).Any())
             .ToImmutableArray();
 
