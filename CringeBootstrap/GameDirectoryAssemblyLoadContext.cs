@@ -56,7 +56,7 @@ public partial class GameDirectoryAssemblyLoadContext : AssemblyLoadContext, ICo
         if (key.StartsWith("System.") || ReferenceAssemblies.Contains(key))
             return;
 
-        _assemblyNames.TryAdd(key, file);
+        _assemblyNames[key] = file;
     }
 
     public void AddDependencyOverride(string name)
