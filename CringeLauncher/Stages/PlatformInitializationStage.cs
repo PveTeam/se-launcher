@@ -17,6 +17,7 @@ using VRage.FileSystem;
 using VRage.Game;
 using VRage.Game.Localization;
 using VRage.Input;
+using VRage.Render;
 using VRageRender;
 
 namespace CringeLauncher.Stages;
@@ -41,7 +42,7 @@ internal class PlatformInitializationStage(
         crashPadService.NextInfo.Version.GameVersion = MyFinalBuildConstants.APP_VERSION.ToString();
         crashPadService.MarkSavePoint();
         
-        MyShaderCompiler.Init(MyShaderCompiler.TargetPlatform.PC, false);
+        MyShaderCompiler.Init(TargetPlatform.PC, false);
         
         MyVRage.Init(new VRageLauncherPlatform(MyPerGameSettings.BasicGameInfo.ApplicationName,
             gameDataDirectoryPathOverride is null

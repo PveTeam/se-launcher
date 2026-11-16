@@ -16,7 +16,7 @@
   </ItemGroup>
   <ItemGroup>
     <!-- Game version dependency -->
-    <PackageVersion Include="SpaceEngineersDedicated.ReferenceAssemblies" Version="1.210.11.1" />
+    <PackageVersion Include="SpaceEngineersDedicated.ReferenceAssemblies" Version="1.211.17" />
   </ItemGroup>
   <ItemGroup>
     <!-- Test Plugin Dependencies -->

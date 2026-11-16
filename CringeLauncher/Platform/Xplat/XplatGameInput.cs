@@ -291,20 +291,15 @@ internal unsafe class XplatGameInput : IVRageInput2
     }
 
     public List<string> EnumerateJoystickNames() => [];
+    public List<MyJoystickInfo> EnumerateJoystickDevices() => [];
 
-    public string? InitializeJoystickIfPossible(string joystickInstanceName)
-    {
-        return null;
-    }
+    public string? InitializeJoystickIfPossible(int id, string joystickInstanceId, string? otherSlotInstanceId = null) => null;
 
-    public bool IsJoystickAxisSupported(MyJoystickAxesEnum axis)
-    {
-        return false;
-    }
+    public bool IsJoystickAxisSupported(int id, MyJoystickAxesEnum axis) => false;
 
-    public bool IsJoystickConnected() => _gamepadId.HasValue;
+    public bool IsJoystickConnected(int id) => _gamepadId.HasValue;
 
-    public void GetJoystickState(ref MyJoystickState state)
+    public void GetJoystickState(int id, ref MyJoystickState state)
     {
     }
 
