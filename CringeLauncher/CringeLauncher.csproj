@@ -8,6 +8,7 @@
         <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
         <EnableWindowsTargeting>true</EnableWindowsTargeting>
         <NoWarn>$(NoWarn);WFO1000</NoWarn>
+        <WarningsAsErrors>$(WarningsAsErrors);MHA001;MHA002;MHA003;MHA004;MHA005;MHA006;MHA007;MHA008;MHA009;MHA010;MHA011;MHA012;MHA013;MHA014;MHA015;MHA018</WarningsAsErrors>
         <IsPackable>false</IsPackable>
     </PropertyGroup>
     
@@ -82,6 +83,10 @@
         <PackageReference Include="NLog" />
         <PackageReference Include="Microsoft.CodeAnalysis.CSharp" />
         <PackageReference Include="SpaceEngineersDedicated.ReferenceAssemblies" ExcludeAssets="runtime" />
+        <PackageReference Include="MicroUtils.HarmonyAnalyzers">
+            <PrivateAssets>all</PrivateAssets>
+            <IncludeAssets>runtime; build; native; contentfiles; analyzers</IncludeAssets>
+        </PackageReference>
     </ItemGroup>
 
     <ItemGroup>
